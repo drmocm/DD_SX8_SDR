@@ -70,7 +70,7 @@ void coordinate_axes(specdata *spec, unsigned char r,
     int i;
     for (i = 0; i < spec->width; i++){
 	// coordinate axes
-	plot(spec->data_points, i, spec->height/2, spec->width, r,g,b);
+	//plot(spec->data_points, i, spec->height/2, spec->width, r,g,b);
     }
     for (i = 0; i < spec->height; i++){
 	plot(spec->data_points, spec->width/2, i, spec->width, r,g,b);
@@ -173,6 +173,7 @@ void spec_display(specdata *spec, double *pow)
 //	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
 	plot(spec->data_points, i, y, spec->width, R,G,B);
     }
+    coordinate_axes(spec, 200, 255,0);
 }
 
 
