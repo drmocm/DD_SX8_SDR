@@ -284,7 +284,7 @@ void spec_write_csv (int fd, specdata *spec){
     FILE* fp = fdopen(fd, "w");
     
     for (int i = 0; i < width; i++){
-	fprintf(fp,"%.2f, %.2f\n",(double)(freqstart+step*i)/1000.0,
+	fprintf(fp,"%.3f, %.2f\n",(double)(freqstart+step*i)/1000.0,
 		spec->pow[i]);
     }
 }

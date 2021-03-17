@@ -23,7 +23,7 @@
 #define FREQ_RANGE (MAX_FREQ - MIN_FREQ)  
 
 #define FFT_LENGTH 1024
-#define FFT_SR (50000*FFT_LENGTH) // 1 point 50kHz (in MHz)
+#define FFT_SR (50000*FFT_LENGTH) // 1 point 50kHz (in Hz)
 #define WINDOW (FFT_SR/2/1000)    //center window 
 #define MAXWIN (FREQ_RANGE/WINDOW)
 
