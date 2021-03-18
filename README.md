@@ -1,3 +1,5 @@
+![spectrum](screenshot/spectrum.jpg)
+
 # 	DD_SX8_SPECTRUM
 
 ddsx8-spec is an example program written in C to show how to use the SDR mode
