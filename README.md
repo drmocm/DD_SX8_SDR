@@ -1,7 +1,7 @@
 # 	DD_SX8_SPECTRUM
 
-ddsx8-spec is an example program written in C to show IQ
-data with the DigitalDevices MAX SX8. The program calcualtes 
+ddsx8-spec is an example program written in C to show how to use the SDR mode
+of the DigitalDevices MAX SX8 to get IQ data. The program calcualtes 
 the frequency spectrum of the incoming signal around
 a given center frequency. The bandwidth used is 51.2 MHz.
 The spectrum is written to stdout either in the PAM image format
