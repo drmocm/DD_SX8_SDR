@@ -1,6 +1,6 @@
 ![spectrum](screenshot/spectrum.jpg)
 
-# 	DD_SX8_SPECTRUM
+# 	DD_SX8_SDR
 
 ddsx8-spec is an example program written in C to show how to use the SDR mode
 of the DigitalDevices MAX SX8 to get IQ data. The program calcualtes 
