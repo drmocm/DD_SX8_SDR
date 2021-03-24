@@ -99,7 +99,7 @@ int main(int argc, char **argv){
     int input = 0;
     uint32_t freq = -1;
     int use_window = 0;
-    double alpha = 20.0;
+    double alpha = 2.0;
     int fe_fd = -1;
     int fdin = -1;
     int fd = -1;
