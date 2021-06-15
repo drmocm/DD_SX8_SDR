@@ -18,7 +18,7 @@ void print_help(char *argv){
 		    " input    : the physical input of the SX8 (default=0)\n\n"
 		    " -k       : use Kaiser window before FFT\n\n"
 		    " -b       : turn on agc\n\n"
-		    " -n       : number of FFTs for average (default 1000)\n\n"
+		    " -n       : number of FFTs for averaging (default 1000)\n\n"
 		    " -c       : continuous output\n\n"
 		    " alpha    : parameter of the KAiser window\n\n", argv);
 }
