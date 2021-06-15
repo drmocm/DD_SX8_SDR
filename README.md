@@ -43,7 +43,7 @@ For usage information use the -h option.
 >./ddsx8-spec -h
 >
 >    usage:
->    ./ddsx8-spec [-f frequency] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-h]
+>    ./ddsx8-spec [-f frequency] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-n nfft] [-h]
 >
 >      frequency: center frequency of the spectrum in KHz
 >
@@ -56,7 +56,7 @@ For usage information use the -h option.
 >
 >      -b       : turn on agc
 >
->	   -n       : number of FFTs for average (default 1000)
+>	   -n       : number of FFTs for averaging (default 1000)
 >
 >      -c       : continuous output
 >
