@@ -56,6 +56,8 @@ For usage information use the -h option.
 >
 >      -b       : turn on agc
 >
+>	   -n       : number of FFTs for average (default 1000)
+>
 >      -c       : continuous output
 >
 >      alpha    : parameter of the KAiser window
