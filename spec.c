@@ -290,4 +290,7 @@ void spec_write_csv (int fd, specdata *spec){
     }
 }
 
+void spec_full_spectrum (int fd, specdata *spec){
 
+
+}

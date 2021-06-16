@@ -6,6 +6,7 @@
 #define SINGLE_PAM 0
 #define MULTI_PAM  1
 #define CSV 2
+#define FULL_SPECTRUM 4
 
 
 void print_help(char *argv){
@@ -20,6 +21,7 @@ void print_help(char *argv){
 		    " -b       : turn on agc\n\n"
 		    " -n       : number of FFTs for averaging (default 1000)\n\n"
 		    " -c       : continuous output\n\n"
+		    " -x       : full spectrum scan\n\n"
 		    " alpha    : parameter of the KAiser window\n\n", argv);
 }
 
@@ -47,6 +49,7 @@ int parse_args(int argc, char **argv,
 	    {"agc", no_argument, 0, 'b'},
 	    {"continuous", no_argument, 0, 'c'},
 	    {"nfft", required_argument, 0, 'n'},	    
+	    {"full_spectrum", required_argument, 0, 'x'},	    
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
@@ -83,6 +86,9 @@ int parse_args(int argc, char **argv,
 	    break;
 	case 'n':
 	    *nfft = strtoul(optarg, NULL, 0);
+	    break;
+	case 'x':
+	    outmode = FULL_SPECTRUM;
 	    break;
 	case 'h':
 	    print_help(argv[0]);
@@ -149,5 +155,11 @@ int main(int argc, char **argv){
 	spec_read_data(fdin, &spec);
 	spec_write_csv(fileno(stdout), &spec);
 	break;
+
+    case FULL_SPECTRUM:
+	spec_full_spectrum(fdin, &spec);
+	break;
     }
+
+
 }

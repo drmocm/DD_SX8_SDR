@@ -44,5 +44,6 @@ int init_specdata(specdata *spec, uint32_t freq, int width, int height,
 void spec_read_data (int fdin, specdata *spec);
 void spec_write_pam (int fd, specdata *spec);
 void spec_write_csv (int fd, specdata *spec);
+void spec_full_spectrum (int fd, specdata *spec);
 
 #endif /* _SPEC_H_*/
