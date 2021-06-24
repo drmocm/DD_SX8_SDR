@@ -28,7 +28,7 @@ typedef struct io_data_{
 void print_help(char *argv){
 	    fprintf(stderr,"usage:\n"
                     "%s [-f frequency] [-a adapter] "
-		    "[-i input] [-k] [-l alpha] [-b] [-c] [-h]\n\n"
+		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-h]\n\n"
 		    " frequency: center frequency of the spectrum in KHz\n\n"
 		    " adapter  : the number n of the DVB adapter, i.e. \n"
 		    "            /dev/dvb/adapter[n] (default=0)\n\n"

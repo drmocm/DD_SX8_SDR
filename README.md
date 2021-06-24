@@ -43,7 +43,7 @@ For usage information use the -h option.
 >./ddsx8-spec -h
 >
 >    usage:
->    ./ddsx8-spec [-f frequency] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-n nfft] [-h]
+>    ./ddsx8-spec [-f frequency] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-n nfft] [-x] [-h] 
 >
 >      frequency: center frequency of the spectrum in KHz
 >
@@ -59,6 +59,8 @@ For usage information use the -h option.
 >	   -n       : number of FFTs for averaging (default 1000)
 >
 >      -c       : continuous output
+>
+>      -x       : full spectrum scan
 >
 >      alpha    : parameter of the KAiser window
 
@@ -80,4 +82,17 @@ or continuously:
 `./ddsx8-spec -f 1030000  -k -c  | ffplay -f pam_pipe -` 
 
 
+If you use the -t option and write the resulting comma separated list
+into the file test.csv like this: 
 
+`/ddsx8-spec -f 1210000  -b -t -n 1000 -i 1 > test.csv` 
+
+you can use the gnuplot program to display the data with the added 
+gnuplot file test.gnuplot like this:
+
+`gnuplot test.gnuplot` 
+
+The -x option can be used to get a full spectrum scan with CSV output
+like this ( it will take a few seconds ):
+
+`/ddsx8-spec -f 1210000  -x -b -t -n 1000 -i 1 > test.csv` 
