@@ -20,7 +20,6 @@ void init_spec(specdata *spec)
     spec->width = 0;
     spec->height = 0;
     spec->use_window = 0;
-    spec->full = 0;
 }
 
 int init_specdata(specdata *spec, int width, int height,
@@ -282,8 +281,10 @@ void spec_write_pam (int fd, specdata *spec){
     memset(spec->data_points,0,size*sizeof(char));
 }
 
-void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr){
-    write_csv (fd, spec->width, freq, fft_sr, spec->pow);
+void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center){
+    uint32_t step = fft_sr/spec->width/1000;
+    uint32_t freqstart = freq - spec->width/2*step;
+    write_csv (fd, spec->width, step, freqstart, spec->pow, center);
 }
 
 void write_pam (int fd, int width, int height, unsigned char *data_points)
@@ -296,14 +297,19 @@ void write_pam (int fd, int width, int height, unsigned char *data_points)
     we=write(fd,data_points,size);
 }
 
-void write_csv (int fd, int width, uint32_t freq, uint32_t fft_sr, double *pow)
+void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
+		double *pow, int center)
 {
-    uint32_t step = fft_sr/width/1000;
-    uint32_t freqstart = freq - width/2*step;
     FILE* fp = fdopen(fd, "w");
-    
-    for (int i = 0; i < width; i++){
-	fprintf(fp,"%.3f, %.2f\n",(double)(freqstart+step*i)/1000.0, pow[i]);
+    int start = 0;
+    int end = 0;
+    if (center){
+	start = width/4;
+	end = width/4*3;
     }
+    for (int i = start; i < end; i++){
+	fprintf(fp,"%.3f, %.2f\n",(double)(start_freq+step*i)/1000.0, pow[i]);
+    }
+    fflush(fp);
 }
 

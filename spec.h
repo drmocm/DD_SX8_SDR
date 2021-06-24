@@ -36,7 +36,6 @@ typedef struct specdata_
     int width;
     int height;
     int use_window;
-    int full;
 } specdata;
 
 void init_spec(specdata *spec);
@@ -44,8 +43,9 @@ int init_specdata(specdata *spec, int width, int height,
 		  double alpha, int maxrun, int use_window);
 void spec_read_data (int fdin, specdata *spec);
 void spec_write_pam (int fd, specdata *spec);
-void spec_write_csv (int fd, specdata *spec,uint32_t freq, uint32_t fft_sr);
+void spec_write_csv (int fd, specdata *spec,uint32_t freq,
+		     uint32_t fft_sr, int center);
 void write_pam (int fd, int width, int height, unsigned char *data_points);
-void write_csv (int fd, int width, uint32_t freq, uint32_t fft_sr, double *pow);
-
+void write_csv (int fd, int width, uint32_t freq,
+		uint32_t fft_sr, double *pow, int center);
 #endif /* _SPEC_H_*/
