@@ -11,16 +11,25 @@ int my_read(int fd, u_char *buf, int size)
     return re;
 }
 
-int init_specdata(specdata *spec, uint32_t freq, int width, int height,
+void init_spec(specdata *spec)
+{
+    spec->data_points = NULL;
+    spec->pow = NULL;
+    spec->alpha = 3.0;
+    spec-> maxrun = 2000;
+    spec->width = 0;
+    spec->height = 0;
+    spec->use_window = 0;
+    spec->full = 0;
+}
+
+int init_specdata(specdata *spec, int width, int height,
 		  double alpha, int maxrun, int use_window)
 {
     int numspec = width;
     spec->use_window = use_window;
     if (maxrun) spec->maxrun = maxrun;
-    else spec->maxrun = 2000;
-    spec->freq = freq;
     if (alpha) spec->alpha = alpha;
-    else spec->alpha = 20.0;
     
     spec->width = width;
     spec->height = height;
@@ -265,32 +274,36 @@ void spec_read_data (int fdin, specdata *spec)
     spec_display(spec, pow);
 }    
 
+
 void spec_write_pam (int fd, specdata *spec){
-    char *HEAD="P7\nWIDTH 1024\nHEIGHT 576\nDEPTH 3\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n";
-    int headlen = strlen(HEAD);
-    int width = spec->width;
-    int height = spec->height;
-    int size = width*height*3;
+    int size = spec->width*spec->height*3;
     
-    int we=0;
-    we=write(fd,HEAD,headlen);
-    we=write(fd,spec->data_points,size);
+    write_pam (fd, spec->width, spec->height, spec->data_points);
     memset(spec->data_points,0,size*sizeof(char));
 }
 
-void spec_write_csv (int fd, specdata *spec){
-    int width = spec->width;
-    uint32_t step = FFT_SR/width/1000;
-    uint32_t freqstart = spec->freq - width/2*step;
+void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr){
+    write_csv (fd, spec->width, freq, fft_sr, spec->pow);
+}
+
+void write_pam (int fd, int width, int height, unsigned char *data_points)
+{
+    char *HEAD="P7\nWIDTH 1024\nHEIGHT 576\nDEPTH 3\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n";
+    int headlen = strlen(HEAD);
+    int size = width*height*3;    
+    int we=0;
+    we=write(fd,HEAD,headlen);
+    we=write(fd,data_points,size);
+}
+
+void write_csv (int fd, int width, uint32_t freq, uint32_t fft_sr, double *pow)
+{
+    uint32_t step = fft_sr/width/1000;
+    uint32_t freqstart = freq - width/2*step;
     FILE* fp = fdopen(fd, "w");
     
     for (int i = 0; i < width; i++){
-	fprintf(fp,"%.3f, %.2f\n",(double)(freqstart+step*i)/1000.0,
-		spec->pow[i]);
+	fprintf(fp,"%.3f, %.2f\n",(double)(freqstart+step*i)/1000.0, pow[i]);
     }
 }
 
-void spec_full_spectrum (int fd, specdata *spec){
-
-
-}
