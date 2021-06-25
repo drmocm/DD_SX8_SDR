@@ -310,8 +310,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_read_data(iod->fdin, spec);
-		if (mode == CSV) {
-		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,1);
+		if (mode == CSV) {		    
+		    uint32_t freq = MIN_FREQ+iod->window/2+
+			iod->window*(iod->step-1);
+		    spec_write_csv(iod->fd_out, spec, freq, iod->fft_sr,1);
 		} else {
 		    fprintf(stderr,"Full spectrum only works with -t option\n");
 		    exit(1);
