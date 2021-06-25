@@ -127,3 +127,159 @@ int open_dvr(int adapter, int num)
 }
 
 
+static void diseqc_send_msg(int fd, fe_sec_voltage_t v, 
+                            struct dvb_diseqc_master_cmd *cmd,
+                            fe_sec_tone_mode_t t, fe_sec_mini_cmd_t b, 
+                            int wait)
+{
+        if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
+                perror("FE_SET_TONE failed");
+        if (ioctl(fd, FE_SET_VOLTAGE, v) == -1)
+                perror("FE_SET_VOLTAGE failed");
+        usleep(15 * 1000);
+        if (ioctl(fd, FE_DISEQC_SEND_MASTER_CMD, cmd) == -1)
+                perror("FE_DISEQC_SEND_MASTER_CMD failed");
+        usleep(wait * 1000);
+        usleep(15 * 1000);
+        if (ioctl(fd, FE_DISEQC_SEND_BURST, b) == -1)
+                perror("FE_DISEQC_SEND_BURST failed");
+        usleep(15 * 1000);
+        if (ioctl(fd, FE_SET_TONE, t) == -1)
+                perror("FE_SET_TONE failed");
+}
+
+static int diseqc(int fd, int sat, int hor, int band)
+{
+        struct dvb_diseqc_master_cmd cmd = {
+                .msg = {0xe0, 0x10, 0x38, 0xf0, 0x00, 0x00},
+                .msg_len = 4
+        };
+
+        hor &= 1;
+        cmd.msg[3] = 0xf0 | ( ((sat << 2) & 0x0c) | (band ? 1 : 0) | (hor ? 2 : 0));
+        
+        diseqc_send_msg(fd, hor ? SEC_VOLTAGE_18 : SEC_VOLTAGE_13,
+                        &cmd, band ? SEC_TONE_ON : SEC_TONE_OFF,
+                        (sat & 1) ? SEC_MINI_B : SEC_MINI_A, 0);
+	fprintf(stderr, "MS %02x %02x %02x %02x\n", 
+		cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
+        return 0;
+}
+
+static int set_en50494(int fd, uint32_t freq, uint32_t sr, 
+                       int sat, int hor, int band, 
+                       uint32_t slot, uint32_t ubfreq,
+                       fe_delivery_system_t ds, uint32_t id)
+{
+        struct dvb_diseqc_master_cmd cmd = {
+                .msg = {0xe0, 0x11, 0x5a, 0x00, 0x00},
+                .msg_len = 5
+        };
+        uint16_t t;
+        uint32_t input = 3 & (sat >> 6);
+
+        t = (freq + ubfreq + 2) / 4 - 350;
+        hor &= 1;
+
+        cmd.msg[3] = ((t & 0x0300) >> 8) | 
+                (slot << 5) | ((sat & 0x3f) ? 0x10 : 0) | (band ? 4 : 0) | (hor ? 8 : 0);
+        cmd.msg[4] = t & 0xff;
+
+        set_property(fd, DTV_INPUT, input);
+        if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
+                perror("FE_SET_TONE failed");
+        if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
+                perror("FE_SET_VOLTAGE failed");
+        usleep(15000);
+        if (ioctl(fd, FE_DISEQC_SEND_MASTER_CMD, &cmd) == -1)
+                perror("FE_DISEQC_SEND_MASTER_CMD failed");
+        usleep(15000);
+        if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
+                perror("FE_SET_VOLTAGE failed");
+
+        fprintf(stderr, "EN50494 %02x %02x %02x %02x %02x\n", 
+		cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
+	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
+
+}
+
+static int set_en50607(int fd, uint32_t freq, uint32_t sr, 
+                       int sat, int hor, int band, 
+                       uint32_t slot, uint32_t ubfreq,
+                       fe_delivery_system_t ds, uint32_t id)
+{
+        struct dvb_diseqc_master_cmd cmd = {
+                .msg = {0x70, 0x00, 0x00, 0x00, 0x00},
+                .msg_len = 4
+        };
+        uint32_t t = freq - 100;
+        uint32_t input = 3 & (sat >> 6);
+        
+        //printf("input = %u, sat = %u\n", input, sat&0x3f);
+        hor &= 1;
+        cmd.msg[1] = slot << 3;
+        cmd.msg[1] |= ((t >> 8) & 0x07);
+        cmd.msg[2] = (t & 0xff);
+        cmd.msg[3] = ((sat & 0x3f) << 2) | (hor ? 2 : 0) | (band ? 1 : 0);
+
+        set_property(fd, DTV_INPUT, input);
+        if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
+                perror("FE_SET_TONE failed");
+        if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
+                perror("FE_SET_VOLTAGE failed");
+        usleep(15000);
+        if (ioctl(fd, FE_DISEQC_SEND_MASTER_CMD, &cmd) == -1)
+                perror("FE_DISEQC_SEND_MASTER_CMD failed");
+        usleep(15000);
+        if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
+                perror("FE_SET_VOLTAGE failed");
+
+        fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
+                  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
+        fprintf(stderr, "EN50607 freq %u sr %u hor %u\n", 
+                  freq, sr, hor);
+	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
+}
+
+int tune_sat(int fd, fe_delivery_system_t ds, uint32_t freq,
+	     uint32_t sr, uint32_t pol,
+	     uint32_t scif_slot, uint32_t scif_freq,
+	     uint32_t hi, uint32_t src, uint32_t lnb, uint32_t lnc,
+	     uint32_t lofs, uint32_t lof1, uint32_t lof2, uint32_t sat,
+	     int delay, int start, int type, uint32_t input, uint32_t id)
+{
+	fprintf(stderr, "tune_sat freq=%u\n", freq);
+	
+	if (freq > 3000000) {
+	    if (lofs)
+                        hi = (freq > lofs) ? 1 : 0;
+                if (hi) 
+                        freq -= lof2;
+                else
+                        freq -= lof1;
+        }
+        fprintf(stderr, "tune_sat IF=%u\n", freq);
+        if (start) {
+                fprintf(stderr, "pre voltage %d\n", delay);
+                if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
+                        perror("FE_SET_VOLTAGE failed");
+                usleep(delay);
+        }
+        fprintf(stderr, "scif_type = %u\n", type);
+	int re=-1;
+        if (type == 1) { 
+	       re = set_en50494(fd, freq / 1000, sr, lnb, pol, hi,
+				scif_slot, scif_freq, ds, id);
+        } else if (type == 2) {
+	        re = set_en50607(fd, freq / 1000, sr, sat, pol, hi,
+				 scif_slot, scif_freq, ds, id);
+        } else {
+                if (input != (~0U)) {
+                        input = 3 & (input >> 6);
+                        printf("input = %u\n", input);
+                }
+                diseqc(fd, lnb, pol, hi);
+                re = set_fe_input(fd, freq, sr, ds, input, id );
+        }
+	return re;
+}

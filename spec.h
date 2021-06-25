@@ -18,7 +18,7 @@
 
 #define TS_SIZE 188
 #define MIN_FREQ     950000  // kHz
-#define MAX_FREQ    2050000  // kHz
+#define MAX_FREQ    2150000  // kHz
 
 #define FREQ_RANGE (MAX_FREQ - MIN_FREQ)  
 
