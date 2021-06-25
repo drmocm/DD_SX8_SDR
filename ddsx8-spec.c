@@ -18,11 +18,21 @@ typedef struct io_data_{
     int full;
     char *filename;
     uint32_t freq;
+    uint32_t sat;
+    uint32_t pol;
+    uint32_t hi;
+    uint32_t lnb;
+    uint32_t lofs;
+    uint32_t lof1;
+    uint32_t lof2;
+    uint32_t scif_slot;
+    uint32_t scif_freq;
     uint32_t fft_sr;
     uint32_t fft_length;
     uint32_t window;
     uint32_t id;
     int step;
+    int delay;
 } io_data;
 
 
@@ -52,9 +62,13 @@ void open_io(io_data *iod)
 	exit(1);
     }
 
-    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-		     SYS_DVBS2, iod->input, iod->id) < 0){
-	exit(1);
+    if (iod->delay) power_on_delay(iod->fe_fd, 1000);
+    
+    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
+	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
+			 SYS_DVBS2, iod->input, iod->id) < 0){
+	    exit(1);
+	}
     }
     
     if ( (iod->fd_dmx = open_dmx(iod->adapter, iod->input)) < 0){
@@ -114,6 +128,8 @@ void init_io(io_data *iod)
     iod->freq = -1;
     iod->fft_sr = FFT_SR;
     iod->step = -1;
+    iod->delay = 0;
+    iod->pol = -1;
 }
 
 void set_io(io_data *iod, int adapter, int num,
@@ -163,7 +179,9 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"alpha", required_argument, 0, 'l'},
 	    {"input", required_argument, 0, 'i'},
 	    {"agc", no_argument, 0, 'b'},
+	    {"d", no_argument, 0, 'd'},
 	    {"continuous", no_argument, 0, 'c'},
+	    {"polarisation", no_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
 	    {"nfft", required_argument, 0, 'n'},	    
 	    {"full_spectrum", required_argument, 0, 'x'},	    
@@ -172,7 +190,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:xq",
+			"f:a:kl:i:bctn:ho:xqdp:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -309,7 +327,6 @@ int main(int argc, char **argv){
     if ((outm = parse_args(argc, argv, &spec, &iod)) < 0)
 	exit(1);
 
-//    if (!iod.full)
     open_io(&iod);
 
     spectrum_output (outm&3,  &iod, &spec );

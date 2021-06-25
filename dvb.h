@@ -23,10 +23,16 @@
 int set_fe_input(int fd, uint32_t fr,
 		 uint32_t sr, fe_delivery_system_t ds,
 		 uint32_t input, uint32_t id);
-
+int diseqc(int fd, int sat, int hor, int band);
 int open_dmx(int adapter, int num);
 int open_fe(int adapter, int num);
 int open_dvr(int adapter, int num);
-
+int tune_sat(int fd, int type, uint32_t freq, 
+	     uint32_t sr, fe_delivery_system_t ds, 
+	     uint32_t input, uint32_t id, 
+	     uint32_t sat, uint32_t pol, uint32_t hi,
+	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
+	     uint32_t scif_slot, uint32_t scif_freq);
+void power_on_delay(int fd, int delay);
 #endif
 

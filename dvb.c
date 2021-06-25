@@ -148,7 +148,7 @@ static void diseqc_send_msg(int fd, fe_sec_voltage_t v,
                 perror("FE_SET_TONE failed");
 }
 
-static int diseqc(int fd, int sat, int hor, int band)
+int diseqc(int fd, int sat, int hor, int band)
 {
         struct dvb_diseqc_master_cmd cmd = {
                 .msg = {0xe0, 0x10, 0x38, 0xf0, 0x00, 0x00},
@@ -241,12 +241,20 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 }
 
-int tune_sat(int fd, fe_delivery_system_t ds, uint32_t freq,
-	     uint32_t sr, uint32_t pol,
-	     uint32_t scif_slot, uint32_t scif_freq,
-	     uint32_t hi, uint32_t src, uint32_t lnb, uint32_t lnc,
-	     uint32_t lofs, uint32_t lof1, uint32_t lof2, uint32_t sat,
-	     int delay, int start, int type, uint32_t input, uint32_t id)
+void power_on_delay(int fd, int delay)
+{
+        fprintf(stderr, "pre voltage %d\n", delay);
+	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
+	    perror("FE_SET_VOLTAGE failed");
+	usleep(delay);
+}
+
+int tune_sat(int fd, int type, uint32_t freq, 
+	     uint32_t sr, fe_delivery_system_t ds, 
+	     uint32_t input, uint32_t id, 
+	     uint32_t sat, uint32_t pol, uint32_t hi,
+	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
+	     uint32_t scif_slot, uint32_t scif_freq)
 {
 	fprintf(stderr, "tune_sat freq=%u\n", freq);
 	
@@ -259,12 +267,7 @@ int tune_sat(int fd, fe_delivery_system_t ds, uint32_t freq,
                         freq -= lof1;
         }
         fprintf(stderr, "tune_sat IF=%u\n", freq);
-        if (start) {
-                fprintf(stderr, "pre voltage %d\n", delay);
-                if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
-                        perror("FE_SET_VOLTAGE failed");
-                usleep(delay);
-        }
+
         fprintf(stderr, "scif_type = %u\n", type);
 	int re=-1;
         if (type == 1) { 
