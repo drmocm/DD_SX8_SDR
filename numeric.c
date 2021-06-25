@@ -80,7 +80,7 @@ void smooth(double *f, int l)
 {
     double av=0;
     double a = f[0];
-    for (int i=1; i < l-1; l++){
+    for (int i=1; i < l-1; i++){
 	double b = f[i-1];
 	double c = f[i];
 	double m = fmax(fmin(a,b), fmin(fmax(a,b),c));
@@ -89,7 +89,7 @@ void smooth(double *f, int l)
 	av += f[i];;
     }
     a = f[0];
-    for (int i=1; i < l-1; l++){
+    for (int i=1; i < l-1; i++){
 	double b = f[i];
 	f[i] = (a + f[i+1])/2.0;
 	a = b;

@@ -16,8 +16,9 @@
 #include <errno.h>
 
 #define DTV_INPUT 71
-#define AGC_ON  0x20000000
-#define AGC_OFF 0x20020092
+#define AGC_ON    0x20000000
+#define AGC_OFF   0x20020080
+#define AGC_OFF_C 0x20020020
 
 int set_fe_input(int fd, uint32_t fr,
 		 uint32_t sr, fe_delivery_system_t ds,

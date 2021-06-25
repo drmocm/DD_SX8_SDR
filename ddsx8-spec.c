@@ -78,6 +78,15 @@ int next_freq_step(io_data *iod)
     if (iod->step < 0) iod->step= 0;
     else iod->step+=1;
 
+    if (iod->step == 0 && iod->id == AGC_OFF){
+	fprintf(stderr,"Optimizing AGC\n",freq,iod->step);
+	freq = MIN_FREQ+FREQ_RANGE/2;
+	if (set_fe_input(iod->fe_fd, freq, iod->fft_sr,
+			 SYS_DVBS2, iod->input, iod->id) < 0){
+	    exit(1);
+	}
+	iod->id = AGC_OFF_C;
+    }
     freq = sfreq+WINDOW*iod->step;
     if (freq+WINDOW/2 > MAX_FREQ) return -1;
     iod->freq = freq;

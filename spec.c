@@ -246,7 +246,7 @@ int spec_fft(int fdin, specdata *spec, double *pow, int num)
     for (int i = 0; i < num; i ++){
 	pow[i] /=(double)count;
     }
-    
+    smooth(pow, num);
     return 0;
 }
 
