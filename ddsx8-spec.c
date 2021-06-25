@@ -19,6 +19,8 @@ typedef struct io_data_{
     char *filename;
     uint32_t freq;
     uint32_t fft_sr;
+    uint32_t fft_length;
+    uint32_t window;
     uint32_t id;
     int step;
 } io_data;
@@ -28,7 +30,7 @@ typedef struct io_data_{
 void print_help(char *argv){
 	    fprintf(stderr,"usage:\n"
                     "%s [-f frequency] [-a adapter] "
-		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-h]\n\n"
+		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-h]\n\n"
 		    " frequency: center frequency of the spectrum in KHz\n\n"
 		    " adapter  : the number n of the DVB adapter, i.e. \n"
 		    "            /dev/dvb/adapter[n] (default=0)\n\n"
@@ -39,6 +41,7 @@ void print_help(char *argv){
 		    " -c       : continuous PAM output\n\n"
 		    " -t       : output CSV \n\n"
 		    " -x       : full spectrum scan\n\n"
+		    " -q       : faster FFT\n\n"
 		    " alpha    : parameter of the KAiser window\n\n", argv);
 }
 
@@ -71,7 +74,7 @@ void close_io(io_data *iod)
 
 int next_freq_step(io_data *iod)
 {
-    uint32_t sfreq = MIN_FREQ+WINDOW/2;
+    uint32_t sfreq = MIN_FREQ+iod->window/2;
     uint32_t freq;
 	
     if (!iod->full) return -1;
@@ -87,16 +90,14 @@ int next_freq_step(io_data *iod)
 	}
 	iod->id = AGC_OFF_C;
     }
-    freq = sfreq+WINDOW*iod->step;
-    if (freq+WINDOW/2 > MAX_FREQ) return -1;
+    freq = sfreq+iod->window*iod->step;
+    if (freq+iod->window/2 > MAX_FREQ) return -1;
     iod->freq = freq;
-    fprintf(stderr,"Setting frequency %d step %d\n",freq,iod->step);
+    fprintf(stderr,"Setting frequency %d step %d %d\n",freq,iod->step, iod->fft_length);
     if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
 		     SYS_DVBS2, iod->input, iod->id) < 0){
 	exit(1);
     }
-    
-//    open_io(iod);
     
     return iod->step;
 }
@@ -116,14 +117,17 @@ void init_io(io_data *iod)
 }
 
 void set_io(io_data *iod, int adapter, int num,
-	    uint32_t freq, uint32_t sr, uint32_t id, int full)
+	    uint32_t freq, uint32_t sr, uint32_t length,
+	    uint32_t id, int full)
 {
     iod->adapter = adapter;
     iod->input = num;
     iod->freq = freq;
     iod->fft_sr = sr;
+    iod->fft_length = length;
     iod->id = id;
     iod->full = full;
+    iod->window = (sr/2/1000);
 }
 
 
@@ -135,12 +139,12 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int nfft = 1000; //number of FFTs for average
     int full = 0;
     int width = FFT_LENGTH;
-    int height = 9*width/16;
+    int height = 9*FFT_LENGTH/16;
     int outmode = SINGLE_PAM;
     int adapter = 0;
     int input = 0;
     uint32_t freq = -1;
-    uint32_t sr = FFT_SR;
+    uint32_t sr = 50000*FFT_LENGTH;
     uint32_t id = AGC_OFF;
     
     if (argc < 2) {
@@ -160,6 +164,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"input", required_argument, 0, 'i'},
 	    {"agc", no_argument, 0, 'b'},
 	    {"continuous", no_argument, 0, 'c'},
+	    {"quick", no_argument, 0, 'q'},
 	    {"nfft", required_argument, 0, 'n'},	    
 	    {"full_spectrum", required_argument, 0, 'x'},	    
 	    {"output", required_argument , 0, 'o'},
@@ -167,7 +172,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:x",
+			"f:a:kl:i:bctn:ho:xq",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -210,9 +215,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	case 'n':
 	    nfft = strtoul(optarg, NULL, 0);
 	    break;
+
 	case 'x':
 	    full = 1;
 	    break;
+
+	case 'q':
+	    width = FFT_LENGTH/2;
+	    break;
+
 	case 'h':
 	    print_help(argv[0]);
 	    return -1;
@@ -226,8 +237,9 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     }
 
     if (outm&FULL_SPECTRUM) full=1;
+    height = 9*width/16;
     
-    set_io(iod, adapter, input, freq, FFT_SR, id, full);
+    set_io(iod, adapter, input, freq, sr, width, id, full);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
@@ -259,6 +271,9 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		spec_read_data(iod->fdin, spec);
 		if (mode == CSV) {
 		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,1);
+		} else {
+		    fprintf(stderr,"Full spectrum only works with -t option\n");
+		    exit(1);
 		}
 	    }
 	}

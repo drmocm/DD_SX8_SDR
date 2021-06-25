@@ -289,7 +289,8 @@ void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int
 
 void write_pam (int fd, int width, int height, unsigned char *data_points)
 {
-    char *HEAD="P7\nWIDTH 1024\nHEIGHT 576\nDEPTH 3\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n";
+    char HEAD[255];
+    sprintf(HEAD,"P7\nWIDTH %d\nHEIGHT %d\nDEPTH 3\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n",width,height);
     int headlen = strlen(HEAD);
     int size = width*height*3;    
     int we=0;
