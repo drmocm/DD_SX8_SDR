@@ -47,6 +47,8 @@ For usage information use the -h option.
 >
 >      frequency: center frequency of the spectrum in KHz
 >
+>      pol      : polarisation 0=vertical 1=horizontal
+>
 >      adapter  : the number n of the DVB adapter, i.e. 
 >                 /dev/dvb/adapter[n] (default=0)
 >
@@ -61,6 +63,8 @@ For usage information use the -h option.
 >      -c       : continuous output
 >
 >      -x       : full spectrum scan
+>
+>      -d       :  use 1s delay to wait for LNB power up
 >
 >      alpha    : parameter of the KAiser window
 
