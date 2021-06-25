@@ -303,7 +303,7 @@ void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
 {
     FILE* fp = fdopen(fd, "w");
     int start = 0;
-    int end = 0;
+    int end = width;
     if (center){
 	start = width/4;
 	end = width/4*3;

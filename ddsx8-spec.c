@@ -39,12 +39,14 @@ typedef struct io_data_{
 
 void print_help(char *argv){
 	    fprintf(stderr,"usage:\n"
-                    "%s [-f frequency] [-a adapter] "
-		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-h]\n\n"
+                    "%s [-f frequency] [-p pol] [-a adapter] "
+		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-d] [-h]\n\n"
 		    " frequency: center frequency of the spectrum in KHz\n\n"
+		    " pol      : polarisation 0=vertical 1=horizontal"
 		    " adapter  : the number n of the DVB adapter, i.e. \n"
 		    "            /dev/dvb/adapter[n] (default=0)\n\n"
 		    " input    : the physical input of the SX8 (default=0)\n\n"
+		    " -u       : use hi band of LNB"
 		    " -k       : use Kaiser window before FFT\n\n"
 		    " -b       : turn on agc\n\n"
 		    " -n       : number of FFTs for averaging (default 1000)\n\n"
@@ -52,6 +54,7 @@ void print_help(char *argv){
 		    " -t       : output CSV \n\n"
 		    " -x       : full spectrum scan\n\n"
 		    " -q       : faster FFT\n\n"
+		    " -d       : use 1s delay to wait for LNB power up"
 		    " alpha    : parameter of the KAiser window\n\n", argv);
 }
 
@@ -62,7 +65,9 @@ void open_io(io_data *iod)
 	exit(1);
     }
 
-    if (iod->delay) power_on_delay(iod->fe_fd, 1000);
+    if (iod->delay) power_on_delay(iod->fe_fd, iod->delay);
+    if (iod->pol != 2) diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
+
     
     if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
 	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
@@ -125,16 +130,17 @@ void init_io(io_data *iod)
     iod->adapter = 0;
     iod->input = 0;
     iod->full = 0;
-    iod->freq = -1;
+    iod->freq = 0;
     iod->fft_sr = FFT_SR;
     iod->step = -1;
     iod->delay = 0;
-    iod->pol = -1;
+    iod->pol = 2;
+    iod->hi = 0;
 }
 
 void set_io(io_data *iod, int adapter, int num,
-	    uint32_t freq, uint32_t sr, uint32_t length,
-	    uint32_t id, int full)
+	    uint32_t freq, uint32_t sr, uint32_t pol, uint32_t hi,
+	    uint32_t length, uint32_t id, int full, int delay)
 {
     iod->adapter = adapter;
     iod->input = num;
@@ -144,6 +150,9 @@ void set_io(io_data *iod, int adapter, int num,
     iod->id = id;
     iod->full = full;
     iod->window = (sr/2/1000);
+    iod->delay = delay;
+    iod->pol = pol;
+    iod->hi = hi;
 }
 
 
@@ -162,6 +171,9 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     uint32_t freq = -1;
     uint32_t sr = 50000*FFT_LENGTH;
     uint32_t id = AGC_OFF;
+    int delay = 0;
+    uint32_t pol = 2;
+    uint32_t hi = 0;
     
     if (argc < 2) {
 	print_help(argv[0]);
@@ -179,7 +191,8 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"alpha", required_argument, 0, 'l'},
 	    {"input", required_argument, 0, 'i'},
 	    {"agc", no_argument, 0, 'b'},
-	    {"d", no_argument, 0, 'd'},
+	    {"delay", no_argument, 0, 'd'},
+	    {"band", no_argument, 0, 'u'},
 	    {"continuous", no_argument, 0, 'c'},
 	    {"polarisation", no_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
@@ -190,7 +203,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:xqdp:",
+			"f:a:kl:i:bctn:ho:xqdp:u",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -198,6 +211,9 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	switch (c) {
 	case 'f':
 	    freq = strtoul(optarg, NULL, 0);
+	    break;
+	case'p':
+	    pol =  strtoul(optarg, NULL, 0);
 	    break;
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
@@ -210,6 +226,13 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    break;
 	case 'i':
 	    input = strtoul(optarg, NULL, 0);
+	    break;
+	case 'd':
+	    delay = 1000;
+	    break;
+	case 'u':
+	    if (pol == 2) pol = 0;
+	    hi  = 1;
 	    break;
 	case 'b':
 	    id = AGC_ON;
@@ -257,7 +280,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     if (outm&FULL_SPECTRUM) full=1;
     height = 9*width/16;
     
-    set_io(iod, adapter, input, freq, sr, width, id, full);
+    set_io(iod, adapter, input, freq, sr, pol, hi, width, id, full, delay);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
@@ -300,6 +323,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	switch (mode){
 	case MULTI_PAM:
 	    run = 1;
+
 	case SINGLE_PAM:
 	    if (!full) {
 		spec_write_pam(iod->fd_out, spec);
