@@ -34,5 +34,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq);
 void power_on_delay(int fd, int delay);
+int read_status(int fd);
+
 #endif
 

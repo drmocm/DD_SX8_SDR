@@ -117,7 +117,8 @@ int next_freq_step(io_data *iod)
 		     SYS_DVBS2, iod->input, iod->id) < 0){
 	exit(1);
     }
-    
+    while (!read_status(iod->fe_fd))
+	usleep(1000);
     return iod->step;
 }
 
@@ -228,7 +229,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    input = strtoul(optarg, NULL, 0);
 	    break;
 	case 'd':
-	    delay = 1000;
+	    delay = 1000000;
 	    break;
 	case 'u':
 	    if (pol == 2) pol = 0;
@@ -311,9 +312,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_read_data(iod->fdin, spec);
 		if (mode == CSV) {		    
-		    uint32_t freq = MIN_FREQ+iod->window/2+
-			iod->window*(iod->step-1);
-		    spec_write_csv(iod->fd_out, spec, freq, iod->fft_sr,1);
+		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,1);
 		} else {
 		    fprintf(stderr,"Full spectrum only works with -t option\n");
 		    exit(1);

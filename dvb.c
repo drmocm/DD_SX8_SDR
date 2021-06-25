@@ -286,3 +286,14 @@ int tune_sat(int fd, int type, uint32_t freq,
         }
 	return re;
 }
+
+
+int read_status(int fd)
+{
+    fe_status_t stat;
+    int st=0;
+    
+    ioctl(fd, FE_READ_STATUS, &stat);
+    if (stat==0x1f) return 1;
+    else return 0;
+}

@@ -283,7 +283,7 @@ void spec_write_pam (int fd, specdata *spec){
 
 void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center){
     uint32_t step = fft_sr/spec->width/1000;
-    uint32_t freqstart = freq - spec->width/2*step;
+    uint32_t freqstart = freq - fft_sr/2/1000;
     write_csv (fd, spec->width, step, freqstart, spec->pow, center);
 }
 
@@ -311,6 +311,7 @@ void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
     for (int i = start; i < end; i++){
 	fprintf(fp,"%.3f, %.2f\n",(double)(start_freq+step*i)/1000.0, pow[i]);
     }
+
     fflush(fp);
 }
 
