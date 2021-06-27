@@ -68,11 +68,12 @@ void open_io(io_data *iod)
     if (iod->delay) power_on_delay(iod->fe_fd, iod->delay);
     if (iod->pol != 2) diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
 
-    
-    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
-	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-			 SYS_DVBS2, iod->input, iod->id) < 0){
-	    exit(1);
+    if (!iod->full){
+	if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
+	    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
+			     SYS_DVBS2, iod->input, iod->id) < 0){
+		exit(1);
+	    }
 	}
     }
     
