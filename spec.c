@@ -66,7 +66,7 @@ void plot(uint8_t *p, int x, int y, int width,
 	  unsigned char G,
 	  unsigned char B)
 {
-    int k = 3*x+3*width*y;
+    int k = 3*(x+width*y);
 
     p[k] = R;
     p[k+1] = G;
@@ -96,13 +96,23 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
     dy = y2 - y;
     
     if (dy == 0){
-	for (int i = x; i<= x2; i++){
-	    plot(p, i, y, width, r,g,b);
+	int iy= width*y*3;
+	int start = 3*x+iy;
+	int stop = 3*x2+iy;
+	for (int i = start; i<= stop; i+=3){
+	    p[i] = r;
+	    p[i+1] = g;
+	    p[i+2] = b;
 	}
 	return;
     } else if ( dx == 0){
-	for (int i = y; i <= y2; i++){
-	    plot(p, x, i, width, r,g,b);
+	int ix = 3*x;
+	int start = width*y*3+ix;
+	int stop = width*y2*3+ix;
+	for (int i = start; i <= stop; i+=3*width){
+	    p[i] = r;
+	    p[i+1] = g;
+	    p[i+2] = b;
 	}
 	return;
     }
