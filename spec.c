@@ -113,10 +113,15 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
 	if (x > x2) neg = -3;
 	else neg = 3;
     }
-    
+
+    int fac = 0;
     for (int i=start; i != stop; i += step){
-	int k = i+neg*(xyadd >> 8);
+	int k = i+fac;
 	xyadd += inc;
+	if (xyadd >> 8) {
+	    fac += neg;
+	    xyadd -= (1 << 8);
+	}
 	p[k]= r;
 	p[k+1]= g;
 	p[k+2]= b;
@@ -131,7 +136,7 @@ void coordinate_axes(specdata *spec, unsigned char r,
 	     spec->width/2, spec->height-1,
 	     spec->width/2, 0,
 	     spec->width, r,g,b);
-/*
+
     plotline(spec->data_points,
 	     spec->width-1, 0,
 	     0, spec->height-1,
@@ -141,7 +146,11 @@ void coordinate_axes(specdata *spec, unsigned char r,
 	     0, 0,
 	     spec->width-1, spec->height-1,
 	     spec->width, r,g,b);
-*/
+    plotline(spec->data_points,
+	     0, spec->height/2,
+	     spec->width-1, spec->height/2,
+	     spec->width, r,g,b);
+
 }
 
 
