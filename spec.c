@@ -73,16 +73,64 @@ void plot(uint8_t *p, int x, int y, int width,
     p[k+2] = B;
 }
 
+
+void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
+	    unsigned char r,
+	    unsigned char g,
+	    unsigned char b) {
+    int dx;
+    int dy;
+    int dxmax = 0;
+    
+    if (x > x2){
+	int swap = x;
+	x = x2;
+	x2 = swap;
+    }
+    if (y > y2){
+	int swap = y;
+	y = y2;
+	y2 = swap;
+    }
+    dx = x2 - x;
+    dy = y2 - y;
+    
+    if (dy == 0){
+	for (int i = x; i<= x2; i++){
+	    plot(p, i, y, width, r,g,b);
+	}
+	return;
+    } else if ( dx == 0){
+	for (int i = y; i <= y2; i++){
+	    plot(p, x, i, width, r,g,b);
+	}
+	return;
+    }
+
+    if ( dx > dy ){
+	int yinc = (dy << 16)/dx;
+	int ddy = 0;
+	for (int i = x; i <= x2; i++){
+	    plot(p, i, y+(ddy >> 16), width, r,g,b);
+	    ddy += yinc; 
+	}
+    } else {
+	int xinc = (dx << 16)/dy;
+	int ddx = 0;
+	for (int i = y; i <= y2; i++){
+	    plot(p, x+(ddx >> 16), i, width, r,g,b);
+	    ddx += xinc; 
+	}
+    }
+    
+}
+
 void coordinate_axes(specdata *spec, unsigned char r,
 			 unsigned char g, unsigned char b){
     int i;
-    for (i = 0; i < spec->width; i++){
-	// coordinate axes
-	//plot(spec->data_points, i, spec->height/2, spec->width, r,g,b);
-    }
-    for (i = 0; i < spec->height; i++){
-	plot(spec->data_points, spec->width/2, i, spec->width, r,g,b);
-    }
+
+    plotline(spec->data_points, spec->width/2, 0, spec->width/2,
+	      spec->height, spec->width, r,g,b);
 }
 
 
@@ -168,7 +216,7 @@ void spec_display(specdata *spec, double *pow)
     int height = spec->height;
 
     range = check_range(pow, width, &max, &min);
-    
+    int lasty = -1;
     for (i = 0; i < width; i++){
 	if (!isfinite(pow[i])) continue;
 	int q = (int)((double)height*(pow[i]-min)/range);
@@ -179,7 +227,10 @@ void spec_display(specdata *spec, double *pow)
 	int y = height-q;
 //	fprintf(stderr,"range %f min %f\n",range,min);
 //	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
-	plot(spec->data_points, i, y, spec->width, R,G,B);
+	if (lasty>=0)
+	    plotline(spec->data_points, i-1, lasty, i, y, spec->width, R,G,B);
+	else plot(spec->data_points, i, y, spec->width, R,G,B);
+	lasty = y;
     }
     coordinate_axes(spec, 200, 255,0);
 }
