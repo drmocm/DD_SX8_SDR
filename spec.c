@@ -80,67 +80,68 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
 	    unsigned char b) {
     int dx;
     int dy;
-    int dxmax = 0;
+    int stepx = 0;
+    int start = 0;
+    int stop = 0;
+    int inc = 0;
+    int neg = 1;
+    int step = 1;
+    int xyadd = 0;
     
-    if (x > x2){
-	int swap = x;
-	x = x2;
-	x2 = swap;
-    }
-    if (y > y2){
-	int swap = y;
-	y = y2;
-	y2 = swap;
-    }
-    dx = x2 - x;
-    dy = y2 - y;
-    
-    if (dy == 0){
-	int iy= width*y*3;
-	int start = 3*x+iy;
-	int stop = 3*x2+iy;
-	for (int i = start; i<= stop; i+=3){
-	    p[i] = r;
-	    p[i+1] = g;
-	    p[i+2] = b;
-	}
-	return;
-    } else if ( dx == 0){
-	int ix = 3*x;
-	int start = width*y*3+ix;
-	int stop = width*y2*3+ix;
-	for (int i = start; i <= stop; i+=3*width){
-	    p[i] = r;
-	    p[i+1] = g;
-	    p[i+2] = b;
-	}
-	return;
-    }
+    dx = abs(x2 - x);
+    dy = abs(y2 - y);
 
-    if ( dx > dy ){
-	int yinc = (dy << 16)/dx;
-	int ddy = 0;
-	for (int i = x; i <= x2; i++){
-	    plot(p, i, y+(ddy >> 16), width, r,g,b);
-	    ddy += yinc; 
+    if (dx > dy) stepx = 1;
+
+    start = 3*(x+y*width);
+    if (stepx){
+	stop = 3*(x2+y*width);
+	step = 3;
+	if (x > x2) {
+	    step = -3;
 	}
+	inc = (dy << 8)/dx;
+	if (y > y2) neg = -3*width;
+	else neg = 3*width;
     } else {
-	int xinc = (dx << 16)/dy;
-	int ddx = 0;
-	for (int i = y; i <= y2; i++){
-	    plot(p, x+(ddx >> 16), i, width, r,g,b);
-	    ddx += xinc; 
+	stop = 3*(x+y2*width);
+	step = 3*width;
+	if (y > y2){
+	    step = -3*width;
 	}
+	inc = (dx << 8)/dy;
+	if (x > x2) neg = -3;
+	else neg = 3;
     }
     
+    for (int i=start; i != stop; i += step){
+	int k = i+neg*(xyadd >> 8);
+	xyadd += inc;
+	p[k]= r;
+	p[k+1]= g;
+	p[k+2]= b;
+    }
 }
 
 void coordinate_axes(specdata *spec, unsigned char r,
 			 unsigned char g, unsigned char b){
     int i;
 
-    plotline(spec->data_points, spec->width/2, 0, spec->width/2,
-	      spec->height, spec->width, r,g,b);
+    plotline(spec->data_points,
+	     spec->width/2, spec->height-1,
+	     spec->width/2, 0,
+	     spec->width, r,g,b);
+/*
+    plotline(spec->data_points,
+	     spec->width-1, 0,
+	     0, spec->height-1,
+	     spec->width,
+	     r,g,b);
+    plotline(spec->data_points,
+	     0, 0,
+	     spec->width-1, spec->height-1,
+	     spec->width, r,g,b);
+*/
 }
 
 
