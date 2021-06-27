@@ -87,6 +87,7 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
     int neg = 1;
     int step = 1;
     int xyadd = 0;
+    int dd = 0;
     
     dx = abs(x2 - x);
     dy = abs(y2 - y);
@@ -100,7 +101,8 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
 	if (x > x2) {
 	    step = -3;
 	}
-	inc = (dy << 8)/dx;
+	inc = dy;
+	dd = dx;
 	if (y > y2) neg = -3*width;
 	else neg = 3*width;
     } else {
@@ -109,7 +111,8 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
 	if (y > y2){
 	    step = -3*width;
 	}
-	inc = (dx << 8)/dy;
+	inc = dx;
+	dd = dy;
 	if (x > x2) neg = -3;
 	else neg = 3;
     }
@@ -118,9 +121,9 @@ void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
     for (int i=start; i != stop; i += step){
 	int k = i+fac;
 	xyadd += inc;
-	if (xyadd >> 8) {
+	if (xyadd > dd) {
 	    fac += neg;
-	    xyadd -= (1 << 8);
+	    xyadd -= dd;
 	}
 	p[k]= r;
 	p[k+1]= g;
@@ -136,7 +139,7 @@ void coordinate_axes(specdata *spec, unsigned char r,
 	     spec->width/2, spec->height-1,
 	     spec->width/2, 0,
 	     spec->width, r,g,b);
-
+/*
     plotline(spec->data_points,
 	     spec->width-1, 0,
 	     0, spec->height-1,
@@ -147,10 +150,10 @@ void coordinate_axes(specdata *spec, unsigned char r,
 	     spec->width-1, spec->height-1,
 	     spec->width, r,g,b);
     plotline(spec->data_points,
-	     0, spec->height/2,
-	     spec->width-1, spec->height/2,
+	     0, spec->height-20,
+	     spec->width-1, spec->height-20,
 	     spec->width, r,g,b);
-
+*/
 }
 
 
