@@ -44,8 +44,8 @@ int init_specdata(specdata *spec, int width, int height,
 void spec_read_data (int fdin, specdata *spec);
 void spec_write_pam (int fd, specdata *spec);
 void spec_write_csv (int fd, specdata *spec,uint32_t freq,
-		     uint32_t fft_sr, int center);
+		     uint32_t fft_sr, int center, int64_t str);
 void write_pam (int fd, int width, int height, unsigned char *data_points);
 void write_csv (int fd, int width, uint32_t freq,
-		uint32_t fft_sr, double *pow, int center);
+		uint32_t fft_sr, double *pow, int center, int64_t str);
 #endif /* _SPEC_H_*/

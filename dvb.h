@@ -35,6 +35,6 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t scif_slot, uint32_t scif_freq);
 void power_on_delay(int fd, int delay);
 int read_status(int fd);
-
+int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats);
 #endif
 

@@ -312,8 +312,13 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_read_data(iod->fdin, spec);
-		if (mode == CSV) {		    
-		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,1);
+		if (mode == CSV) {
+		    int64_t str;
+		    struct dtv_fe_stats st;
+		    get_stat(iod->fe_fd, DTV_STAT_SIGNAL_STRENGTH, &st);
+		    str = st.stat[0].svalue;
+
+		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,2,str);
 		} else {
 		    fprintf(stderr,"Full spectrum only works with -t option\n");
 		    exit(1);
@@ -334,7 +339,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 
 	case CSV:
 	    if (!full) {
-		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr, 0);
+		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr, 0, 0);
 	    }
 	    break;
 	}
