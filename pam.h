@@ -39,5 +39,6 @@ void write_csv(int fd, int width, uint32_t freq,
 void clear_bitmap(bitmap *bm);
 bitmap *init_bitmap(int width, int height, int depth);
 void delete_bitmap(bitmap *bm);
+void display_array(bitmap *bm, double *pow, int length);
 
 #endif /* _PAM_H_*/

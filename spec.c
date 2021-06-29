@@ -88,54 +88,6 @@ int read_spec_data(int fdin, int8_t *bufx, int8_t *bufy, int size)
 }
 
 
-double check_range(double *pow, int width,
-		   double *ma, double *mi){
-    
-    double max = 0.0;
-    double min = 40.0;
-    double range = 0;
-    for (int i=0; i < width; i++){
-	if ( isfinite(pow[i]) && pow[i] > max ) max = pow[i];
-	if ( isfinite(pow[i]) && pow[i] < min ) min = pow[i];
-    }
-    range = max-min;
-    *mi = min;
-    *ma = max;
-    //  fprintf(stderr,"range %f min %f\n",range,min);
-    return range;
-}
-
-#define BSIZE 100*(TS_SIZE-4)
-
-void spec_display(bitmap *bm, double *pow)
-{
-    uint8_t R = 0;
-    uint8_t G = 0;
-    uint8_t B = 0;
-    double min = 0, max = 0, range = 0;
-    int i;
-    int width = bm->width;
-    int height = bm->height;
-
-    range = check_range(pow, width, &max, &min);
-    int lasty = -1;
-    for (i = 0; i < width; i++){
-	if (!isfinite(pow[i])) continue;
-	int q = (int)((double)height*(pow[i]-min)/range);
-
-	get_rgb(q*255/height, &R, &G, &B);
-	
-	//FFT data
-	int y = height-q;
-//	fprintf(stderr,"range %f min %f\n",range,min);
-//	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
-	if (lasty>=0)
-	    plotline(bm, i-1, lasty, i, y, R,G,B);
-	else plot(bm, i, y, R,G,B);
-	lasty = y;
-    }
-    coordinate_axes(bm, 200, 255,0);
-}
 
 
 int spec_read_fft_data(int fdin, fftw_complex *in, int numspec)
@@ -212,7 +164,6 @@ static void clear_buffer(int fdin)
     }
 }
 
-#define DTIME 40 // msec
 void spec_read_data (int fdin, specdata *spec)
 {
     uint64_t maxd = 0;
@@ -225,7 +176,6 @@ void spec_read_data (int fdin, specdata *spec)
     spec_fft(fdin, spec, pow, spec->width);
 }    
 
-
 void spec_write_pam (int fd, bitmap *bm, specdata *spec){
     
     if ( bm == NULL) {
@@ -235,7 +185,7 @@ void spec_write_pam (int fd, bitmap *bm, specdata *spec){
     }
     
     clear_bitmap(bm);
-    spec_display( bm, spec->pow);
+    display_array(bm, spec->pow, spec->width);
     write_pam (fd, bm);
 }
 

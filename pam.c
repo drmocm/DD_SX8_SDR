@@ -115,6 +115,54 @@ void get_rgb(int val, uint8_t *R, uint8_t *G, uint8_t *B)
     }
 }
 
+static double check_range(double *pow, int width, double *ma, double *mi)
+{    
+    double max = 0.0;
+    double min = 40.0;
+    double range = 0;
+    for (int i=0; i < width; i++){
+	if ( isfinite(pow[i]) && pow[i] > max ) max = pow[i];
+	if ( isfinite(pow[i]) && pow[i] < min ) min = pow[i];
+    }
+    range = max-min;
+    *mi = min;
+    *ma = max;
+    //  fprintf(stderr,"range %f min %f\n",range,min);
+    return range;
+}
+
+void display_array(bitmap *bm, double *pow, int length)
+{
+    uint8_t R = 0;
+    uint8_t G = 0;
+    uint8_t B = 0;
+    double min = 0, max = 0, range = 0;
+    int i;
+    int lastx = -1;
+    int lasty = -1;
+    int width = bm->width;
+    int height = bm->height;
+
+    range = check_range(pow, length, &max, &min);
+    for (i = 0; i < length; i++){
+	if (!isfinite(pow[i])) continue;
+	int q = (int)((double)height*(pow[i]-min)/range);
+	int x = (int)((double)width*(i/length));
+	int y = height-q;
+	
+	get_rgb(q*255/height, &R, &G, &B);
+	
+//	fprintf(stderr,"range %f min %f\n",range,min);
+//	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
+	if (lasty>=0)
+	    plotline(bm, i-1, lasty, i, y, R,G,B);
+	else plot(bm, i, y, R,G,B);
+	lastx = x;
+	lasty = y;
+    }
+    coordinate_axes(bm, 200, 255,0);
+}
+
 void write_pam (int fd, bitmap *bm)
 {
     char HEAD[255];
