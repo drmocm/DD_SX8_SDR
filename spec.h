@@ -15,6 +15,7 @@
 #include <string.h>
 #include <complex.h>
 #include <fftw3.h>
+#include "pam.h"
 
 #define TS_SIZE 188
 #define MIN_FREQ     950000  // kHz
@@ -29,12 +30,11 @@
 
 typedef struct specdata_
 {
-    unsigned char *data_points;
+    double *freq;
     double *pow;
     double alpha;
     int maxrun;
     int width;
-    int height;
     int use_window;
 } specdata;
 
@@ -42,10 +42,8 @@ void init_spec(specdata *spec);
 int init_specdata(specdata *spec, int width, int height,
 		  double alpha, int maxrun, int use_window);
 void spec_read_data (int fdin, specdata *spec);
-void spec_write_pam (int fd, specdata *spec);
+void spec_write_pam (int fd, bitmap *bm, specdata *spec);
 void spec_write_csv (int fd, specdata *spec,uint32_t freq,
 		     uint32_t fft_sr, int center, int64_t str);
-void write_pam (int fd, int width, int height, unsigned char *data_points);
-void write_csv (int fd, int width, uint32_t freq,
-		uint32_t fft_sr, double *pow, int center, int64_t str);
+
 #endif /* _SPEC_H_*/

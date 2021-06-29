@@ -296,7 +296,8 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int full = iod->full;
     int run = 1;
     double *pow = NULL;
-
+    bitmap *bm=NULL;
+    
     while (run){
 	if (!full) {
 	    spec_read_data(iod->fdin, spec);
@@ -330,10 +331,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	switch (mode){
 	case MULTI_PAM:
 	    run = 1;
-
+	    
 	case SINGLE_PAM:
 	    if (!full) {
-		spec_write_pam(iod->fd_out, spec);
+		spec_write_pam(iod->fd_out, bm, spec);
 	    }
 	    break;
 
@@ -344,6 +345,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    break;
 	}
     }
+    if (mode == SINGLE_PAM || mode == MULTI_PAM){
+	delete_bitmap(bm);
+    }
+
 }
 
 int main(int argc, char **argv){

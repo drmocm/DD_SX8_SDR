@@ -1,7 +1,7 @@
 CFLAGS =  -g  -Wno-unused -Wall -Wno-format -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE 
 LIBS =  -lm  -lfftw3 
-OBJ = ddsx8-spec.o numeric.o  spec.o dvb.o
-HEADER = numeric.h spec.h dvb.h
+OBJ = ddsx8-spec.o numeric.o pam.o spec.o dvb.o 
+HEADER = numeric.h spec.h dvb.h pam.h
 SRC = $(HEADER) numeric.c spec.c dvb.c 
 INCS = -I.
 
@@ -19,6 +19,9 @@ ddsx8-spec: $(OBJ) $(INC)
 
 spec.o: $(HEADER) spec.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) spec.c
+
+pam.o: $(HEADER) pam.c
+	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) pam.c
 
 dvb.o: $(HEADER) dvb.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) dvb.c

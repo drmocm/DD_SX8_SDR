@@ -13,12 +13,11 @@ int my_read(int fd, u_char *buf, int size)
 
 void init_spec(specdata *spec)
 {
-    spec->data_points = NULL;
+    spec->freq = NULL;
     spec->pow = NULL;
     spec->alpha = 3.0;
     spec-> maxrun = 2000;
     spec->width = 0;
-    spec->height = 0;
     spec->use_window = 0;
 }
 
@@ -31,7 +30,6 @@ int init_specdata(specdata *spec, int width, int height,
     if (alpha) spec->alpha = alpha;
     
     spec->width = width;
-    spec->height = height;
     
     if (!(spec->pow = (double *) malloc(spec->width*sizeof(double)))){
 	{
@@ -40,19 +38,15 @@ int init_specdata(specdata *spec, int width, int height,
 	}
     }
 
-    if (spec->height){
-	if (!( spec->data_points=(unsigned char *)
-	       malloc(sizeof(unsigned char) *
-		      width*height*3)))
+    if (!(spec->freq = (double *) malloc(spec->width*sizeof(double)))){
 	{
 	    fprintf(stderr,"not enough memory\n");
 	    return -1;
 	}
-	memset(spec->data_points,0,width*height*3*sizeof(char));
     }
+
     return 0;
 }
-
 
 static long getutime(){
         struct timespec t0;
@@ -60,121 +54,6 @@ static long getutime(){
         return t0.tv_sec * (int)1e9 + t0.tv_nsec;
 }
 
-
-void plot(uint8_t *p, int x, int y, int width,
-	  unsigned char R,
-	  unsigned char G,
-	  unsigned char B)
-{
-    int k = 3*(x+width*y);
-
-    p[k] = R;
-    p[k+1] = G;
-    p[k+2] = B;
-}
-
-
-void plotline(uint8_t *p, int x, int y, int x2, int y2, int width,
-	    unsigned char r,
-	    unsigned char g,
-	    unsigned char b) {
-    int dx;
-    int dy;
-    int stepx = 0;
-    int start = 0;
-    int stop = 0;
-    int inc = 0;
-    int neg = 1;
-    int step = 1;
-    int xyadd = 0;
-    int dd = 0;
-    
-    dx = abs(x2 - x);
-    dy = abs(y2 - y);
-
-    if (dx > dy) stepx = 1;
-
-    start = 3*(x+y*width);
-    if (stepx){
-	stop = 3*(x2+y*width);
-	step = 3;
-	if (x > x2) {
-	    step = -3;
-	}
-	inc = dy;
-	dd = dx;
-	if (y > y2) neg = -3*width;
-	else neg = 3*width;
-    } else {
-	stop = 3*(x+y2*width);
-	step = 3*width;
-	if (y > y2){
-	    step = -3*width;
-	}
-	inc = dx;
-	dd = dy;
-	if (x > x2) neg = -3;
-	else neg = 3;
-    }
-
-    int fac = 0;
-    for (int i=start; i != stop; i += step){
-	int k = i+fac;
-	xyadd += inc;
-	if (xyadd > dd) {
-	    fac += neg;
-	    xyadd -= dd;
-	}
-	p[k]= r;
-	p[k+1]= g;
-	p[k+2]= b;
-    }
-}
-
-void coordinate_axes(specdata *spec, unsigned char r,
-			 unsigned char g, unsigned char b){
-    int i;
-
-    plotline(spec->data_points,
-	     spec->width/2, spec->height-1,
-	     spec->width/2, 0,
-	     spec->width, r,g,b);
-/*
-    plotline(spec->data_points,
-	     spec->width-1, 0,
-	     0, spec->height-1,
-	     spec->width,
-	     r,g,b);
-    plotline(spec->data_points,
-	     0, 0,
-	     spec->width-1, spec->height-1,
-	     spec->width, r,g,b);
-    plotline(spec->data_points,
-	     0, spec->height-20,
-	     spec->width-1, spec->height-20,
-	     spec->width, r,g,b);
-*/
-}
-
-
-void get_rgb(int val, uint8_t *R, uint8_t *G, uint8_t *B)
-{
-    *R = 0;
-    *G = 0;
-    *B = 0;
-
-    if  (val < 64){
-	*B = 4*val;
-	*G = 4*val;
-    } else {
-	if (val >128) {
-	    *G = val;
-	} else {
-	    *G = 2*val;
-	    *R = 2*val;
-	}
-    }
-}
 
 #define RSIZE 100
 int read_spec_data(int fdin, int8_t *bufx, int8_t *bufy, int size)
@@ -228,15 +107,15 @@ double check_range(double *pow, int width,
 
 #define BSIZE 100*(TS_SIZE-4)
 
-void spec_display(specdata *spec, double *pow)
+void spec_display(bitmap *bm, double *pow)
 {
     uint8_t R = 0;
     uint8_t G = 0;
     uint8_t B = 0;
     double min = 0, max = 0, range = 0;
     int i;
-    int width = spec->width;
-    int height = spec->height;
+    int width = bm->width;
+    int height = bm->height;
 
     range = check_range(pow, width, &max, &min);
     int lasty = -1;
@@ -251,11 +130,11 @@ void spec_display(specdata *spec, double *pow)
 //	fprintf(stderr,"range %f min %f\n",range,min);
 //	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
 	if (lasty>=0)
-	    plotline(spec->data_points, i-1, lasty, i, y, spec->width, R,G,B);
-	else plot(spec->data_points, i, y, spec->width, R,G,B);
+	    plotline(bm, i-1, lasty, i, y, R,G,B);
+	else plot(bm, i, y, R,G,B);
 	lasty = y;
     }
-    coordinate_axes(spec, 200, 255,0);
+    coordinate_axes(bm, 200, 255,0);
 }
 
 
@@ -344,52 +223,25 @@ void spec_read_data (int fdin, specdata *spec)
     memset(pow,0,spec->width*sizeof(double));
 
     spec_fft(fdin, spec, pow, spec->width);
-    spec_display(spec, pow);
 }    
 
 
-void spec_write_pam (int fd, specdata *spec){
-    int size = spec->width*spec->height*3;
+void spec_write_pam (int fd, bitmap *bm, specdata *spec){
     
-    write_pam (fd, spec->width, spec->height, spec->data_points);
-    memset(spec->data_points,0,size*sizeof(char));
+    if ( bm == NULL) {
+	int width = spec->width;
+	int height = width*9/16;
+	bm = init_bitmap(width, height, 3);
+    }
+    
+    clear_bitmap(bm);
+    spec_display( bm, spec->pow);
+    write_pam (fd, bm);
 }
 
 void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center, int64_t  str){
     uint32_t step = fft_sr/spec->width/1000;
     uint32_t freqstart = freq - fft_sr/2/1000;
     write_csv (fd, spec->width, step, freqstart, spec->pow, center, str );
-}
-
-void write_pam (int fd, int width, int height, unsigned char *data_points)
-{
-    char HEAD[255];
-    sprintf(HEAD,"P7\nWIDTH %d\nHEIGHT %d\nDEPTH 3\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n",width,height);
-    int headlen = strlen(HEAD);
-    int size = width*height*3;    
-    int we=0;
-    we=write(fd,HEAD,headlen);
-    we=write(fd,data_points,size);
-}
-
-void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
-		double *pow, int center, int64_t str)
-{
-    FILE* fp = fdopen(fd, "w");
-    int start = 0;
-    int end = width;
-    if (center){
-	start = width/4;
-	end = width/4*3;
-    }
-    for (int i = start; i < end; i++){
-	if (center == 2){
-	    fprintf(fp,"%.3f, %.2f, %lld.%03lld\n",(double)(start_freq+step*i)/1000.0, pow[i], str/1000, abs(str%1000));
-	} else {
-	    fprintf(fp,"%.3f, %.2f\n",(double)(start_freq+step*i)/1000.0, pow[i]);
-	}
-    }
-
-    fflush(fp);
 }
 
