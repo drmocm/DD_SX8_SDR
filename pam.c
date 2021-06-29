@@ -6,9 +6,11 @@ void plot(bitmap *bm, int x, int y,
 	  unsigned char B)
 {
     int width = bm->width;
+    int height = bm->height;
     int d = bm->depth;
     uint8_t *p = bm->data;
     
+    if ( x > width || x < 0 ||	 y > height || y < 0) return; 
     int k = d*(x+width*y);
 
     p[k] = R;
@@ -32,9 +34,12 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
     int xyadd = 0;
     int dd = 0;
     int width = bm->width;
+    int height = bm->height;
     int d = bm->depth;
     uint8_t *p= bm->data;
-    
+
+    if ( x > width || x < 0 || x2 > width || x2 < 0 || 
+	 y > height || y < 0 || y2 > height || y2 < 0) return; 
     dx = abs(x2 - x);
     dy = abs(y2 - y);
 
@@ -131,36 +136,39 @@ static double check_range(double *pow, int width, double *ma, double *mi)
     return range;
 }
 
-void display_array(bitmap *bm, double *pow, int length)
+void display_array(bitmap *bm, double *pow, int length,
+		   int startpos, double ymin, double scale, double range)
 {
     uint8_t R = 0;
     uint8_t G = 0;
     uint8_t B = 0;
-    double min = 0, max = 0, range = 0;
+    double min = 0, max = 0;
     int i;
     int lastx = -1;
     int lasty = -1;
     int width = bm->width;
     int height = bm->height;
 
-    range = check_range(pow, length, &max, &min);
+    if (!range) range = check_range(pow, length, &max, &min);
+    if (ymin) min = ymin;
     for (i = 0; i < length; i++){
 	if (!isfinite(pow[i])) continue;
-	int q = (int)((double)height*(pow[i]-min)/range);
-	int x = (int)((double)width*(i/length));
+	int q = (int)((double)height*(pow[i]-min)/(1.1*range)+.05*height);
+	int x = 0;
 	int y = height-q;
+
+	x = (int)((i+startpos)*scale);
 	
 	get_rgb(q*255/height, &R, &G, &B);
 	
 //	fprintf(stderr,"range %f min %f\n",range,min);
 //	fprintf (stderr,"y: %d q: %d pow: %f height %d\n",y,q,pow[i],height);
 	if (lasty>=0)
-	    plotline(bm, i-1, lasty, i, y, R,G,B);
-	else plot(bm, i, y, R,G,B);
+	    plotline(bm, lastx, lasty, x, y, R,G,B);
+	else plot(bm, x, y, R,G,B);
 	lastx = x;
 	lasty = y;
     }
-    coordinate_axes(bm, 200, 255,0);
 }
 
 void write_pam (int fd, bitmap *bm)

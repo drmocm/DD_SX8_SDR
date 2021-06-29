@@ -179,13 +179,14 @@ void spec_read_data (int fdin, specdata *spec)
 void spec_write_pam (int fd, bitmap *bm, specdata *spec){
     
     if ( bm == NULL) {
-	int width = spec->width;
+	int width = spec->width*2;
 	int height = width*9/16;
 	bm = init_bitmap(width, height, 3);
     }
     
     clear_bitmap(bm);
-    display_array(bm, spec->pow, spec->width);
+    display_array(bm, spec->pow, spec->width, 512, 20, 1.0, 70);
+    coordinate_axes(bm, 200, 255,0);
     write_pam (fd, bm);
 }
 
