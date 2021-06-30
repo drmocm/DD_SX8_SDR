@@ -8,6 +8,16 @@
 #define CSV 2
 #define FULL_SPECTRUM 4
 
+#define MIN_FREQ     950000  // kHz
+#define MAX_FREQ    2150000  // kHz
+
+#define FREQ_RANGE (MAX_FREQ - MIN_FREQ)  
+
+#define FFT_LENGTH 1024
+#define FFT_SR (50000*FFT_LENGTH) // 1 point 50kHz (in Hz)
+#define WINDOW (FFT_SR/2/1000)    //center window 
+#define MAXWIN (FREQ_RANGE/WINDOW)
+
 typedef struct io_data_{
     int fe_fd;
     int fd_dmx;
@@ -171,7 +181,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int adapter = 0;
     int input = 0;
     uint32_t freq = -1;
-    uint32_t sr = 50000*FFT_LENGTH;
+    uint32_t sr = FFT_SR;
     uint32_t id = AGC_OFF;
     int delay = 0;
     uint32_t pol = 2;

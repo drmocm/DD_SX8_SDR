@@ -48,7 +48,7 @@ int fft_power_log(fftw_complex *fft, double *pow, int numiq)
 	}
 	sum = log(sum)/log(10.0) * 10.0;
 	
-	logsum[i] += sum;
+	logsum[i] = sum;
     }
     for (int i = 0; i < numiq; i += 1){
 	pow[i] += logsum[i];
