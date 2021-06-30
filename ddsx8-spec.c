@@ -11,12 +11,8 @@
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
 
-#define FREQ_RANGE (MAX_FREQ - MIN_FREQ)  
-
 #define FFT_LENGTH 1024
 #define FFT_SR (50000*FFT_LENGTH) // 1 point 50kHz (in Hz)
-#define WINDOW (FFT_SR/2/1000)    //center window 
-#define MAXWIN (FREQ_RANGE/WINDOW)
 
 typedef struct io_data_{
     int fe_fd;
@@ -27,6 +23,9 @@ typedef struct io_data_{
     int input;
     int full;
     char *filename;
+    uint32_t fstart;
+    uint32_t fstop;
+    uint32_t frange;
     uint32_t freq;
     uint32_t sat;
     uint32_t pol;
@@ -63,7 +62,8 @@ void print_help(char *argv){
 		    " -n          : number of FFTs for averaging (default 1000)\n\n"
 		    " -c          : continuous PAM output\n\n"
 		    " -t          : output CSV \n\n"
-		    " -x          : full spectrum scan\n\n"
+		    " -x f1 f2    : full spectrum scan from f1 to f2\n\n"
+		    "               (default if not set: 950000 to 2150000 kHz) \n\n"
 		    " -q          : faster FFT\n\n"
 		    " -d          : use 1s delay to wait for LNB power up\n\n"
 		    " -l alpha    : parameter of the Kaiser window\n\n", argv);
@@ -105,7 +105,7 @@ void close_io(io_data *iod)
 
 int next_freq_step(io_data *iod)
 {
-    uint32_t sfreq = MIN_FREQ+iod->window/2;
+    uint32_t sfreq = iod->fstart+iod->window/2;
     uint32_t freq;
 	
     if (!iod->full) return -1;
@@ -114,7 +114,7 @@ int next_freq_step(io_data *iod)
 
     if (iod->step == 0 && iod->id == AGC_OFF){
 	fprintf(stderr,"Optimizing AGC\n",freq,iod->step);
-	freq = MIN_FREQ+FREQ_RANGE/2;
+	freq = iod->fstart + iod->frange/2;
 	if (set_fe_input(iod->fe_fd, sfreq, iod->fft_sr,
 			 SYS_DVBS2, iod->input, iod->id) < 0){
 	    exit(1);
@@ -122,7 +122,7 @@ int next_freq_step(io_data *iod)
 	iod->id = AGC_OFF_C;
     }
     freq = sfreq+iod->window*iod->step;
-    if (freq+iod->window/2 > MAX_FREQ) return -1;
+    if (freq+iod->window/2 > iod->fstop) return -1;
     iod->freq = freq;
     fprintf(stderr,"Setting frequency %d step %d %d\n",freq,iod->step, iod->fft_length);
     if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
@@ -149,11 +149,15 @@ void init_io(io_data *iod)
     iod->delay = 0;
     iod->pol = 2;
     iod->hi = 0;
+    iod->fstart = MIN_FREQ;
+    iod->fstop = MAX_FREQ;
+    iod->frange = (MAX_FREQ - MIN_FREQ);
 }
 
 void set_io(io_data *iod, int adapter, int num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, uint32_t hi,
-	    uint32_t length, uint32_t id, int full, int delay)
+	    uint32_t length, uint32_t id, int full, int delay,
+	    uint32_t fstart, uint32_t fstop)
 {
     iod->adapter = adapter;
     iod->input = num;
@@ -166,6 +170,16 @@ void set_io(io_data *iod, int adapter, int num,
     iod->delay = delay;
     iod->pol = pol;
     iod->hi = hi;
+    if (fstart < MIN_FREQ || fstart > MAX_FREQ ||
+	fstop < MIN_FREQ || fstop > MAX_FREQ){
+	fprintf(stderr,"Frequencies out of range (%d %d ) using default: %d -  %d\n",
+		fstart, fstop, MIN_FREQ, MAX_FREQ);
+	return;
+    }
+
+    iod->fstart = fstart;
+    iod->fstop = fstop;
+    iod->frange = (fstop - fstart);
 }
 
 
@@ -182,11 +196,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int adapter = 0;
     int input = 0;
     uint32_t freq = -1;
+    uint32_t fstart = MIN_FREQ;
+    uint32_t fstop = MAX_FREQ;
+    uint32_t t =0;
     uint32_t sr = FFT_SR;
     uint32_t id = AGC_OFF;
     int delay = 0;
     uint32_t pol = 2;
     uint32_t hi = 0;
+    char *nexts= NULL;
     
     if (argc < 2) {
 	print_help(argv[0]);
@@ -217,7 +235,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:xqdp:us:",
+			"f:a:kl:i:bctn:ho:qdp:us:x:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -271,11 +289,21 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    outmode = CSV;
 	    break;
 	case 'n':
-	    nfft = strtoul(optarg, NULL, 0);
+	    nfft = strtoul(optarg, NULL, 10);
 	    break;
 
 	case 'x':
 	    full = 1;
+	    t = strtoul(optarg, &nexts, 0);
+	    if (t) {
+		fstart = t;
+		if (nexts){
+		    nexts++;
+		    fstop = strtoul(nexts, NULL, 0);
+		}
+//		fprintf(stderr,"nexts: %s   %d %d\n",nexts, fstart, fstop);
+		nexts = NULL;
+	    }
 	    break;
 
 	case 'q':
@@ -290,14 +318,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	}
     }
+    /*
     if (optind < argc) {
 	fprintf(stderr,"Warning: unused arguments\n");
     }
-
+    */
     if (outm&FULL_SPECTRUM) full=1;
     height = 9*width/16;
-    
-    set_io(iod, adapter, input, freq, sr, pol, hi, width, id, full, delay);
+    set_io(iod, adapter, input, freq, sr, pol, hi, width, id, full, delay,
+	   fstart, fstop);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
@@ -310,7 +339,6 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 {
     int full = iod->full;
     int run = 1;
-    double *pow = NULL;
     bitmap *bm=NULL;
     
     while (run){
@@ -318,13 +346,6 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    spec_read_data(iod->fdin, spec);
 	} else {
 	    int step;
-	    if (!pow && !(pow = (double *)
-			  malloc(spec->width/2*MAXWIN*sizeof(double)))){
-		{
-		    fprintf(stderr,"not enough memory\n");
-		    exit(1);
-		}
-	    }
 	    
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_read_data(iod->fdin, spec);

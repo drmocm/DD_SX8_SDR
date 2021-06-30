@@ -64,7 +64,8 @@ For usage information use the -h option.
 >
 >      -c          : continuous output
 >
->      -x          : full spectrum scan
+>	   -x f1 f2    : full spectrum scan from f1 to f2\n\n"
+>	                 (default if not set: 950000 to 2150000 kHz) \n\n"
 >
 >      -d          :  use 1s delay to wait for LNB power up
 >
