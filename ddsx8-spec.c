@@ -49,23 +49,24 @@ typedef struct io_data_{
 
 void print_help(char *argv){
 	    fprintf(stderr,"usage:\n"
-                    "%s [-f frequency] [-p pol] [-a adapter] "
+                    "%s [-f frequency] [-p pol] [-s rate] [-a adapter] "
 		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-d] [-h]\n\n"
-		    " frequency: center frequency of the spectrum in KHz\n\n"
-		    " pol      : polarisation 0=vertical 1=horizontal\n\n"
-		    " adapter  : the number n of the DVB adapter, i.e. \n"
-		    "            /dev/dvb/adapter[n] (default=0)\n\n"
-		    " input    : the physical input of the SX8 (default=0)\n\n"
-		    " -u       : use hi band of LNB\n\n"
-		    " -k       : use Kaiser window before FFT\n\n"
-		    " -b       : turn on agc\n\n"
-		    " -n       : number of FFTs for averaging (default 1000)\n\n"
-		    " -c       : continuous PAM output\n\n"
-		    " -t       : output CSV \n\n"
-		    " -x       : full spectrum scan\n\n"
-		    " -q       : faster FFT\n\n"
-		    " -d       : use 1s delay to wait for LNB power up\n\n"
-		    " alpha    : parameter of the KAiser window\n\n", argv);
+		    " -f frequency: center frequency of the spectrum in KHz\n\n"
+		    " -p pol      : polarisation 0=vertical 1=horizontal\n\n"
+		    " -s rate     : the signal rate used for the FFT\n"
+		    " -a adapter  : the number n of the DVB adapter, i.e. \n"
+		    "              /dev/dvb/adapter[n] (default=0)\n\n"
+		    " -i input    : the physical input of the SX8 (default=0)\n\n"
+		    " -u          : use hi band of LNB\n\n"
+		    " -k          : use Kaiser window before FFT\n\n"
+		    " -b          : turn on agc\n\n"
+		    " -n          : number of FFTs for averaging (default 1000)\n\n"
+		    " -c          : continuous PAM output\n\n"
+		    " -t          : output CSV \n\n"
+		    " -x          : full spectrum scan\n\n"
+		    " -q          : faster FFT\n\n"
+		    " -d          : use 1s delay to wait for LNB power up\n\n"
+		    " -l alpha    : parameter of the KAiser window\n\n", argv);
 }
 
 void open_io(io_data *iod)
@@ -202,6 +203,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"Kaiserwindow", no_argument, 0, 'k'},
 	    {"alpha", required_argument, 0, 'l'},
 	    {"input", required_argument, 0, 'i'},
+	    {"signal_rate", required_argument, 0, 's'},
 	    {"agc", no_argument, 0, 'b'},
 	    {"delay", no_argument, 0, 'd'},
 	    {"band", no_argument, 0, 'u'},
@@ -215,7 +217,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:xqdp:u",
+			"f:a:kl:i:bctn:ho:xqdp:us:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -223,6 +225,9 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	switch (c) {
 	case 'f':
 	    freq = strtoul(optarg, NULL, 0);
+	    break;
+	case 's':
+	    sr = strtoul(optarg, NULL, 0);
 	    break;
 	case'p':
 	    pol =  strtoul(optarg, NULL, 0);
