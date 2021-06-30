@@ -51,9 +51,9 @@ void print_help(char *argv){
 	    fprintf(stderr,"usage:\n"
                     "%s [-f frequency] [-p pol] [-s rate] [-a adapter] "
 		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-d] [-h]\n\n"
-		    " -f frequency: center frequency of the spectrum in KHz\n\n"
+		    " -f frequency: center frequency of the spectrum in kHz\n\n"
 		    " -p pol      : polarisation 0=vertical 1=horizontal\n\n"
-		    " -s rate     : the signal rate used for the FFT\n"
+		    " -s rate     : the signal rate used for the FFT in Hz\n"
 		    " -a adapter  : the number n of the DVB adapter, i.e. \n"
 		    "              /dev/dvb/adapter[n] (default=0)\n\n"
 		    " -i input    : the physical input of the SX8 (default=0)\n\n"
@@ -66,7 +66,7 @@ void print_help(char *argv){
 		    " -x          : full spectrum scan\n\n"
 		    " -q          : faster FFT\n\n"
 		    " -d          : use 1s delay to wait for LNB power up\n\n"
-		    " -l alpha    : parameter of the KAiser window\n\n", argv);
+		    " -l alpha    : parameter of the Kaiser window\n\n", argv);
 }
 
 void open_io(io_data *iod)

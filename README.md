@@ -43,30 +43,32 @@ For usage information use the -h option.
 >./ddsx8-spec -h
 >
 >    usage:
->    ./ddsx8-spec [-f frequency] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-n nfft] [-x] [-h] 
+>    ./ddsx8-spec [-f frequency] [-s rate] [-a adapter] [-i input] [-k] [-l alpha] [-b] [-c] [-n nfft] [-x] [-h] 
 >
->      frequency: center frequency of the spectrum in KHz
+>      -f frequency: center frequency of the spectrum in kHz
 >
->      pol      : polarisation 0=vertical 1=horizontal
+>      -s rate     : the signal rate used for the FFT in Hz
 >
->      adapter  : the number n of the DVB adapter, i.e. 
->                 /dev/dvb/adapter[n] (default=0)
+>      -p pol      : polarisation 0=vertical 1=horizontal
 >
->      input    : the physical input of the SX8 (default=0)
+>      -a adapter  : the number n of the DVB adapter, i.e. 
+>                    /dev/dvb/adapter[n] (default=0)
 >
->      -k       : use Kaiser window before FFT
+>      -i input    : the physical input of the SX8 (default=0)
 >
->      -b       : turn on agc
+>      -k          : use Kaiser window before FFT
 >
->	   -n       : number of FFTs for averaging (default 1000)
+>      -b          : turn on agc
 >
->      -c       : continuous output
+>	   -n          : number of FFTs for averaging (default 1000)
 >
->      -x       : full spectrum scan
+>      -c          : continuous output
 >
->      -d       :  use 1s delay to wait for LNB power up
+>      -x          : full spectrum scan
 >
->      alpha    : parameter of the KAiser window
+>      -d          :  use 1s delay to wait for LNB power up
+>
+>      -l alpha    : parameter of the Kaiser window
 
 Typical calls would be:
 
