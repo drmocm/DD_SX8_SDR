@@ -63,7 +63,7 @@ void print_help(char *argv){
 		    " -c          : continuous PAM output\n\n"
 		    " -t          : output CSV \n\n"
 		    " -x f1 f2    : full spectrum scan from f1 to f2\n\n"
-		    "               (default if not set: 950000 to 2150000 kHz) \n\n"
+		    "               (default -x 0 : 950000 to 2150000 kHz) \n\n"
 		    " -q          : faster FFT\n\n"
 		    " -d          : use 1s delay to wait for LNB power up\n\n"
 		    " -l alpha    : parameter of the Kaiser window\n\n", argv);
@@ -241,53 +241,66 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    break;
 	
 	switch (c) {
+
 	case 'f':
 	    freq = strtoul(optarg, NULL, 0);
 	    break;
+	    
 	case 's':
 	    sr = strtoul(optarg, NULL, 0);
 	    break;
+	    
 	case'p':
 	    pol =  strtoul(optarg, NULL, 0);
 	    break;
+	    
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
 	    break;
+	    
 	case 'k':
 	    use_window = 1;
 	    break;
+	    
 	case 'l':
 	    alpha = strtod(optarg, NULL);	    
 	    break;
+	    
 	case 'i':
 	    input = strtoul(optarg, NULL, 0);
 	    break;
+	    
 	case 'd':
 	    delay = 1000000;
 	    break;
+	    
 	case 'u':
 	    if (pol == 2) pol = 0;
 	    hi  = 1;
 	    break;
+	    
 	case 'b':
 	    id = AGC_ON;
 	    break;
+	    
 	case 'c':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -x -c -t\n");
+		fprintf(stderr, "chose only one of the options -c -t\n");
 		exit(1);
 	    }
 	    outmode = MULTI_PAM;
 	    break;
+	    
 	case 't':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -x -c -t\n");
+		fprintf(stderr, "chose only one of the options -c -t\n");
 		exit(1);
 	    }
 	    outmode = CSV;
 	    break;
+	    
 	case 'n':
 	    nfft = strtoul(optarg, NULL, 10);
 	    break;
@@ -340,30 +353,58 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int full = iod->full;
     int run = 1;
     bitmap *bm=NULL;
+    int64_t str;
+    int width = 1920;
+    int height = width*9/16;
+    int steps = iod->frange/iod->window;
+    int swidth = width/steps;
+    struct dtv_fe_stats st;
     
+
     while (run){
+	run = 0;
 	if (!full) {
 	    spec_read_data(iod->fdin, spec);
 	} else {
-	    int step;
-	    
+	    int step = 0;
+	    iod->step = 0;
+
 	    while ((step=next_freq_step(iod)) >= 0){
+
 		spec_read_data(iod->fdin, spec);
-		if (mode == CSV) {
-		    int64_t str;
-		    struct dtv_fe_stats st;
+
+		switch (mode){
+
+		case CSV: 
 		    get_stat(iod->fe_fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 		    str = st.stat[0].svalue;
+		    spec_write_csv(iod->fd_out, spec,
+				   iod->freq, iod->fft_sr,2,str);
+		    break;
 
-		    spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,2,str);
-		} else {
+		case MULTI_PAM:
+		    run = 1;
+		    
+		case SINGLE_PAM:
+		    if ( bm == NULL) {
+			bm = init_bitmap(width, height, 3);
+			clear_bitmap(bm);
+		    }
+		    
+		    display_array(bm, spec->pow, spec->width/2,
+				  spec->width/2*step,25,
+				  (double)2.0*swidth/spec->width, 40);
+		    write_pam (iod->fd_out, bm);
+		    break;
+		    
+		default:
 		    fprintf(stderr,"Full spectrum only works with -t option\n");
 		    exit(1);
+		    break;
 		}
 	    }
 	}
    
-	run = 0;
 	switch (mode){
 	case MULTI_PAM:
 	    run = 1;
@@ -380,6 +421,8 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	    break;
 	}
+	if (bm) clear_bitmap(bm);
+	iod->step = -1;
     }
     if (mode == SINGLE_PAM || mode == MULTI_PAM){
 	delete_bitmap(bm);
@@ -401,6 +444,6 @@ int main(int argc, char **argv){
 
     open_io(&iod);
 
-    spectrum_output (outm&3,  &iod, &spec );
+    spectrum_output (outm,  &iod, &spec );
 
 }

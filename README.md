@@ -65,7 +65,7 @@ For usage information use the -h option.
 >      -c          : continuous output
 >
 >	   -x f1 f2    : full spectrum scan from f1 to f2\n\n"
->	                 (default if not set: 950000 to 2150000 kHz) \n\n"
+>	                 (default -x 0 : 950000 to 2150000 kHz) \n\n"
 >
 >      -d          :  use 1s delay to wait for LNB power up
 >
@@ -102,4 +102,8 @@ gnuplot file test.gnuplot like this:
 The -x option can be used to get a full spectrum scan with CSV output
 like this ( it will take a few seconds ):
 
-`/ddsx8-spec -f 1210000  -x -b -t -n 1000 -i 1 > test.csv` 
+`/ddsx8-spec -f 1210000  -x 0 -b -t -n 1000 -i 1 > test.csv` 
+
+or for a specific range, e.g. 1000000 kHz to 1200000 kHz
+
+`/ddsx8-spec -f 1210000  -x  1000000 1200000 -b -t -n 1000 -i 1 > test.csv` 
