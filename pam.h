@@ -21,6 +21,20 @@ typedef struct bitmap_{
     int depth;
 } bitmap;
 
+typedef struct graph_{
+    bitmap *bm;
+    double xmin;
+    double xmax;
+    double ymin;
+    double ymax;
+    double xrange;
+    double yrange;
+    double lastx;
+    double lasty;
+} graph;
+
+void init_grap(graph *g, bitmap *bm, double xmin, double xmax,
+	       double ymin, double ymax);
 
 void plot(bitmap *bm, int x, int y,
 			unsigned char R,
@@ -41,5 +55,12 @@ bitmap *init_bitmap(int width, int height, int depth);
 void delete_bitmap(bitmap *bm);
 void display_array(bitmap *bm, double *pow, int length,
 		   int startpos, double ymin, double scale, double range);
-
+void plot_to_graph(graph *g, double x2, double y2, 
+		   unsigned char R,
+		   unsigned char G,
+		   unsigned char B);
+void plotline_graph(graph *g, double x, double y, double x2, double y2, 
+		    unsigned char R,
+		    unsigned char G,
+		    unsigned char B);
 #endif /* _PAM_H_*/

@@ -239,3 +239,90 @@ void delete_bitmap(bitmap *bm)
     free (bm);
 }
 
+void init_grap(graph *g, bitmap *bm, double xmin, double xmax,
+	       double ymin, double ymax)
+{
+    g->bm = bm;
+    g->xmin = xmin;
+    g->xmax = xmax;
+    g->ymin = ymin;
+    g->ymax = ymax;
+    g->lastx = xmin;
+    g->lasty = ymin;
+    g->xrange = xmax-xmin;
+    g->yrange = ymax-ymin;
+}
+
+void plot_graph(graph *g, double x, double y, int R, int G, int B)
+{
+    int ix;
+    int iy;
+
+    if ( x > g->xmax || x < g->xmin || y > g->ymax || y < g->ymin) return; 
+    ix = (int)((x-g->xmin)*g->bm->width/g->xrange);
+    iy = (int)((y-g->ymin)*g->bm->height/g->yrange);
+    
+    plot(g->bm,ix,iy,R,G,B);
+    g->lastx = x;
+    g->lasty = y;
+}
+
+void plotline_graph(graph *g, double x, double y, double x2, double y2, 
+	      unsigned char R,
+	      unsigned char G,
+	      unsigned char B)
+{
+    bitmap *bm= g->bm;
+    // maybe better clipping later
+    int ix,ix2;
+    int iy,iy2;
+
+    if ( x > g->xmax || x < g->xmin || y > g->ymax || y < g->ymin || 
+         x2 > g->xmax || x2 < g->xmin || y2 > g->ymax || y2 < g->ymin) return; 
+
+    ix = (int)((x-g->xmin)*g->bm->width/g->xrange);
+    iy = (int)((y-g->ymin)*g->bm->height/g->yrange);
+    ix2 = (int)((x2-g->xmin)*g->bm->width/g->xrange);
+    iy2 = (int)((y2-g->ymin)*g->bm->height/g->yrange);
+
+    plotline (bm,ix,iy,ix2,iy2,R,G,B);
+    g->lastx = x2;
+    g->lasty = y2;
+}
+
+void plot_to_graph(graph *g, double x2, double y2, 
+	      unsigned char R,
+	      unsigned char G,
+	      unsigned char B)
+{
+    bitmap *bm= g->bm;
+    // maybe better clipping later
+    int ix,ix2;
+    int iy,iy2;
+    double x, y;
+    
+    if ( x2 > g->xmax || x2 < g->xmin || y2 > g->ymax || y2 < g->ymin) return; 
+    x = g->lastx;
+    y = g->lasty;
+    
+    ix = (int)((x-g->xmin)*g->bm->width/g->xrange);
+    iy = (int)((y-g->ymin)*g->bm->height/g->yrange);
+    ix2 = (int)((x2-g->xmin)*g->bm->width/g->xrange);
+    iy2 = (int)((y2-g->ymin)*g->bm->height/g->yrange);
+
+    plotline (bm,ix,iy,ix2,iy2,R,G,B);
+    g->lastx = x2;
+    g->lasty = y2;
+}
+
+void display_array_graph(graph *g, double *x, double *y, int length, int first)
+{
+    uint8_t R = 0;
+    uint8_t G = 0;
+    uint8_t B = 0;
+
+    for (int i = first; i < length; i++){
+	get_rgb((int)(255*(y[i] - g->ymin)/g->yrange), &R, &G, &B);
+	plot_to_graph(g, x[i], y[i], R,G,B);
+    }
+}

@@ -196,3 +196,11 @@ void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int
     write_csv (fd, spec->width, step, freqstart, spec->pow, center, str );
 }
 
+void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr){
+    uint32_t step = fft_sr/spec->width/1000;
+    uint32_t freqstart = freq - fft_sr/2/1000;
+    
+    for (int i = 0; i < spec->width; i++){
+	spec->freq[i] = (double)(freqstart+step*i)/1000.0;
+    }
+}

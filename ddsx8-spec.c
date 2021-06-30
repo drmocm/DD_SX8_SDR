@@ -365,10 +365,22 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	run = 0;
 	if (!full) {
 	    spec_read_data(iod->fdin, spec);
+	    switch (mode){
+	    case MULTI_PAM:
+		run = 1;
+	    
+	    case SINGLE_PAM:
+		spec_write_pam(iod->fd_out, bm, spec);
+		break;
+		
+	    case CSV:
+		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr, 0, 0);
+		break;
+	    }
 	} else {
 	    int step = 0;
 	    iod->step = 0;
-
+	    
 	    while ((step=next_freq_step(iod)) >= 0){
 
 		spec_read_data(iod->fdin, spec);
@@ -405,22 +417,6 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	}
    
-	switch (mode){
-	case MULTI_PAM:
-	    run = 1;
-	    
-	case SINGLE_PAM:
-	    if (!full) {
-		spec_write_pam(iod->fd_out, bm, spec);
-	    }
-	    break;
-
-	case CSV:
-	    if (!full) {
-		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr, 0, 0);
-	    }
-	    break;
-	}
 	if (bm) clear_bitmap(bm);
 	iod->step = -1;
     }

@@ -36,5 +36,6 @@ void spec_read_data (int fdin, specdata *spec);
 void spec_write_pam (int fd, bitmap *bm, specdata *spec);
 void spec_write_csv (int fd, specdata *spec,uint32_t freq,
 		     uint32_t fft_sr, int center, int64_t str);
+void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr);
 
 #endif /* _SPEC_H_*/
