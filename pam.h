@@ -63,4 +63,6 @@ void plotline_graph(graph *g, double x, double y, double x2, double y2,
 		    unsigned char R,
 		    unsigned char G,
 		    unsigned char B);
+void display_array_graph(graph *g, double *x, double *y, int length, int first);
+void graph_range(graph *g, double *x, double *y, int width);
 #endif /* _PAM_H_*/

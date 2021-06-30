@@ -359,18 +359,25 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int steps = iod->frange/iod->window;
     int swidth = width/steps;
     struct dtv_fe_stats st;
+    graph g;
     
 
     while (run){
 	run = 0;
 	if (!full) {
+	    spec_set_freq(spec, iod->freq, iod->fft_sr);
 	    spec_read_data(iod->fdin, spec);
 	    switch (mode){
 	    case MULTI_PAM:
 		run = 1;
 	    
 	    case SINGLE_PAM:
-		spec_write_pam(iod->fd_out, bm, spec);
+		if ( bm == NULL) {
+		    bm = init_bitmap(width, height, 3);
+		    clear_bitmap(bm);
+		}
+		init_grap(&g, bm, 0, 0, 0, 0);
+		spec_write_graph (iod->fd_out, &g, spec);
 		break;
 		
 	    case CSV:
@@ -382,7 +389,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    iod->step = 0;
 	    
 	    while ((step=next_freq_step(iod)) >= 0){
-
+		spec_set_freq(spec, iod->freq, iod->fft_sr);
 		spec_read_data(iod->fdin, spec);
 
 		switch (mode){
@@ -401,11 +408,19 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		    if ( bm == NULL) {
 			bm = init_bitmap(width, height, 3);
 			clear_bitmap(bm);
+			init_grap(&g, bm, iod->fstart, iod->fstop, 0, 60);
+			g.lastx = spec->freq[0];
+			g.lasty = spec->pow[0];
 		    }
-		    
+#if 0		    
+		    display_array_graph( &g, spec->freq, spec->pow,
+					 spec->width/2, spec->width/4);
+#else
 		    display_array(bm, spec->pow, spec->width/2,
 				  spec->width/2*step,25,
 				  (double)2.0*swidth/spec->width, 40);
+
+#endif
 		    write_pam (iod->fd_out, bm);
 		    break;
 		    

@@ -176,8 +176,8 @@ void spec_read_data (int fdin, specdata *spec)
     spec_fft(fdin, spec, pow, spec->width);
 }    
 
-void spec_write_pam (int fd, bitmap *bm, specdata *spec){
-    
+void spec_write_pam (int fd, bitmap *bm, specdata *spec)
+{    
     if ( bm == NULL) {
 	int width = spec->width;
 	int height = width*9/16;
@@ -190,17 +190,28 @@ void spec_write_pam (int fd, bitmap *bm, specdata *spec){
     write_pam (fd, bm);
 }
 
-void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center, int64_t  str){
+void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center, int64_t  str)
+{
     uint32_t step = fft_sr/spec->width/1000;
     uint32_t freqstart = freq - fft_sr/2/1000;
     write_csv (fd, spec->width, step, freqstart, spec->pow, center, str );
 }
 
-void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr){
+void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr)
+{
     uint32_t step = fft_sr/spec->width/1000;
     uint32_t freqstart = freq - fft_sr/2/1000;
     
     for (int i = 0; i < spec->width; i++){
 	spec->freq[i] = (double)(freqstart+step*i)/1000.0;
     }
+}
+
+void spec_write_graph (int fd, graph *g, specdata *spec)
+{
+    graph_range(g, spec->freq, spec->pow, spec->width);
+
+    clear_bitmap(g->bm);
+    display_array_graph( g, spec->freq, spec->pow, spec->width, 0);
+    write_pam (fd, g->bm);
 }

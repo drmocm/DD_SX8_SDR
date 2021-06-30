@@ -326,3 +326,26 @@ void display_array_graph(graph *g, double *x, double *y, int length, int first)
 	plot_to_graph(g, x[i], y[i], R,G,B);
     }
 }
+
+void graph_range(graph *g, double *x, double *y, int width)
+{    
+    double range = 0;
+
+    g->ymin = y[0];
+    g->ymax = y[0];
+    g->xmin = x[0];
+    g->xmax = x[0];
+
+    for (int i=0; i < width; i++){
+	if ( isfinite(y[i]) && y[i] > g->ymax ) g->ymax = y[i];
+	if ( isfinite(y[i]) && y[i] < g->ymin ) g->ymin = y[i];
+	if ( x[i] > g->xmax ) g->xmax = x[i];
+	if ( x[i] < g->xmin ) g->xmin = x[i];
+    }
+    g->yrange = g->ymax-g->ymin;
+    g->ymin -=  g->yrange*.05;
+    g->ymax +=  g->yrange*.05;
+    
+    g->yrange = g->ymax-g->ymin;
+    g->xrange = g->xmax-g->xmin;
+}
