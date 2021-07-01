@@ -408,10 +408,16 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 
 		case SINGLE_PAM:
 		    if ( bm == NULL) {
+			double ymin = 20;
+			double ymax = 75;
+			if (iod->id == AGC_ON){
+			    ymin = 35;
+			    ymax = 80;
+			}
 			bm = init_bitmap(width, height, 3);
 			clear_bitmap(bm);
 			init_graph(&g, bm, iod->fstart/1000.0,
-				  iod->fstop/1000.0, 25, 55);
+				  iod->fstop/1000.0, ymin, ymax);
 		    }
 		    if (step == 1){
 			g.lastx = spec->freq[0];

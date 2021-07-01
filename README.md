@@ -82,7 +82,7 @@ I switch off the AGC, but with -b you can turn it back on (see dvb.h and dvb.c o
 If you select the PAM format as output you can use ffplay to view the data
 as single image:
 
-`/ddsx8-spec -f 1030000  -k  | ffplay -f pam_pipe -`
+`./ddsx8-spec -f 1030000  -k  | ffplay -f pam_pipe -`
 
 or continuously:
 
@@ -92,7 +92,7 @@ or continuously:
 If you use the -t option and write the resulting comma separated list
 into the file test.csv like this: 
 
-`/ddsx8-spec -f 1210000  -b -t -n 1000 -i 1 > test.csv` 
+`./ddsx8-spec -f 1210000  -t  > test.csv` 
 
 you can use the gnuplot program to display the data with the added 
 gnuplot file test.gnuplot like this:
@@ -102,8 +102,17 @@ gnuplot file test.gnuplot like this:
 The -x option can be used to get a full spectrum scan with CSV output
 like this ( it will take a few seconds ):
 
-`/ddsx8-spec -f 1210000  -x 0 -b -t -n 1000 -i 1 > test.csv` 
+`./ddsx8-spec   -x 0 -t  > test.csv` 
+
+or as pam
+
+`./ddsx8-spec   -x 0  | ffplay -f pam_pipe -` 
 
 or for a specific range, e.g. 1000000 kHz to 1200000 kHz
 
-`/ddsx8-spec -f 1210000  -x  1000000 1200000 -b -t -n 1000 -i 1 > test.csv` 
+`./ddsx8-spec -x  1000000 1200000  -t  > test.csv` 
+
+or as pam
+
+`./ddsx8-spec   -x 1000000 1200000 | ffplay -f pam_pipe -` 
+
