@@ -212,6 +212,6 @@ void spec_write_graph (int fd, graph *g, specdata *spec)
     graph_range(g, spec->freq, spec->pow, spec->width);
 
     clear_bitmap(g->bm);
-    display_array_graph( g, spec->freq, spec->pow, spec->width, 0);
+    display_array_graph( g, spec->freq, spec->pow, 0, spec->width);
     write_pam (fd, g->bm);
 }

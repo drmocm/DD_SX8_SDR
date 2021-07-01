@@ -161,8 +161,8 @@ int diseqc(int fd, int sat, int hor, int band)
         diseqc_send_msg(fd, hor ? SEC_VOLTAGE_18 : SEC_VOLTAGE_13,
                         &cmd, band ? SEC_TONE_ON : SEC_TONE_OFF,
                         (sat & 1) ? SEC_MINI_B : SEC_MINI_A, 0);
-	fprintf(stderr, "MS %02x %02x %02x %02x\n", 
-		cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
+	//fprintf(stderr, "MS %02x %02x %02x %02x\n", 
+	//	cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
         return 0;
 }
 
@@ -197,8 +197,8 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
 
-        fprintf(stderr, "EN50494 %02x %02x %02x %02x %02x\n", 
-		cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
+        //fprintf(stderr, "EN50494 %02x %02x %02x %02x %02x\n", 
+	//	cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 
 }
@@ -234,16 +234,16 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
 
-        fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
-                  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
-        fprintf(stderr, "EN50607 freq %u sr %u hor %u\n", 
-                  freq, sr, hor);
+        //fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
+        //          cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
+        //fprintf(stderr, "EN50607 freq %u sr %u hor %u\n", 
+        //          freq, sr, hor);
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 }
 
 void power_on_delay(int fd, int delay)
 {
-        fprintf(stderr, "pre voltage %d\n", delay);
+    //fprintf(stderr, "pre voltage %d\n", delay);
 	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
 	    perror("FE_SET_VOLTAGE failed");
 	usleep(delay);
@@ -256,7 +256,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
-	fprintf(stderr, "tune_sat freq=%u\n", freq);
+    //fprintf(stderr, "tune_sat freq=%u\n", freq);
 	
 	if (freq > 3000000) {
 	    if (lofs)
@@ -266,9 +266,9 @@ int tune_sat(int fd, int type, uint32_t freq,
                 else
                         freq -= lof1;
         }
-        fprintf(stderr, "tune_sat IF=%u\n", freq);
+	//    fprintf(stderr, "tune_sat IF=%u\n", freq);
 
-        fprintf(stderr, "scif_type = %u\n", type);
+        //fprintf(stderr, "scif_type = %u\n", type);
 	int re=-1;
         if (type == 1) { 
 	       re = set_en50494(fd, freq / 1000, sr, lnb, pol, hi,

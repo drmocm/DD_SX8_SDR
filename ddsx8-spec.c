@@ -124,7 +124,7 @@ int next_freq_step(io_data *iod)
     freq = sfreq+iod->window*iod->step;
     if (freq+iod->window/2 > iod->fstop) return -1;
     iod->freq = freq;
-    fprintf(stderr,"Setting frequency %d step %d %d\n",freq,iod->step, iod->fft_length);
+    fprintf(stderr,"Setting frequency %d step %d\n",freq,iod->step);
     if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
 		     SYS_DVBS2, iod->input, iod->id) < 0){
 	exit(1);
@@ -376,7 +376,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		    bm = init_bitmap(width, height, 3);
 		    clear_bitmap(bm);
 		}
-		init_grap(&g, bm, 0, 0, 0, 0);
+		init_graph(&g, bm, 0, 0, 0, 0);
 		spec_write_graph (iod->fd_out, &g, spec);
 		break;
 		
@@ -403,24 +403,22 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 
 		case MULTI_PAM:
 		    run = 1;
-		    
+		    clear_range_graph(&g, spec->freq[spec->width/4],
+				      spec->freq[3*spec->width/4]);
+
 		case SINGLE_PAM:
 		    if ( bm == NULL) {
 			bm = init_bitmap(width, height, 3);
 			clear_bitmap(bm);
-			init_grap(&g, bm, iod->fstart, iod->fstop, 0, 60);
+			init_graph(&g, bm, iod->fstart/1000.0,
+				  iod->fstop/1000.0, 25, 55);
+		    }
+		    if (step == 1){
 			g.lastx = spec->freq[0];
 			g.lasty = spec->pow[0];
 		    }
-#if 0		    
 		    display_array_graph( &g, spec->freq, spec->pow,
-					 spec->width/2, spec->width/4);
-#else
-		    display_array(bm, spec->pow, spec->width/2,
-				  spec->width/2*step,25,
-				  (double)2.0*swidth/spec->width, 40);
-
-#endif
+					 spec->width/4, spec->width/2);
 		    write_pam (iod->fd_out, bm);
 		    break;
 		    
@@ -432,7 +430,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	}
    
-	if (bm) clear_bitmap(bm);
+	//if (bm) clear_bitmap(bm);
 	iod->step = -1;
     }
     if (mode == SINGLE_PAM || mode == MULTI_PAM){

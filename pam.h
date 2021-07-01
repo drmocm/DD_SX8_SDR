@@ -33,7 +33,7 @@ typedef struct graph_{
     double lasty;
 } graph;
 
-void init_grap(graph *g, bitmap *bm, double xmin, double xmax,
+void init_graph(graph *g, bitmap *bm, double xmin, double xmax,
 	       double ymin, double ymax);
 
 void plot(bitmap *bm, int x, int y,
@@ -53,6 +53,7 @@ void write_csv(int fd, int width, uint32_t freq,
 void clear_bitmap(bitmap *bm);
 bitmap *init_bitmap(int width, int height, int depth);
 void delete_bitmap(bitmap *bm);
+void clear_range_bitmap(bitmap *bm, int first, int last);
 void display_array(bitmap *bm, double *pow, int length,
 		   int startpos, double ymin, double scale, double range);
 void plot_to_graph(graph *g, double x2, double y2, 
@@ -65,4 +66,5 @@ void plotline_graph(graph *g, double x, double y, double x2, double y2,
 		    unsigned char B);
 void display_array_graph(graph *g, double *x, double *y, int length, int first);
 void graph_range(graph *g, double *x, double *y, int width);
+void clear_range_graph(graph *g, double dfirst, double dlast);
 #endif /* _PAM_H_*/
