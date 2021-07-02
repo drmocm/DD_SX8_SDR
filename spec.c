@@ -213,5 +213,6 @@ void spec_write_graph (int fd, graph *g, specdata *spec)
 
     clear_bitmap(g->bm);
     display_array_graph( g, spec->freq, spec->pow, 0, spec->width);
+    coordinate_axes(g->bm, 200, 255,0);
     write_pam (fd, g->bm);
 }

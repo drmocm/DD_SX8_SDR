@@ -1,9 +1,9 @@
 #include "pam.h"
 
 void plot(bitmap *bm, int x, int y,
-	  unsigned char R,
-	  unsigned char G,
-	  unsigned char B)
+	  uint8_t R,
+	  uint8_t G,
+	  uint8_t B)
 {
     int width = bm->width;
     int height = bm->height;
@@ -19,9 +19,9 @@ void plot(bitmap *bm, int x, int y,
 }
 
 void plotline(bitmap *bm, int x, int y, int x2, int y2, 
-	      unsigned char r,
-	      unsigned char g,
-	      unsigned char b)
+	      uint8_t r,
+	      uint8_t g,
+	      uint8_t b)
 {
     int dx;
     int dy;
@@ -82,10 +82,39 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
     }
 }
 
-void coordinate_axes(bitmap *bm, unsigned char r,
-			 unsigned char g, unsigned char b){
-    int i;
+void circle(bitmap *bm, int x0, int y0, int r, uint8_t R,
+	    uint8_t G, uint8_t B)
+{
+    int x = r;
+    int y = 0;
+    int P = 1 - r;
+     
+    while(x > y){
+	y++;
+	if (P <= 0){
+	    P = P + 2*y + 1;
+	}  else {
+            x--;
+            P = P + 2*y - 2*x + 1;
+        }
+	if (x < y) break;
+	plot(bm, x+x0,y+y0, R,G,B);
+	plot(bm, -x+x0,y+y0, R,G,B);
+	plot(bm, x+x0,-y+y0, R,G,B);
+	plot(bm, -x+x0,-y+y0, R,G,B);
+	if (x != y){
+	plot(bm, y+x0,x+y0, R,G,B);
+	plot(bm, -y+x0,x+y0, R,G,B);
+	plot(bm, y+x0,-x+y0, R,G,B);
+	plot(bm, -y+x0,-x+y0, R,G,B);
+	}
+    }
+}
 
+
+void coordinate_axes(bitmap *bm, uint8_t r,
+			 uint8_t g, uint8_t b){
+    int i;
     plotline(bm, bm->width/2, bm->height-1,
 	     bm->width/2, 0, r,g,b);
 /*
@@ -112,6 +141,7 @@ void clear_range_bitmap(bitmap *bm, int first, int last)
 	plotline(bm, i, 0, i, height,0,0,0);
     }
 }
+
 
 void get_rgb(int val, uint8_t *R, uint8_t *G, uint8_t *B)
     {
@@ -232,7 +262,7 @@ bitmap *init_bitmap(int width, int height, int depth)
     bm->width = width;
     bm->height = height;
     bm->depth = depth;
-    if (!( bm->data = (uint8_t *) malloc(sizeof(unsigned char) *
+    if (!( bm->data = (uint8_t *) malloc(sizeof(uint8_t) *
 						  width*height*depth)))
     {
 	fprintf(stderr,"not enough memory\n");
@@ -265,7 +295,7 @@ void init_graph(graph *g, bitmap *bm, double xmin, double xmax,
     g->yrange = ymax-ymin;
 }
 
-void plot_graph(graph *g, double x, double y, int R, int G, int B)
+void plot_graph(graph *g, double x, double y, uint8_t  R, uint8_t G, uint8_t B)
 {
     int ix;
     int iy;
@@ -280,9 +310,9 @@ void plot_graph(graph *g, double x, double y, int R, int G, int B)
 }
 
 void plotline_graph(graph *g, double x, double y, double x2, double y2, 
-	      unsigned char R,
-	      unsigned char G,
-	      unsigned char B)
+	      uint8_t R,
+	      uint8_t G,
+	      uint8_t B)
 {
     bitmap *bm= g->bm;
     // maybe better clipping later
@@ -305,9 +335,9 @@ void plotline_graph(graph *g, double x, double y, double x2, double y2,
 }
 
 void plot_to_graph(graph *g, double x2, double y2, 
-	      unsigned char R,
-	      unsigned char G,
-	      unsigned char B)
+	      uint8_t R,
+	      uint8_t G,
+	      uint8_t B)
 {
     bitmap *bm= g->bm;
     // maybe better clipping later
