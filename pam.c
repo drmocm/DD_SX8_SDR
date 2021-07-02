@@ -82,20 +82,20 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
     }
 }
 
-void circle(bitmap *bm, int x0, int y0, int r, uint8_t R,
-	    uint8_t G, uint8_t B)
+void circle(bitmap *bm, int x0, int y0, int r,
+	    uint8_t R,uint8_t G, uint8_t B)
 {
     int x = r;
     int y = 0;
-    int P = 1 - r;
+    int d = 1 - r;
      
     while(x > y){
 	y++;
-	if (P <= 0){
-	    P = P + 2*y + 1;
+	if (d <= 0){
+	    d = d+2*y+ 1;
 	}  else {
             x--;
-            P = P + 2*y - 2*x + 1;
+            d = d+2*y-2*x+1;
         }
 	if (x < y) break;
 	plot(bm, x+x0,y+y0, R,G,B);
@@ -103,18 +103,72 @@ void circle(bitmap *bm, int x0, int y0, int r, uint8_t R,
 	plot(bm, x+x0,-y+y0, R,G,B);
 	plot(bm, -x+x0,-y+y0, R,G,B);
 	if (x != y){
-	plot(bm, y+x0,x+y0, R,G,B);
-	plot(bm, -y+x0,x+y0, R,G,B);
-	plot(bm, y+x0,-x+y0, R,G,B);
-	plot(bm, -y+x0,-x+y0, R,G,B);
+	    plot(bm, y+x0,x+y0, R,G,B);
+	    plot(bm, -y+x0,x+y0, R,G,B);
+	    plot(bm, y+x0,-x+y0, R,G,B);
+	    plot(bm, -y+x0,-x+y0, R,G,B);
 	}
     }
 }
 
+void ellipse(bitmap *bm, int x0, int y0 ,int rx, int ry,
+	     uint8_t R,uint8_t G, uint8_t B)
+{
+    int64_t dx, dy, d;
+    int x, y;
+    int64_t r2x = rx*rx;
+    int64_t r2y = ry*ry;
+    x = 0;
+    y = ry;
+ 
+    d = r2y - r2x*ry + r2x/4.0;
+    dx = 2*r2y*x;
+    dy = 2*r2x*y;
+        
+    do {
+ 	plot(bm, x+x0,y+y0, R,G,B);
+ 	plot(bm, -x+x0,y+y0, R,G,B);
+ 	plot(bm, x+x0,-y+y0, R,G,B);
+ 	plot(bm, -x+x0,-y+y0, R,G,B);
+	
+        if (d < 0) {
+            d = d + dx + r2y;
+        } else {
+            y--;
+            d = d + dx - dy + r2y;
+	    dy = dy - 2*r2x;
+        }
+	x++;
+	dx = dx+ 2*r2y;
+    } while (dx < dy);
+  
+    d = r2y*(2*x+1)*(2*x+1)/4 -r2x*r2y +  r2x*(y-1)*(y-1);
+
+    do {
+ 	plot(bm, x+x0,y+y0, R,G,B);
+ 	plot(bm, -x+x0,y+y0, R,G,B);
+ 	plot(bm, x+x0,-y+y0, R,G,B);
+ 	plot(bm, -x+x0,-y+y0, R,G,B);
+
+        if (d >= 0)
+        {
+	    dy = 2*r2x*y;
+            d = d - dy + r2x;
+        } else {
+            x++;
+            d = d + dx - dy + r2x;
+            dx = dx + 2*r2y;
+        }
+	y--;
+	dy = dy - 2*r2x;
+    } while ( y>0);
+}
 
 void coordinate_axes(bitmap *bm, uint8_t r,
 			 uint8_t g, uint8_t b){
     int i;
+//    ellipse(bm, bm->width/2, bm->height/2, 300,200,r,g,b);
+//    circle(bm, bm->width/2, bm->height/2, 300,r,g,b);
     plotline(bm, bm->width/2, bm->height-1,
 	     bm->width/2, 0, r,g,b);
 /*
