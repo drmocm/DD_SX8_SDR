@@ -90,7 +90,7 @@ For usage information use the -h option.
 
 Typical calls would be:
 
-`./ddsx8-spec -f 1030000  -k -t >test.csv`
+`./ddsx8-spec -f 1030000  -k -t -o test.csv`
 
 to get the spectrum around 1030000 kHz with the (for now) fixed bandwidth of 51200 kHz and write it 
 to a CSV file, which could be visualizprogram like gnuplot (see test.gnuplot).
@@ -109,7 +109,7 @@ or continuously:
 If you use the -t option and write the resulting comma separated list
 into the file test.csv like this: 
 
-`./ddsx8-spec -f 1210000  -t  > test.csv` 
+`./ddsx8-spec -f 1210000  -t  -o test.csv` 
 
 you can use the gnuplot program to display the data with the added 
 gnuplot file test.gnuplot like this:
@@ -119,7 +119,7 @@ gnuplot file test.gnuplot like this:
 The -x option can be used to get a full spectrum scan with CSV output
 like this ( it will take a few seconds ):
 
-`./ddsx8-spec  -k -x 0 -t  > test.csv` 
+`./ddsx8-spec  -k -x 0 -t  -o test.csv` 
 
 or as pam
 
@@ -127,7 +127,7 @@ or as pam
 
 or for a specific frequency range, e.g. 1000000 kHz to 1200000 kHz
 
-`./ddsx8-spec -k -x  1000000 1200000  -t  > test.csv` 
+`./ddsx8-spec -k -x  1000000 1200000  -t  -o test.csv` 
 
 or as pam
 
