@@ -45,10 +45,8 @@ For usage information use the -h option.
 >  usage:
 >
 >  ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] [-a adapter] [-i input]
->
->            [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]
->
->            [-d] [-q] [-n number] [-t] [-h] [-o filename]
+>             [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]
+>             [-d] [-q] [-n number] [-t] [-h] [-o filename]
 >
 >
 >  -a adapter   : the number n of the DVB adapter, i.e. 
