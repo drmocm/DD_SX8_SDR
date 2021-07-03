@@ -162,7 +162,7 @@ void set_io(io_data *iod, int adapter, int num,
     iod->fstop = fstop;
     iod->frange = (fstop - fstart);
 }
-//		    "a:bcdf:hi:kl:n:o:p:qs:tux:",
+
 void print_help(char *argv){
 	    fprintf(stderr," usage:\n\n"
                     " ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] "
