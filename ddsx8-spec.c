@@ -7,6 +7,7 @@
 #define MULTI_PAM  1
 #define CSV 2
 #define FULL_SPECTRUM 4
+#define PEAK_SEARCH 8
 
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
@@ -44,34 +45,13 @@ typedef struct io_data_{
     int delay;
 } io_data;
 
-
-
-void print_help(char *argv){
-	    fprintf(stderr,"usage:\n"
-                    "%s [-f frequency] [-p pol] [-s rate] [-a adapter] "
-		    "[-i input] [-k] [-l alpha] [-b] [-c] [-x] [-q] [-d] [-h]\n\n"
-		    " -f frequency: center frequency of the spectrum in kHz\n\n"
-		    " -p pol      : polarisation 0=vertical 1=horizontal\n\n"
-		    " -s rate     : the signal rate used for the FFT in Hz\n"
-		    " -a adapter  : the number n of the DVB adapter, i.e. \n"
-		    "              /dev/dvb/adapter[n] (default=0)\n\n"
-		    " -i input    : the physical input of the SX8 (default=0)\n\n"
-		    " -u          : use hi band of LNB\n\n"
-		    " -k          : use Kaiser window before FFT\n\n"
-		    " -b          : turn on agc\n\n"
-		    " -n          : number of FFTs for averaging (default 1000)\n\n"
-		    " -c          : continuous PAM output\n\n"
-		    " -t          : output CSV \n\n"
-		    " -x f1 f2    : full spectrum scan from f1 to f2\n\n"
-		    "               (default -x 0 : 950000 to 2150000 kHz) \n\n"
-		    " -q          : faster FFT\n\n"
-		    " -d          : use 1s delay to wait for LNB power up\n\n"
-		    " -l alpha    : parameter of the Kaiser window\n\n", argv);
-}
-
 void open_io(io_data *iod)
 {
-
+    if (iod->filename){
+	iod->fd_out = open(iod->filename, O_WRONLY | O_CREAT | O_TRUNC,
+			   00644);
+    }
+    
     if ( (iod->fe_fd=open_fe(iod->adapter, 0)) < 0){
 	exit(1);
     }
@@ -136,6 +116,7 @@ int next_freq_step(io_data *iod)
 
 void init_io(io_data *iod)
 {
+    iod->filename = NULL;
     iod->fd_out = fileno(stdout);
     iod->fe_fd = -1;
     iod->fdin = -1;
@@ -181,7 +162,35 @@ void set_io(io_data *iod, int adapter, int num,
     iod->fstop = fstop;
     iod->frange = (fstop - fstart);
 }
-
+//		    "a:bcdf:hi:kl:n:o:p:qs:tux:",
+void print_help(char *argv){
+	    fprintf(stderr," usage:\n\n"
+                    " ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] "
+		    "[-a adapter] [-i input]\n"
+		    "            [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]\n"
+		    "            [-d] [-q] [-n number] [-t] [-h] "
+		    "[-o filename]\n\n"
+		    " -a adapter   : the number n of the DVB adapter, i.e. \n"
+		    "                /dev/dvb/adapter[n] (default=0)\n"
+		    " -b           : turn on agc\n"
+		    " -c           : continuous PAM output\n"
+		    " -d           : use 1s delay to wait for LNB power up\n"
+		    " -f frequency : center frequency of the spectrum in kHz\n"
+		    " -i input     : the physical input of the SX8 (default=0)\n"
+		    " -k           : use Kaiser window before FFT\n"
+		    " -l alpha     : parameter of the Kaiser window\n"
+		    " -n number    : number of FFTs averaging (default 1000)\n"
+		    " -o filename  : output filename (default stdout)\n"
+		    " -p pol       : polarisation 0=vertical 1=horizontal\n"
+		    " -q           : faster FFT\n"
+		    " -s rate      : the signal rate used for the FFT in Hz\n"
+		    " -t           : output CSV \n"
+		    " -u           : use hi band of LNB\n"
+		    " -x f1 f2     : full spectrum scan from f1 to f2\n"
+		    "                (default -x 0 : 950000 to 2150000 kHz)\n"
+		    " -h           : this help message\n\n");
+	    
+}
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 {
@@ -216,67 +225,36 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
-	    {"frequency", required_argument, 0, 'f'},
 	    {"adapter", required_argument, 0, 'a'},
+	    {"agc", no_argument, 0, 'b'},
+	    {"continuous", no_argument, 0, 'c'},
+	    {"delay", no_argument, 0, 'd'},
+	    {"frequency", required_argument, 0, 'f'},
+	    {"help", no_argument , 0, 'h'},
+	    {"input", required_argument, 0, 'i'},
 	    {"Kaiserwindow", no_argument, 0, 'k'},
 	    {"alpha", required_argument, 0, 'l'},
-	    {"input", required_argument, 0, 'i'},
-	    {"signal_rate", required_argument, 0, 's'},
-	    {"agc", no_argument, 0, 'b'},
-	    {"delay", no_argument, 0, 'd'},
-	    {"band", no_argument, 0, 'u'},
-	    {"continuous", no_argument, 0, 'c'},
+	    {"nfft", required_argument, 0, 'n'},	    
+	    {"output", required_argument , 0, 'o'},
 	    {"polarisation", no_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
-	    {"nfft", required_argument, 0, 'n'},	    
+	    {"signal_rate", required_argument, 0, 's'},
+	    {"csv", no_argument, 0, 't'},
+	    {"band", no_argument, 0, 'u'},
 	    {"full_spectrum", required_argument, 0, 'x'},	    
-	    {"output", required_argument , 0, 'o'},
-	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
-	c = getopt_long(argc, argv, 
-			"f:a:kl:i:bctn:ho:qdp:us:x:",
-			long_options, &option_index);
+
+	    c = getopt_long(argc, argv, 
+			    "a:bcdf:hi:kl:n:o:p:qs:tux:",
+			    long_options, &option_index);
 	if (c==-1)
 	    break;
 	
 	switch (c) {
 
-	case 'f':
-	    freq = strtoul(optarg, NULL, 0);
-	    break;
-	    
-	case 's':
-	    sr = strtoul(optarg, NULL, 0);
-	    break;
-	    
-	case'p':
-	    pol =  strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
-	    break;
-	    
-	case 'k':
-	    use_window = 1;
-	    break;
-	    
-	case 'l':
-	    alpha = strtod(optarg, NULL);	    
-	    break;
-	    
-	case 'i':
-	    input = strtoul(optarg, NULL, 0);
-	    break;
-	    
-	case 'd':
-	    delay = 1000000;
-	    break;
-	    
-	case 'u':
-	    if (pol == 2) pol = 0;
-	    hi  = 1;
 	    break;
 	    
 	case 'b':
@@ -292,6 +270,50 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    outmode = MULTI_PAM;
 	    break;
 	    
+	case 'd':
+	    delay = 1000000;
+	    break;
+	    
+	case 'f':
+	    freq = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'h':
+	    print_help(argv[0]);
+	    return -1;
+
+	case 'i':
+	    input = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'k':
+	    use_window = 1;
+	    break;
+	    
+	case 'l':
+	    alpha = strtod(optarg, NULL);	    
+	    break;
+	    
+	case 'o':
+	    iod->filename = strdup(optarg);
+	    break;
+	    
+	case 'n':
+	    nfft = strtoul(optarg, NULL, 10);
+	    break;
+
+	case'p':
+	    pol =  strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'q':
+	    width = FFT_LENGTH/2;
+	    break;
+
+	case 's':
+	    sr = strtoul(optarg, NULL, 0);
+	    break;
+	    
 	case 't':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
@@ -301,10 +323,11 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    outmode = CSV;
 	    break;
 	    
-	case 'n':
-	    nfft = strtoul(optarg, NULL, 10);
+	case 'u':
+	    if (pol == 2) pol = 0;
+	    hi  = 1;
 	    break;
-
+	    
 	case 'x':
 	    full = 1;
 	    t = strtoul(optarg, &nexts, 0);
@@ -319,13 +342,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    }
 	    break;
 
-	case 'q':
-	    width = FFT_LENGTH/2;
-	    break;
-
-	case 'h':
-	    print_help(argv[0]);
-	    return -1;
 	default:
 	    break;
 	    
