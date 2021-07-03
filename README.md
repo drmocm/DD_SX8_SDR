@@ -41,31 +41,54 @@ On an Ubuntu system this would look like this:
 
 For usage information use the -h option.
 >./ddsx8-spec -h
+>
 > usage:
 >
 > ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] [-a adapter] [-i input]
+>
 >            [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]
+>
 >            [-d] [-q] [-n number] [-t] [-h] [-o filename]
 >
+>
+>
 > -a adapter   : the number n of the DVB adapter, i.e. 
+>
 >                /dev/dvb/adapter[n] (default=0)
+>
 > -b           : turn on agc
+>
 > -c           : continuous PAM output
+>
 > -d           : use 1s delay to wait for LNB power up
+>
 > -f frequency : center frequency of the spectrum in kHz
+>
 > -i input     : the physical input of the SX8 (default=0)
+>
 > -k           : use Kaiser window before FFT
+>
 > -l alpha     : parameter of the Kaiser window
+>
 > -n number    : number of FFTs averaging (default 1000)
+>
 > -o filename  : output filename (default stdout)
+>
 > -p pol       : polarisation 0=vertical 1=horizontal
+>
 > -q           : faster FFT
+>
 > -s rate      : the signal rate used for the FFT in Hz
+>
 > -t           : output CSV 
+>
 > -u           : use hi band of LNB
+>
 > -x f1 f2     : full spectrum scan from f1 to f2
+>
 >                (default -x 0 : 950000 to 2150000 kHz)
 > -h           : this help message
+>
 
 
 
