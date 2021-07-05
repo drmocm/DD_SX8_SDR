@@ -76,11 +76,11 @@ Typical calls would be:
 `./ddsx8-spec -f 1030000  -k -t -o test.csv`
 
 to get the spectrum around 1030000 kHz with the (for now) fixed bandwidth of 51200 kHz and write it 
-to a CSV file, which could be visualizprogram like gnuplot (see test.gnuplot).
-I switch off the AGC, but with -b you can turn it back on (see dvb.h and dvb.c on how to do it).
+to a CSV file, which could be visualized by using a program like gnuplot (see test.gnuplot).
+I switch off the AGC, but with -b you can turn it back on (see dvb.h and dvb.c on how to do it). It should stay off for a full spectrum scan.
 
 If you select the PAM format as output you can use ffplay to view the data
-as single image:
+as single image via a pipe:
 
 `./ddsx8-spec -f 1030000  -k  | ffplay -f pam_pipe -`
 
