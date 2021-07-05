@@ -15,10 +15,10 @@ improve in later firmwares.
 
 You need to set the polarisation and the band of your LNB via command line.
 Unicable tuning is not yet supported and will probably be much slower
-for a full spectrum can. 
+for a full spectrum scan. 
 
-The spectrum is written to stdout either in the PAM image format
-or as CSV. 
+The spectrum is written to stdout by default either in the PAM image format
+or as CSV. Use the -o option to write to a file.
 
 **Compilation of the program**
 
