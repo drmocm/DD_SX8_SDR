@@ -9,9 +9,10 @@ around a given center frequency. The bandwidth used is 51.2 MHz.
 The spectrun is of course distorted at the edges, due to the finite 
 aspect of the FFT. For a full spectrum smaller windows around the center 
 of consecutive frequencies are stitched together.
+
 There is a problem with the older SX8 firmwares when trying too do this 
-too fast. Since the SDR feature is still experimental and will probably 
-improve in later firmwares.
+too fast. The SDR feature is still experimental and will improve in later 
+firmwares.
 
 You need to set the polarisation and the band of your LNB via command line.
 Unicable tuning is not yet supported and will probably be much slower
