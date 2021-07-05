@@ -1,4 +1,4 @@
-![spectrum](screenshot/spectrum.jpg)
+![spectrum of unicable LNB](screenshot/spectrum.jpg)
 
 # 	DD_SX8_SDR
 
@@ -13,7 +13,9 @@ There is a problem with the older SX8 firmwares when trying too do this
 too fast. Since the SDR feature is still experimental and will probably 
 improve in later firmwares.
 
-You need to polaristion and the band via command line.
+You need to set the polarisation and the band of your LNB via command line.
+Unicable tuning is not yet supported and will probably be much slower
+for a full spectrum can. 
 
 The spectrum is written to stdout either in the PAM image format
 or as CSV. 
