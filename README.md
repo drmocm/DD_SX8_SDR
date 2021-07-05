@@ -7,18 +7,16 @@ the SDR mode of the DigitalDevices MAX SX8 to get IQ data. The program
 calculates the frequency spectrum of the incoming raw IQ data signal 
 around a given center frequency. The bandwidth used is 51.2 MHz.
 The spectrun is of course distorted at the edges, due to the finite 
-aspect of the FFT. For a full spectrum, one would have to see, how big 
-of a window in the center is usable and stitch the spectrum together 
-accordingly.
-There also seem to be some problems with the SX8 firmware when
-trying too do this in a fast manner, since the SDR feature is
-still experimental and will probably improve in later firmwares.
+aspect of the FFT. For a full spectrum smaller windows around the center 
+of consecutive frequencies are stitched together.
+There is a problem with the older SX8 firmwares when trying too do this 
+too fast. Since the SDR feature is still experimental and will probably 
+improve in later firmwares.
 
-I also, don't send any DiSEqC commands for Switches or Unicable LNBs, 
-so that at full scan as such is not possible with this program.
+You need to polaristion and the band via command line.
 
 The spectrum is written to stdout either in the PAM image format
-or as CSV.
+or as CSV. 
 
 **Compilation of the program**
 
