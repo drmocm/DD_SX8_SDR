@@ -97,9 +97,18 @@ void smooth(double *f, int l)
 }
 
 
-void df(double *f, double *df, int length)
+double *df(double *f, int length)
 {
     int i;
+    double *df;
+
+    if (!(df = (double *) malloc(length*sizeof(double)))){
+	{
+	    fprintf(stderr,"not enough memory\n");
+	    return NULL;
+	}
+    }
+
 
     for (i=2; i< length-2; i++){
 	df[i] = (-f[i+2]+8.0*f[i+1]-8.0*f[i-1]+f[i-2])/12.0;
@@ -108,6 +117,52 @@ void df(double *f, double *df, int length)
     df[1] = 0;//(f[2]-f[0])/2.0;
     df[length-1] = 0;//(f[length-1]-f[length-2]);
     df[length-2] = 0;//(f[length-1]-f[length-3])/2.0;
+
+    return df;
+}
+
+double *ddf(double *f, int length)
+{
+    int i;
+    double *ddf;
+
+    if (!(ddf = (double *) malloc(length*sizeof(double)))){
+	{
+	    fprintf(stderr,"not enough memory\n");
+	    return NULL;
+	}
+    }
+
+
+    for (i=2; i< length-2; i++){
+	ddf[i] = (-f[i+2]+16.0*f[i+1]-30*f[i]-16.0*f[i-1]+f[i-2])/12.0;
+    }
+    ddf[0] = 0;//(f[1]-f[0]);
+    ddf[1] = 0;//(f[2]-f[0])/2.0;
+    ddf[length-1] = 0;//(f[length-1]-f[length-2]);
+    ddf[length-2] = 0;//(f[length-1]-f[length-3])/2.0;
+
+    return ddf;
+}
+
+
+double *intf(double *f, int length){
+    double sum = 0;
+    double *F;
+    
+    if (!(F = (double *) malloc(length*sizeof(double)))){
+	{
+	    fprintf(stderr,"not enough memory\n");
+	    return NULL;
+	}
+    }
+
+    F[0] = f[0];
+    for (int i=1; i < length; i++){
+	F[i] = F[i-1]+f[i]; 	    
+    }
+
+    return F;
 }
 
 

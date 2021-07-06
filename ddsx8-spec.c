@@ -7,7 +7,7 @@
 #define MULTI_PAM  1
 #define CSV 2
 #define FULL_SPECTRUM 4
-#define PEAK_SEARCH 8
+#define BLINDSCAN 8
 
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
@@ -89,7 +89,7 @@ int next_freq_step(io_data *iod)
     uint32_t freq;
 	
     if (!iod->full) return -1;
-    if (iod->step < 0) iod->step= 0;
+    if (iod->step < 0) iod->step = 0;
     else iod->step+=1;
 
     if (iod->step == 0 && iod->id == AGC_OFF){
@@ -99,7 +99,8 @@ int next_freq_step(io_data *iod)
 			 SYS_DVBS2, iod->input, iod->id) < 0){
 	    exit(1);
 	}
-	iod->id = AGC_OFF_C;
+	sleep(2); // wait for agc optimization of entire spectrum
+	//iod->id = AGC_OFF_C;  no longer necessary with latest driver
     }
     freq = sfreq+iod->window*iod->step;
     if (freq+iod->window/2 > iod->fstop) return -1;
@@ -176,6 +177,7 @@ void print_help(char *argv){
 		    " -c           : continuous PAM output\n"
 		    " -d           : use 1s delay to wait for LNB power up\n"
 		    " -f frequency : center frequency of the spectrum in kHz\n"
+		    " -g           : do a blindscan\n"
 		    " -i input     : the physical input of the SX8 (default=0)\n"
 		    " -k           : use Kaiser window before FFT\n"
 		    " -l alpha     : parameter of the Kaiser window\n"
@@ -230,6 +232,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"continuous", no_argument, 0, 'c'},
 	    {"delay", no_argument, 0, 'd'},
 	    {"frequency", required_argument, 0, 'f'},
+	    {"blindscan", no_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
 	    {"input", required_argument, 0, 'i'},
 	    {"Kaiserwindow", no_argument, 0, 'k'},
@@ -246,7 +249,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:hi:kl:n:o:p:qs:tux:",
+			    "a:bcdf:ghi:kl:n:o:p:qs:tux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -264,7 +267,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	case 'c':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
 		exit(1);
 	    }
 	    outmode = MULTI_PAM;
@@ -278,6 +281,16 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    freq = strtoul(optarg, NULL, 0);
 	    break;
 	    
+	case 'g':
+	    if (outmode) {
+		fprintf(stderr, "Error conflicting options\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
+		exit(1);
+	    }
+	    full = 1;
+	    outmode = BLINDSCAN;
+	    break;
+
 	case 'h':
 	    print_help(argv[0]);
 	    return -1;
@@ -317,7 +330,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	case 't':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
 		exit(1);
 	    }
 	    outmode = CSV;
@@ -376,6 +389,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int swidth = width/steps;
     struct dtv_fe_stats st;
     graph g;
+    double *blind;
     
 
     while (run){
@@ -402,7 +416,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	} else {
 	    int step = 0;
-	    iod->step = 0;
+	    iod->step = -1;
 	    
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_set_freq(spec, iod->freq, iod->fft_sr);
@@ -435,7 +449,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 			init_graph(&g, bm, iod->fstart/1000.0,
 				  iod->fstop/1000.0, ymin, ymax);
 		    }
-		    if (step == 1){
+		    if (step == 0){
 			g.lastx = spec->freq[0];
 			g.lasty = spec->pow[0];
 		    }
@@ -443,10 +457,17 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 					 spec->width/4, spec->width/2);
 		    write_pam (iod->fd_out, bm);
 		    break;
-		    
+
+		case BLINDSCAN:
+		    if (!(blind = (double *) malloc(spec->width*
+						    sizeof(double)))){
+			{
+			    fprintf(stderr,"not enough memory\n");
+			    exit(1);
+			}
+		    }
+		    break;
 		default:
-		    fprintf(stderr,"Full spectrum only works with -t option\n");
-		    exit(1);
 		    break;
 		}
 	    }

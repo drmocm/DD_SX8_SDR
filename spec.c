@@ -209,10 +209,11 @@ void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr)
 
 void spec_write_graph (int fd, graph *g, specdata *spec)
 {
-    graph_range(g, spec->freq, spec->pow, spec->width);
+    double *p = spec->pow;
+    graph_range(g, spec->freq, p, spec->width);
 
     clear_bitmap(g->bm);
-    display_array_graph( g, spec->freq, spec->pow, 0, spec->width);
+    display_array_graph( g, spec->freq, p, 50, spec->width);
     coordinate_axes(g->bm, 200, 255,0);
     write_pam (fd, g->bm);
 }
