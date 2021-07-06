@@ -89,10 +89,8 @@ int next_freq_step(io_data *iod)
     uint32_t freq;
 	
     if (!iod->full) return -1;
-    if (iod->step < 0) iod->step = 0;
-    else iod->step+=1;
 
-    if (iod->step == 0 && iod->id == AGC_OFF){
+    if (iod->step < 0 && iod->id == AGC_OFF){
 	fprintf(stderr,"Optimizing AGC\n",freq,iod->step);
 	freq = iod->fstart + iod->frange/2;
 	if (set_fe_input(iod->fe_fd, sfreq, iod->fft_sr,
@@ -101,6 +99,7 @@ int next_freq_step(io_data *iod)
 	}
 	sleep(2); // wait for agc optimization of entire spectrum
 	//iod->id = AGC_OFF_C;  no longer necessary with latest driver
+	iod->step = 0;
     }
     freq = sfreq+iod->window*iod->step;
     if (freq+iod->window/2 > iod->fstop) return -1;
@@ -112,6 +111,7 @@ int next_freq_step(io_data *iod)
     }
     while (!read_status(iod->fe_fd))
 	usleep(1000);
+    iod->step++;
     return iod->step;
 }
 
@@ -387,11 +387,16 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int height = width*9/16;
     int steps = iod->frange/iod->window;
     int swidth = width/steps;
+    int maxstep = (iod->fstop - iod->fstart)/iod->window;
     struct dtv_fe_stats st;
     graph g;
-    double *blind;
+    double *fullspec = NULL;
+    double *fullfreq=NULL;
+    int fulllen = 0;
+    int k = 0;
     
 
+    iod->step = -1;
     while (run){
 	run = 0;
 	if (!full) {
@@ -416,64 +421,74 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	} else {
 	    int step = 0;
-	    iod->step = -1;
 	    
+	    fulllen =  spec->width/2*maxstep;
+	    k = 0;
+	    if (!fullspec){
+		iod->step = -1;
+		if (!(fullspec = (double *) malloc(fulllen*
+						   sizeof(double)))){
+		    {
+			fprintf(stderr,"not enough memory\n");
+			exit(1);
+		    }
+		}
+		if (!(fullfreq = (double *) malloc(fulllen*
+						   sizeof(double)))){
+		    {
+			fprintf(stderr,"not enough memory\n");
+			exit(1);
+		    }
+		}
+		memset(fullspec, 0, fulllen*sizeof(double));
+		memset(fullfreq, 0, fulllen*sizeof(double));
+		if (mode == SINGLE_PAM || mode == MULTI_PAM){
+		    bm = init_bitmap(width, height, 3);
+		    clear_bitmap(bm);
+		    init_graph(&g, bm, iod->fstart/1000.0,
+			       iod->fstop/1000.0, 0, fulllen);
+		}
+	    } else iod->step = 0;
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_set_freq(spec, iod->freq, iod->fft_sr);
 		spec_read_data(iod->fdin, spec);
-
-		switch (mode){
-
-		case CSV: 
-		    get_stat(iod->fe_fd, DTV_STAT_SIGNAL_STRENGTH, &st);
-		    str = st.stat[0].svalue;
-		    spec_write_csv(iod->fd_out, spec,
-				   iod->freq, iod->fft_sr,2,str);
-		    break;
-
-		case MULTI_PAM:
-		    run = 1;
-		    clear_range_graph(&g, spec->freq[spec->width/4],
-				      spec->freq[3*spec->width/4]);
-
-		case SINGLE_PAM:
-		    if ( bm == NULL) {
-			double ymin = 20;
-			double ymax = 75;
-			if (iod->id == AGC_ON){
-			    ymin = 35;
-			    ymax = 80;
-			}
-			bm = init_bitmap(width, height, 3);
-			clear_bitmap(bm);
-			init_graph(&g, bm, iod->fstart/1000.0,
-				  iod->fstop/1000.0, ymin, ymax);
-		    }
-		    if (step == 0){
-			g.lastx = spec->freq[0];
-			g.lasty = spec->pow[0];
-		    }
-		    display_array_graph( &g, spec->freq, spec->pow,
-					 spec->width/4, spec->width/2);
-		    write_pam (iod->fd_out, bm);
-		    break;
-
-		case BLINDSCAN:
-		    if (!(blind = (double *) malloc(spec->width*
-						    sizeof(double)))){
-			{
-			    fprintf(stderr,"not enough memory\n");
-			    exit(1);
-			}
-		    }
-		    break;
-		default:
-		    break;
+/*
+		get_stat(iod->fe_fd, DTV_STAT_SIGNAL_STRENGTH, &st);
+		str = st.stat[0].svalue;
+*/
+		for (int i = 0; i <= spec->width/2; i++){
+		    fullspec[i+k] = spec->pow[i+spec->width/4];
+		    fullfreq[i+k] = spec->freq[i+spec->width/4];
 		}
+		k += spec->width/2;
+	    }
+	    switch (mode){
+	    case CSV: 
+		write_csv (iod->fd_out, fulllen,
+			   iod->fft_sr/spec->width/1000,
+			   iod->fstart, fullspec, 0, 0);
+		    break;
+		    
+	    case MULTI_PAM:
+		run = 1;
+		
+	    case SINGLE_PAM:
+		graph_range(&g, fullfreq, fullspec, fulllen);
+		g.lastx = fullspec[0];
+		g.lasty = fullfreq[0];
+
+		display_array_graph( &g, fullfreq, fullspec,
+				     0, fulllen);
+		write_pam (iod->fd_out, bm);
+		break;
+		
+	    case BLINDSCAN:
+		break;
+	    default:
+		break;
 	    }
 	}
-   
-	//if (bm) clear_bitmap(bm);
+	if (bm) clear_bitmap(bm);
 	iod->step = -1;
     }
     if (mode == SINGLE_PAM || mode == MULTI_PAM){
