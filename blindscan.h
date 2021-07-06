@@ -14,6 +14,19 @@
 #include <time.h>
 #include <string.h>
 
+typedef struct blindscan_ {
+    double freq_start;
+    double freq_end;
+    double freq_step;
+    double *spec;
+    double *peaks;
+    double *widths;
+    int speclen;
+    int numpeaks;
+} blindscan;
 
 
+void init_blindscan (blindscan *b, double *spec, double *freq, int speclen);
+
+    
 #endif /* _blindscan_H_*/

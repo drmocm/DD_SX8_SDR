@@ -445,7 +445,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		    bm = init_bitmap(width, height, 3);
 		    clear_bitmap(bm);
 		    init_graph(&g, bm, iod->fstart/1000.0,
-			       iod->fstop/1000.0, 0, fulllen);
+			       iod->fstop/1000.0, 0, 0);
 		}
 	    } else iod->step = 0;
 	    while ((step=next_freq_step(iod)) >= 0){
@@ -466,13 +466,13 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,
 			   iod->fstart, fullspec, 0, 0);
-		    break;
+		break;
 		    
 	    case MULTI_PAM:
 		run = 1;
 		
 	    case SINGLE_PAM:
-		graph_range(&g, fullfreq, fullspec, fulllen);
+		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec, fulllen);
 		g.lastx = fullspec[0];
 		g.lasty = fullfreq[0];
 
@@ -482,7 +482,9 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		break;
 		
 	    case BLINDSCAN:
+		
 		break;
+		
 	    default:
 		break;
 	    }
