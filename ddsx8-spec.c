@@ -112,7 +112,7 @@ int next_freq_step(io_data *iod)
     while (!read_status(iod->fe_fd))
 	usleep(1000);
     iod->step++;
-    return iod->step;
+    return iod->step-1;
 }
 
 void init_io(io_data *iod)
@@ -387,12 +387,12 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int height = width*9/16;
     int steps = iod->frange/iod->window;
     int swidth = width/steps;
-    int maxstep = (iod->fstop - iod->fstart)/iod->window;
     struct dtv_fe_stats st;
     graph g;
     double *fullspec = NULL;
     double *fullfreq=NULL;
-    int fulllen = 0;
+    int maxstep = (iod->fstop - iod->fstart)/iod->window;
+    int fulllen =  spec->width/2*maxstep;
     int k = 0;
     
 
@@ -422,7 +422,6 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	} else {
 	    int step = 0;
 	    
-	    fulllen =  spec->width/2*maxstep;
 	    k = 0;
 	    if (!fullspec){
 		iod->step = -1;
