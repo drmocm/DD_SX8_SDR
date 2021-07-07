@@ -97,7 +97,6 @@ int next_freq_step(io_data *iod)
 			 SYS_DVBS2, iod->input, iod->id) < 0){
 	    exit(1);
 	}
-	sleep(2); // wait for agc optimization of entire spectrum
 	//iod->id = AGC_OFF_C;  no longer necessary with latest driver
 	iod->step = 0;
     }
