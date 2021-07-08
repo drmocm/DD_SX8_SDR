@@ -2,6 +2,7 @@
 #include "spec.h"
 #include "numeric.h"
 #include "dvb.h"
+#include "blindscan.h"
 
 #define SINGLE_PAM 0
 #define MULTI_PAM  1
@@ -91,7 +92,6 @@ int next_freq_step(io_data *iod)
     if (!iod->full) return -1;
 
     if (iod->step < 0 && iod->id == AGC_OFF){
-	fprintf(stderr,"Optimizing AGC\n",freq,iod->step);
 	freq = iod->fstart + iod->frange/2;
 	if (set_fe_input(iod->fe_fd, sfreq, iod->fft_sr,
 			 SYS_DVBS2, iod->input, iod->id) < 0){
@@ -393,6 +393,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     int maxstep = (iod->fstop - iod->fstart)/iod->window;
     int fulllen =  spec->width/2*maxstep;
     int k = 0;
+    blindscan blind;
     
 
     iod->step = -1;
@@ -481,7 +482,8 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		break;
 		
 	    case BLINDSCAN:
-		
+		init_blindscan(&blind, fullspec, fullfreq, fulllen);
+		do_blindscan(&blind);
 		break;
 		
 	    default:
