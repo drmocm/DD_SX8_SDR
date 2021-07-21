@@ -12,7 +12,7 @@ int find_range(double *f, int length, double *min, double *max)
     
     for (int i=0; i < length; i++){
 	if ( f[i] > mmax || f[i] <= mmin ) {
-//	    printf("Warning: unusual value f[i]=%f\n",f[i]);
+	    fprintf(stderr,"Warning: unusual value f[i]=%f  %f %f\n",f[i],mmin,mmax);
 	    return -1;
 	}
 	if ( f[i] > *max ) *max = f[i];

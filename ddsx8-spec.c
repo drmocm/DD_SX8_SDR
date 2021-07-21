@@ -7,7 +7,6 @@
 #define SINGLE_PAM 0
 #define MULTI_PAM  1
 #define CSV 2
-#define FULL_SPECTRUM 4
 #define BLINDSCAN 8
 
 #define MIN_FREQ     950000  // kHz
@@ -197,7 +196,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 {
     int use_window = 0;
     double alpha = 2.0;
-    int outm = 0;
     int nfft = 1000; //number of FFTs for average
     int full = 0;
     int width = FFT_LENGTH;
@@ -364,7 +362,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	fprintf(stderr,"Warning: unused arguments\n");
     }
     */
-    if (outm&FULL_SPECTRUM) full=1;
     height = 9*width/16;
     set_io(iod, adapter, input, freq, sr, pol, hi, width, id, full, delay,
 	   fstart, fstop);
@@ -441,7 +438,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		}
 		memset(fullspec, 0, fulllen*sizeof(double));
 		memset(fullfreq, 0, fulllen*sizeof(double));
-		if (mode == SINGLE_PAM || mode == MULTI_PAM){
+		if (mode != CSV){
 		    bm = init_bitmap(width, height, 3);
 		    clear_bitmap(bm);
 		    init_graph(&g, bm, iod->fstart/1000.0,
@@ -484,6 +481,15 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    case BLINDSCAN:
 		init_blindscan(&blind, fullspec, fullfreq, fulllen);
 		do_blindscan(&blind);
+		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
+		g.lastx = fullspec[0];
+		g.lasty = fullfreq[0];
+		display_array_graph( &g, fullfreq, blind.spec,
+				     0, fulllen);
+		write_csv (iod->fd_out, fulllen,
+			   iod->fft_sr/spec->width/1000,
+			   iod->fstart, blind.spec, 0, 0);
+		//write_pam (iod->fd_out, bm);
 		break;
 		
 	    default:

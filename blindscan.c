@@ -40,21 +40,29 @@ int do_blindscan(blindscan *b)
 {
     int speclen = b->speclen;
     double pmin = 0;
-    double pmax = 0;
+    double pmax = 1000;
     double prange = 0;
     double *spec = b->spec;
     double *dspec = NULL;
     double *ddspec = NULL;
+    double avg = 0;
     
     if (find_range(spec, speclen, &pmin, &pmax) < 0) return -1;
     prange = pmax - pmin;
-
     for (int i=0; i< speclen; i++){
 	spec[i] -= pmin;                // min is zero
 	spec[i] = spec[i]*100.0/prange; // percentage of max
+	avg += spec[i];
     }
+    avg = avg/(double)speclen;
+    fprintf (stderr,"avg %f\n",avg);
+    for (int i=0; i< speclen; i++){
+	if (spec[i] < avg ) spec[i] = 0;
+    }
+
+/*
     dspec = df(b->spec,b->speclen);
     ddspec = ddf(b->spec,b->speclen);
-    
+*/  
     return 0;
 }
