@@ -14,6 +14,11 @@
 #include <time.h>
 #include <string.h>
 
+typedef struct peak_ {
+    int mid;
+    int width;
+} peak;
+
 typedef struct blindscan_ {
     double freq_start;
     double freq_end;
@@ -28,6 +33,7 @@ typedef struct blindscan_ {
 
 void init_blindscan (blindscan *b, double *spec, double *freq, int speclen);
 int do_blindscan(blindscan *b);
+int find_peak(double *spec, int length, peak *p);
 
     
 #endif /* _blindscan_H_*/

@@ -1,3 +1,23 @@
+/*
+ddsx8-spec is an **example** program written in C to show how to use 
+the SDR mode of the DigitalDevices MAX SX8 to get IQ data.
+
+Copyright (C) 2021  Marcus Metzler
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "blindscan.h"
 #include "numeric.h"
 
@@ -52,12 +72,6 @@ int do_blindscan(blindscan *b)
     for (int i=0; i< speclen; i++){
 	spec[i] -= pmin;                // min is zero
 	spec[i] = spec[i]*100.0/prange; // percentage of max
-	avg += spec[i];
-    }
-    avg = avg/(double)speclen;
-    fprintf (stderr,"avg %f\n",avg);
-    for (int i=0; i< speclen; i++){
-	if (spec[i] < avg ) spec[i] = 0;
     }
 
 /*
@@ -65,4 +79,28 @@ int do_blindscan(blindscan *b)
     ddspec = ddf(b->spec,b->speclen);
 */  
     return 0;
+}
+
+int find_peak(double *spec, int length, peak *p)
+{
+    double avg = 0;
+    int start = 0;
+    int stop = 0;
+    
+    for (int i = 0; i < length; i++){
+	avg += spec[i];
+    }
+    avg = avg/(double)length;
+
+    int i=0;
+    while ( spec[i] < avg && i < length ) i++;
+    if (i < length) start = i;
+    else return -1;
+    while ( spec[i] > avg && i < length ) i++;
+    if (i < length) stop = i;
+    else return -1;
+
+    p->width = stop - start;
+    p->mid = start+ p->width/2;
+    return stop;
 }
