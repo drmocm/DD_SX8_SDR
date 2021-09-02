@@ -138,7 +138,7 @@ void squircle(bitmap *bm, int x0, int y0, int r, int ry, double n,
     int d = 1 - r;
      
     int xl = (int)(pow((double)x/r,2/n)*r);
-    int yl = (int)(pow((double)y/r,2/n)*ry);
+    int yl = (int)(pow((double)y/r,2/n)*r);
     while(x > y){
 	y++;
 	if (d <= 0){
@@ -149,18 +149,22 @@ void squircle(bitmap *bm, int x0, int y0, int r, int ry, double n,
         }
 	if (x < y) break;
 	int xx = (int)(pow((double)x/r,2/n)*r);
-	int yy = (int)(pow((double)y/r,2/n)*ry);
+	int yy = (int)(pow((double)y/r,2/n)*r);
 	
-	plotline(bm, xl+x0,yl+y0, xx+x0,yy+y0, R,G,B);
-	plotline(bm, -xl+x0,yl+y0, -xx+x0,yy+y0, R,G,B);
-	plotline(bm, xl+x0,-yl+y0, xx+x0,-yy+y0, R,G,B);
-	plotline(bm, -xl+x0,-yl+y0, -xx+x0,-yy+y0, R,G,B);
+	int pyy = yy*ry/r;
+	int pyl = yl*ry/r;
+	plotline(bm, xl+x0,pyl+y0, xx+x0,pyy+y0, R,G,B);
+	plotline(bm, -xl+x0,pyl+y0, -xx+x0,pyy+y0, R,G,B);
+	plotline(bm, xl+x0,-pyl+y0, xx+x0,-pyy+y0, R,G,B);
+	plotline(bm, -xl+x0,-pyl+y0, -xx+x0,-pyy+y0, R,G,B);
 
 	if (x != y){
-	    plotline(bm, yl+x0,xl+y0, yy+x0,xx+y0, R,G,B);
-	    plotline(bm, -yl+x0,xl+y0, -yy+x0,xx+y0, R,G,B);
-	    plotline(bm, yl+x0,-xl+y0, yy+x0,-xx+y0, R,G,B);
-	    plotline(bm, -yl+x0,-xl+y0, -yy+x0,-xx+y0, R,G,B);
+	    int pxx = xx*ry/r;
+	    int pxl = xl*ry/r;
+	    plotline(bm, yl+x0,pxl+y0, yy+x0,pxx+y0, R,G,B);
+	    plotline(bm, -yl+x0,pxl+y0, -yy+x0,pxx+y0, R,G,B);
+	    plotline(bm, yl+x0,-pxl+y0, yy+x0,-pxx+y0, R,G,B);
+	    plotline(bm, -yl+x0,-pxl+y0, -yy+x0,-pxx+y0, R,G,B);
 	}
 	xl = xx;
 	yl = yy;
