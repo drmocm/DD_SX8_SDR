@@ -10,12 +10,15 @@ CPP = g++
 
 .PHONY: clean 
 
-TARGETS = ddsx8-spec
+TARGETS = ddsx8-spec pam_test
 
 all: $(TARGETS)
 
 ddsx8-spec: $(OBJ) $(INC)
 	$(CC) $(CFLAGS) -o ddsx8-spec $(OBJ) $(LIBS)
+
+pam_test: pam_test.o pam.o pam.h
+	$(CC) $(CFLAGS) -o pam_test pam_test.o pam.o $(LIBS)
 
 spec.o: $(HEADER) spec.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) spec.c
@@ -31,6 +34,10 @@ blindscan.o: $(HEADER) blindscan.c
 
 ddsx8-spec.o: $(HEADER) ddsx8-spec.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) ddsx8-spec.c
+
+pam_test.o: $(HEADER) pam_test.c
+	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) pam_test.c
+
 
 clean:
 	for f in $(TARGETS) *.o .depend *~ ; do \

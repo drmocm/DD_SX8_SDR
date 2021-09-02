@@ -40,6 +40,8 @@ void plot(bitmap *bm, int x, int y, uint8_t R, uint8_t G, uint8_t B);
 void plotline(bitmap *bm, int x, int y, int x2, int y2, 
 	      uint8_t r, uint8_t g, uint8_t b);
 void circle(bitmap *bm, int x0, int y0, int r, uint8_t R, uint8_t G, uint8_t B);
+void squircle(bitmap *bm, int x0, int y0, int rx, int ry, double n,
+	      uint8_t R,uint8_t G, uint8_t B);
 void ellipse(bitmap *bm, int x0, int y0 ,int rx, int ry,
 	     uint8_t R,uint8_t G, uint8_t B);
 void coordinate_axes(bitmap *bm, uint8_t r, uint8_t g, uint8_t b);

@@ -130,6 +130,42 @@ void circle(bitmap *bm, int x0, int y0, int r,
 	}
     }
 }
+void squircle(bitmap *bm, int x0, int y0, int r, int ry, double n,
+	    uint8_t R, uint8_t G, uint8_t B)
+{
+    int x = r;
+    int y = 0;
+    int d = 1 - r;
+     
+    int xl = (int)(pow((double)x/r,2/n)*r);
+    int yl = (int)(pow((double)y/r,2/n)*ry);
+    while(x > y){
+	y++;
+	if (d <= 0){
+	    d = d+2*y+ 1;
+	}  else {
+            x--;
+            d = d+2*y-2*x+1;
+        }
+	if (x < y) break;
+	int xx = (int)(pow((double)x/r,2/n)*r);
+	int yy = (int)(pow((double)y/r,2/n)*ry);
+	
+	plotline(bm, xl+x0,yl+y0, xx+x0,yy+y0, R,G,B);
+	plotline(bm, -xl+x0,yl+y0, -xx+x0,yy+y0, R,G,B);
+	plotline(bm, xl+x0,-yl+y0, xx+x0,-yy+y0, R,G,B);
+	plotline(bm, -xl+x0,-yl+y0, -xx+x0,-yy+y0, R,G,B);
+
+	if (x != y){
+	    plotline(bm, yl+x0,xl+y0, yy+x0,xx+y0, R,G,B);
+	    plotline(bm, -yl+x0,xl+y0, -yy+x0,xx+y0, R,G,B);
+	    plotline(bm, yl+x0,-xl+y0, yy+x0,-xx+y0, R,G,B);
+	    plotline(bm, -yl+x0,-xl+y0, -yy+x0,-xx+y0, R,G,B);
+	}
+	xl = xx;
+	yl = yy;
+    }
+}
 
 void ellipse(bitmap *bm, int x0, int y0 ,int rx, int ry,
 	     uint8_t R,uint8_t G, uint8_t B)
