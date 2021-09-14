@@ -10,7 +10,7 @@ The spectrun is of course distorted at the edges, due to the finite
 aspect of the FFT. For a full spectrum smaller windows around the center 
 of consecutive frequencies are stitched together.
 
-There is a problem with the older SX8 firmwares when trying too do this 
+There is a problem with the older SX8 firmwares when trying to do this 
 too fast. The SDR feature is still experimental and will improve in later 
 firmwares.
 
