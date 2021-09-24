@@ -27,13 +27,19 @@ You have to build ddsx8-spec with
 
 `make` 
 
-You need to install the libfftw3 library
+You need to install the libfftw3 library which, depending on your System system, would look like this:
 
-On an Ubuntu system this would look like this:
+Ubuntu: `sudo apt-get install libfftw3-dev`
 
-`sudo apt-get install libfftw3-dev`
+Debian: `sudo apt-get install libfftw3-dev`
+
+Alpine Linux: `sudo apk add fftw-dev`
+
+then change into the directory of the repository 
 
 `cd  DD_SX8_SPECTRUM` 
+
+and compile the program 
 
 `make` 
 
