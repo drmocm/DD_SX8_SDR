@@ -124,7 +124,7 @@ or as pam
 
 If you want to stream the video, try using this pipe:
 
-`| ffmpeg -f pam_pipe -i - -vc h264  -f mpegts  - | vlc  -I dummy - --sout='#std{access=http,mux=ts,dst=:8554}'`
+    | ffmpeg -f pam_pipe -i - -vc h264  -f mpegts  - | vlc  -I dummy - --sout='#std{access=http,mux=ts,dst=:8554}'
 
 and play it with
 
