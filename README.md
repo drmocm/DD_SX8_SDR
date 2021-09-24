@@ -122,3 +122,10 @@ or as pam
 
 `./ddsx8-spec  -k -x 1000000 1200000 | ffplay -f pam_pipe -` 
 
+If you want to stream the video, try using this pipe:
+
+`| ffmpeg -f pam_pipe -i - -vc h264  -f mpegts  - | SUDO_UID=18290 vlc-wrapper  -I dummy - --sout='#std{access=http,mux=ts,dst=:8554}'`
+
+and play it with
+
+`vlc http://<myip>:8554`
