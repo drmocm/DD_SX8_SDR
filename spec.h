@@ -35,7 +35,7 @@ int init_specdata(specdata *spec, int width, int height,
 void spec_read_data (int fdin, specdata *spec);
 void spec_write_pam (int fd, bitmap *bm, specdata *spec);
 void spec_write_csv (int fd, specdata *spec,uint32_t freq,
-		     uint32_t fft_sr, int center, int64_t str);
+		     uint32_t fft_sr, int center, int64_t str, int min);
 void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr);
 void spec_write_graph (int fd, graph *g, specdata *spec);
 

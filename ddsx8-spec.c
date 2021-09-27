@@ -24,10 +24,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dvb.h"
 #include "blindscan.h"
 
+// various outmodes
 #define SINGLE_PAM 0
 #define MULTI_PAM  1
 #define CSV 2
 #define BLINDSCAN 8
+
+static int min= 0;
 
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
@@ -205,6 +208,7 @@ void print_help(char *argv){
 		    " -q           : faster FFT\n"
 		    " -s rate      : the signal rate used for the FFT in Hz\n"
 		    " -t           : output CSV \n"
+		    " -T           : output minimal CSV\n"
 		    " -u           : use hi band of LNB\n"
 		    " -x f1 f2     : full spectrum scan from f1 to f2\n"
 		    "                (default -x 0 : 950000 to 2150000 kHz)\n"
@@ -260,13 +264,14 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"quick", no_argument, 0, 'q'},
 	    {"signal_rate", required_argument, 0, 's'},
 	    {"csv", no_argument, 0, 't'},
+	    {"csvmin", no_argument, 0, 'T'},
 	    {"band", no_argument, 0, 'u'},
 	    {"full_spectrum", required_argument, 0, 'x'},	    
 	    {0, 0, 0, 0}
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:ghi:kl:n:o:p:qs:tux:",
+			    "a:bcdf:ghi:kl:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -344,6 +349,8 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    sr = strtoul(optarg, NULL, 0);
 	    break;
 	    
+	case 'T':
+	    min = 1;
 	case 't':
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
@@ -433,7 +440,8 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		break;
 		
 	    case CSV:
-		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr, 0, 0);
+		spec_write_csv(iod->fd_out, spec, iod->freq, iod->fft_sr,
+			       0, 0, min);
 		break;
 	    }
 	} else {
@@ -482,7 +490,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    case CSV: 
 		write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,
-			   iod->fstart, fullspec, 0, 0);
+			   iod->fstart, fullspec, 0, 0, min);
 		break;
 		    
 	    case MULTI_PAM:
@@ -508,7 +516,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 				     0, fulllen);
 		write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,
-			   iod->fstart, blind.spec, 0, 0);
+			   iod->fstart, blind.spec, 0, 0, min);
 		//write_pam (iod->fd_out, bm);
 		break;
 		

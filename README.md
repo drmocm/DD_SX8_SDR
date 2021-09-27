@@ -69,7 +69,8 @@ For usage information use the -h option.
     -p pol       : polarisation 0=vertical 1=horizontal
     -q           : faster FFT
     -s rate      : the signal rate used for the FFT in Hz
-    -t           : output CSV 
+    -t           : output CSV
+    -T           : output minimal CSV
     -u           : use hi band of LNB
     -x f1 f2     : full spectrum scan from f1 to f2
                    (default -x 0 : 950000 to 2150000 kHz)

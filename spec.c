@@ -210,11 +210,11 @@ void spec_write_pam (int fd, bitmap *bm, specdata *spec)
     write_pam (fd, bm);
 }
 
-void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center, int64_t  str)
+void spec_write_csv (int fd, specdata *spec, uint32_t freq, uint32_t fft_sr, int center, int64_t  str, int min)
 {
     uint32_t step = fft_sr/spec->width/1000;
     uint32_t freqstart = freq - fft_sr/2/1000;
-    write_csv (fd, spec->width, step, freqstart, spec->pow, center, str );
+    write_csv (fd, spec->width, step, freqstart, spec->pow, center, str, min );
 }
 
 void spec_set_freq(specdata *spec, uint32_t freq, uint32_t fft_sr)

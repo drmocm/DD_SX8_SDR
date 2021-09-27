@@ -339,7 +339,7 @@ void write_pam (int fd, bitmap *bm)
 }
 
 void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
-		double *pow, int center, int64_t str)
+		double *pow, int center, int64_t str, int min)
 {
     FILE* fp = fdopen(fd, "w");
     int start = 0;
@@ -348,11 +348,19 @@ void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
 	start = width/4;
 	end = width/4*3;
     }
+    if (min){
+	fprintf(fp,"# start %.3f step %.2f\n",(double)(start_freq)/1000.0,
+	    (double)(step)/1000.0);
+    }
     for (int i = start; i < end; i++){
-	if (center == 2){
-	    fprintf(fp,"%.3f, %.2f, %lld.%03lld\n",(double)(start_freq+step*i)/1000.0, pow[i], str/1000, abs(str%1000));
+	if (!min){
+	    if (center == 2){
+		fprintf(fp,"%.3f, %.2f, %lld.%03lld\n",(double)(start_freq+step*i)/1000.0, pow[i], str/1000, abs(str%1000));
+	    } else {
+		fprintf(fp,"%.3f, %.2f\n",(double)(start_freq+step*i)/1000.0, pow[i]);
+	    }
 	} else {
-	    fprintf(fp,"%.3f, %.2f\n",(double)(start_freq+step*i)/1000.0, pow[i]);
+	    fprintf(fp,"%.2f\n",pow[i]);
 	}
     }
 
