@@ -166,7 +166,7 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
 {
     iod->adapter = adapter;
     iod->input = num;
-    iod->fe_num = fenum;
+    iod->fe_num = fe_num;
     iod->freq = freq;
     iod->fft_sr = sr;
     iod->fft_length = length;
