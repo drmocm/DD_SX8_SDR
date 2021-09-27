@@ -75,7 +75,7 @@ void open_io(io_data *iod)
 			   00644);
     }
     
-    if ( (iod->fe_fd=open_fe(iod->adapter, 0)) < 0){
+    if ( (iod->fe_fd=open_fe(iod->adapter, iod->input)) < 0){
 	exit(1);
     }
 
