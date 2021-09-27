@@ -75,7 +75,7 @@ void open_io(io_data *iod)
 			   00644);
     }
     
-    if ( (iod->fe_fd=open_fe(iod->adapter, iod->input)) < 0){
+    if ( (iod->fe_fd=open_fe(iod->adapter, 0)) < 0){
 	exit(1);
     }
 
@@ -91,10 +91,10 @@ void open_io(io_data *iod)
 	}
     }
     
-    if ( (iod->fd_dmx = open_dmx(iod->adapter, iod->input)) < 0){
+    if ( (iod->fd_dmx = open_dmx(iod->adapter, 0)) < 0){
 	exit(1);
     }
-    if ( (iod->fdin=open_dvr(iod->adapter, iod->input)) < 0){
+    if ( (iod->fdin=open_dvr(iod->adapter,0)) < 0){
 	exit(1);
     }
 }
