@@ -60,6 +60,7 @@ For usage information use the -h option.
     -b           : turn on agc
     -c           : continuous PAM output
     -d           : use 1s delay to wait for LNB power up
+    -e frontend  : the frontend/dmx/dvr to be used (default=0)
     -f frequency : center frequency of the spectrum in kHz
     -i input     : the physical input of the SX8 (default=0)
     -k           : use Kaiser window before FFT

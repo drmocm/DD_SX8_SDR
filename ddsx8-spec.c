@@ -45,6 +45,7 @@ typedef struct io_data_{
     int fd_out;
     int adapter;
     int input;
+    int fe_num;
     int full;
     char *filename;
     uint32_t fstart;
@@ -75,7 +76,7 @@ void open_io(io_data *iod)
 			   00644);
     }
     
-    if ( (iod->fe_fd=open_fe(iod->adapter, 0)) < 0){
+    if ( (iod->fe_fd=open_fe(iod->adapter, iod->fe_num)) < 0){
 	exit(1);
     }
 
@@ -91,10 +92,10 @@ void open_io(io_data *iod)
 	}
     }
     
-    if ( (iod->fd_dmx = open_dmx(iod->adapter, 0)) < 0){
+    if ( (iod->fd_dmx = open_dmx(iod->adapter, iod->fe_num)) < 0){
 	exit(1);
     }
-    if ( (iod->fdin=open_dvr(iod->adapter,0)) < 0){
+    if ( (iod->fdin=open_dvr(iod->adapter,iod->fe_num)) < 0){
 	exit(1);
     }
 }
@@ -145,6 +146,7 @@ void init_io(io_data *iod)
     iod->id = AGC_OFF;
     iod->adapter = 0;
     iod->input = 0;
+    iod->fe_num = 0;
     iod->full = 0;
     iod->freq = 0;
     iod->fft_sr = FFT_SR;
@@ -157,13 +159,14 @@ void init_io(io_data *iod)
     iod->frange = (MAX_FREQ - MIN_FREQ);
 }
 
-void set_io(io_data *iod, int adapter, int num,
+void set_io(io_data *iod, int adapter, int num, int fe_num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, uint32_t hi,
 	    uint32_t length, uint32_t id, int full, int delay,
 	    uint32_t fstart, uint32_t fstop)
 {
     iod->adapter = adapter;
     iod->input = num;
+    iod->fe_num = fenum;
     iod->freq = freq;
     iod->fft_sr = sr;
     iod->fft_length = length;
@@ -197,6 +200,7 @@ void print_help(char *argv){
 		    " -b           : turn on agc\n"
 		    " -c           : continuous PAM output\n"
 		    " -d           : use 1s delay to wait for LNB power up\n"
+		    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 		    " -f frequency : center frequency of the spectrum in kHz\n"
 		    " -g           : do a blindscan\n"
 		    " -i input     : the physical input of the SX8 (default=0)\n"
@@ -227,6 +231,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int outmode = SINGLE_PAM;
     int adapter = 0;
     int input = 0;
+    int fe_num = 0;
     uint32_t freq = -1;
     uint32_t fstart = MIN_FREQ;
     uint32_t fstop = MAX_FREQ;
@@ -256,6 +261,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"blindscan", no_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
 	    {"input", required_argument, 0, 'i'},
+	    {"frontend", required_argument, 0, 'e'},
 	    {"Kaiserwindow", no_argument, 0, 'k'},
 	    {"alpha", required_argument, 0, 'l'},
 	    {"nfft", required_argument, 0, 'n'},	    
@@ -271,7 +277,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:ghi:kl:n:o:p:qs:tTux:",
+			    "a:bcdf:ghi:e:kl:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -297,6 +303,10 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	case 'd':
 	    delay = 1000000;
+	    break;
+	    
+	case 'e':
+	    fe_num = strtoul(optarg, NULL, 0);
 	    break;
 	    
 	case 'f':
@@ -390,8 +400,8 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     }
     */
     height = 9*width/16;
-    set_io(iod, adapter, input, freq, sr, pol, hi, width, id, full, delay,
-	   fstart, fstop);
+    set_io(iod, adapter, input, fe_num, freq, sr, pol, hi,
+	   width, id, full, delay, fstart, fstop);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
