@@ -210,7 +210,7 @@ void print_help(char *argv){
 		    " -o filename  : output filename (default stdout)\n"
 		    " -p pol       : polarisation 0=vertical 1=horizontal\n"
 		    " -q           : faster FFT\n"
-		    " -s rate      : the signal rate used for the FFT in Hz\n"
+		    " -s rate      : the symbol rate used for the FFT in Hz\n"
 		    " -t           : output CSV \n"
 		    " -T           : output minimal CSV\n"
 		    " -u           : use hi band of LNB\n"
@@ -268,7 +268,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"output", required_argument , 0, 'o'},
 	    {"polarisation", no_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
-	    {"signal_rate", required_argument, 0, 's'},
+	    {"symbol_rate", required_argument, 0, 's'},
 	    {"csv", no_argument, 0, 't'},
 	    {"csvmin", no_argument, 0, 'T'},
 	    {"band", no_argument, 0, 'u'},
