@@ -2,7 +2,7 @@
 
 # 	DD_SX8_SDR
 
-The Max SX8 DVB-S/S2/S2X PCIe tuner card by Digital Devices ([Max SX8 link](https://digitaldevices.de/en/products/dvb-components/max-sx8/))
+The Max SX8 DVB-S/S2/S2X PCIe tuner card by [DigitalDevices](https://digitaldevices.de/en/products/dvb-components/max-sx8/))
 features an SDR mode that allows one to get the raw IQ data for a given
 frequency (in the 950MHz to 2150MHz range) and bandwidth (in the 
 following refered to as symbol rate) to a maximum a little above 60MHz.
