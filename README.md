@@ -2,21 +2,29 @@
 
 # 	DD_SX8_SDR
 
-ddsx8-spec is an **example** program written in C to show how to use 
-the SDR mode of the DigitalDevices MAX SX8 to get IQ data. The program
+The Max SX8 DVB-S/S2/S2X PCIe tuner card by Digital Devices ([Max SX8 link](https://digitaldevices.de/en/products/dvb-components/max-sx8/))
+features an SDR mode that allows one to get the raw IQ data for a given
+frequency (in the 950MHz to 2150MHz range) and bandwidth (in the 
+following refered to as symbol rate) to a maximum a little above 60MHz.
+
+The program ddsx8-spec is an **example** written in C to show how to use 
+the SDR mode of the DigitalDevices MAX SX8 to get the raw IQ data. It
 calculates the frequency spectrum of the incoming raw IQ data signal 
-around a given center frequency. The bandwidth used is 51.2 MHz.
-The spectrun is of course distorted at the edges, due to the finite 
+around a given center frequency. The bandwidth used is 51.2 MHz ging us 
+a 50kHz resolution for an FFT of length 1024.
+The spectrum is of course distorted at the edges, due to the finite 
 aspect of the FFT. For a full spectrum smaller windows around the center 
 of consecutive frequencies are stitched together.
 
 There is a problem with the older SX8 firmwares when trying to do this 
-too fast. The SDR feature is still experimental and will improve in later 
-firmwares.
+too fast. The SDR feature is still experimental and will and already
+has been improved in newer firmwares.
 
 You need to set the polarisation and the band of your LNB via command line.
 Unicable tuning is not yet supported and will probably be much slower
-for a full spectrum scan. 
+for a full spectrum scan, you can still scan the spectrum of the Unicable band
+and depending on the settings of the unicable channels should be able to see a
+Unicable spectrum like in the picture above.
 
 The spectrum is written to stdout by default either in the PAM image format
 or as CSV. Use the -o option to write to a file.
@@ -69,7 +77,7 @@ For usage information use the -h option.
     -o filename  : output filename (default stdout)
     -p pol       : polarisation 0=vertical 1=horizontal
     -q           : faster FFT
-    -s rate      : the signal rate used for the FFT in Hz
+    -s rate      : the symbol rate used for the FFT in Hz
     -t           : output CSV
     -T           : output minimal CSV
     -u           : use hi band of LNB
