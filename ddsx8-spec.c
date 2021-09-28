@@ -124,7 +124,8 @@ int next_freq_step(io_data *iod)
 	iod->step = 0;
     }
     freq = sfreq+iod->window*iod->step;
-    if (freq+iod->window/2 > iod->fstop) return -1;
+//    if (freq+iod->window/2 > iod->fstop) return -1;
+    if (freq  > iod->fstop) return -1;
     iod->freq = freq;
     fprintf(stderr,"Setting frequency %d step %d\n",freq,iod->step);
     if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
@@ -419,7 +420,8 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     graph g;
     double *fullspec = NULL;
     double *fullfreq=NULL;
-    int maxstep = (iod->fstop - iod->fstart)/iod->window;
+//    int maxstep = (iod->fstop - iod->fstart)/iod->window;
+    int maxstep = (iod->fstop - iod->fstart)/iod->window+1;
     int fulllen =  spec->width/2*maxstep;
     int k = 0;
     blindscan blind;
