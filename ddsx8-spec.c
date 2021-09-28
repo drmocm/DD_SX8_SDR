@@ -26,11 +26,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // various outmodes
 #define SINGLE_PAM 0
-#define MULTI_PAM  1
 #define CSV 2
 #define BLINDSCAN 8
 
 static int min= 0;
+static int multi= 0;
 
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
@@ -293,12 +293,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    break;
 	    
 	case 'c':
-	    if (outmode) {
-		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		exit(1);
-	    }
-	    outmode = MULTI_PAM;
+	    multi = 1;
 	    break;
 	    
 	case 'd':
@@ -433,14 +428,12 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     iod->step = -1;
 
     while (run){
-	run = 0;
+	if (!multi) run = 0;
 	if (min) min = 1;
 	if (!full) {
 	    spec_set_freq(spec, iod->freq, iod->fft_sr);
 	    spec_read_data(iod->fdin, spec);
 	    switch (mode){
-	    case MULTI_PAM:
-		run = 1;
 	    
 	    case SINGLE_PAM:
 		if ( bm == NULL) {
@@ -514,9 +507,6 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		}
 		break;
 		    
-	    case MULTI_PAM:
-		run = 1;
-		
 	    case SINGLE_PAM:
 		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec, fulllen);
 		g.lastx = fullspec[0];
@@ -548,7 +538,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	if (bm) clear_bitmap(bm);
 	iod->step = -1;
     }
-    if (mode == SINGLE_PAM || mode == MULTI_PAM){
+    if (mode == SINGLE_PAM){
 	delete_bitmap(bm);
     }
 
