@@ -348,7 +348,7 @@ void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
 	start = width/4;
 	end = width/4*3;
     }
-    if (min){
+    if (min==1){
 	fprintf(fp,"# start %.3f step %.2f\n",(double)(start_freq)/1000.0,
 	    (double)(step)/1000.0);
     }

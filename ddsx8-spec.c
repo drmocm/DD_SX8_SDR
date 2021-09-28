@@ -202,7 +202,7 @@ void print_help(char *argv){
 		    " -d           : use 1s delay to wait for LNB power up\n"
 		    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 		    " -f frequency : center frequency of the spectrum in kHz\n"
-		    " -g           : do a blindscan\n"
+//		    " -g           : do a blindscan\n"
 		    " -i input     : the physical input of the SX8 (default=0)\n"
 		    " -k           : use Kaiser window before FFT\n"
 		    " -l alpha     : parameter of the Kaiser window\n"
@@ -431,8 +431,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     
 
     iod->step = -1;
+
     while (run){
 	run = 0;
+	if (min) min = 1;
 	if (!full) {
 	    spec_set_freq(spec, iod->freq, iod->fft_sr);
 	    spec_read_data(iod->fdin, spec);
@@ -495,12 +497,21 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		    fullfreq[i+k] = spec->freq[i+spec->width/4];
 		}
 		k += spec->width/2;
+
+		if (mode == CSV && min){
+		    write_csv (iod->fd_out, spec->width/2,
+			       iod->fft_sr/spec->width/1000,
+			       iod->fstart, fullspec, 0, 0, min);
+		    if (min) min = 2;
+		}
 	    }
 	    switch (mode){
-	    case CSV: 
-		write_csv (iod->fd_out, fulllen,
-			   iod->fft_sr/spec->width/1000,
-			   iod->fstart, fullspec, 0, 0, min);
+	    case CSV:
+		if (!min){
+		    write_csv (iod->fd_out, fulllen,
+			       iod->fft_sr/spec->width/1000,
+			       iod->fstart, fullspec, 0, 0, min);
+		}
 		break;
 		    
 	    case MULTI_PAM:
