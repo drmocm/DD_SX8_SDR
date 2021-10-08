@@ -74,10 +74,14 @@ int do_blindscan(blindscan *b)
 	spec[i] = spec[i]*100.0/prange; // percentage of max
     }
 
-/*
+
     dspec = df(b->spec,b->speclen);
     ddspec = ddf(b->spec,b->speclen);
-*/  
+    smooth(dspec,b->speclen);
+    smooth(dspec,b->speclen);
+    smooth(dspec,b->speclen);
+    smooth(dspec,b->speclen);
+    b->spec = dspec;
     return 0;
 }
 

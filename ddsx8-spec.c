@@ -491,14 +491,14 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		    fullspec[i+k] = spec->pow[i+spec->width/4];
 		    fullfreq[i+k] = spec->freq[i+spec->width/4];
 		}
-		k += spec->width/2;
 
 		if (mode == CSV && min){
 		    write_csv (iod->fd_out, spec->width/2,
 			       iod->fft_sr/spec->width/1000,
-			       iod->fstart, fullspec, 0, 0, min);
+			       iod->fstart, &fullspec[k], 0, 0, min);
 		    if (min) min = 2;
 		}
+		k += spec->width/2;
 	    }
 	    switch (mode){
 	    case CSV:
@@ -527,10 +527,12 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		g.lasty = fullfreq[0];
 		display_array_graph( &g, fullfreq, blind.spec,
 				     0, fulllen);
-		write_csv (iod->fd_out, fulllen,
+		/*
+		    write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,
 			   iod->fstart, blind.spec, 0, 0, min);
-		//write_pam (iod->fd_out, bm);
+		*/
+		write_pam (iod->fd_out, bm);
 		break;
 		
 	    default:
