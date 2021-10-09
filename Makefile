@@ -10,7 +10,7 @@ CPP = g++
 
 .PHONY: clean 
 
-TARGETS = ddsx8-spec pam_test
+TARGETS = ddsx8-spec pam_test dump_raw
 
 all: $(TARGETS)
 
@@ -19,6 +19,9 @@ ddsx8-spec: $(OBJ) $(INC)
 
 pam_test: pam_test.o pam.o pam.h
 	$(CC) $(CFLAGS) -o pam_test pam_test.o pam.o $(LIBS)
+
+dump_raw: dump_raw.o 
+	$(CC) $(CFLAGS) -o dump_raw dump_raw.o
 
 spec.o: $(HEADER) spec.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) spec.c
