@@ -55,7 +55,7 @@ void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
     }
 }
 
-
+#define NBIN 100
 int do_blindscan(blindscan *b)
 {
     int speclen = b->speclen;
@@ -66,22 +66,45 @@ int do_blindscan(blindscan *b)
     double *dspec = NULL;
     double *ddspec = NULL;
     double avg = 0;
+    double fac;
+    int *bin;
+    double binstep = 100.5/NBIN;
+    int k,i;
+
+    if (!(bin = (int *) malloc(MAXPEAK*sizeof(int)))){
+	{
+	    fprintf(stderr,"not enough memory\n");
+	    exit(1);
+	}
+    }
+    memset(bin,0,NBIN*sizeof(int));
+    smooth(spec, speclen);
+    
+    smooth(spec, speclen);
+    
+    smooth(spec, speclen);
     
     if (find_range(spec, speclen, &pmin, &pmax) < 0) return -1;
     prange = pmax - pmin;
-    for (int i=0; i< speclen; i++){
+    fac = 100.0/prange;
+    fprintf(stderr,"pmin: %f pmax: %f range: %f\n",pmin,pmax,fac);
+    for (i=0; i< speclen; i++){
+	k=0;
 	spec[i] -= pmin;                // min is zero
-	spec[i] = spec[i]*100.0/prange; // percentage of max
+	spec[i] = spec[i]*fac; // percentage of max
+	avg += spec[i];
+	k = (int)(spec[i]/binstep);
+	bin[k]++;
+	spec[i] = k*binstep;
     }
-
-
-    dspec = df(b->spec,b->speclen);
-    ddspec = ddf(b->spec,b->speclen);
-    smooth(dspec,b->speclen);
-    smooth(dspec,b->speclen);
-    smooth(dspec,b->speclen);
-    smooth(dspec,b->speclen);
-    b->spec = dspec;
+    avg = avg/(double)speclen;
+    double mid=0;
+    k=0;
+    while (mid*100.0/speclen < 50.0 && k < NBIN){
+	mid += bin[k];
+	k++;
+    }
+    fprintf(stderr,"average:%f med:%f %f\n", avg,(k-1)*binstep,binstep );
     return 0;
 }
 
