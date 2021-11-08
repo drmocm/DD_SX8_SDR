@@ -525,8 +525,13 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
 		g.lastx = fullspec[0];
 		g.lasty = fullfreq[0];
-		display_array_graph( &g, fullfreq, blind.spec,
-				     0, fulllen);
+		graph_range(&g, fullfreq, blind.spec, blind.speclen);
+		display_array_graph_c( &g, fullfreq, blind.spec,
+				       0, fulllen,255,255,255);
+		
+		graph_range(&g, fullfreq, fullspec, fulllen);
+		display_array_graph_c( &g, fullfreq, fullspec,
+				       0, fulllen,255,0,0);
 		/*
 		    write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,

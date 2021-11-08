@@ -59,75 +59,63 @@ void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
 int do_blindscan(blindscan *b)
 {
     int speclen = b->speclen;
-    double pmin = 0;
+    double pmin = -1000;
     double pmax = 1000;
     double prange = 0;
     double *spec = b->spec;
     double *dspec = NULL;
     double *ddspec = NULL;
     double avg = 0;
-    double fac;
-    int *bin;
-    double binstep = 100.5/NBIN;
-    int k,i;
+    double avg2 = 0;
+    double var = 0;
+    int i,j,k;
 
-    if (!(bin = (int *) malloc(MAXPEAK*sizeof(int)))){
-	{
-	    fprintf(stderr,"not enough memory\n");
-	    exit(1);
-	}
-    }
-    memset(bin,0,NBIN*sizeof(int));
-    smooth(spec, speclen);
-    
-    smooth(spec, speclen);
-    
-    smooth(spec, speclen);
-    
-    if (find_range(spec, speclen, &pmin, &pmax) < 0) return -1;
+    dspec = df(spec, speclen);
+    smoothen(dspec, speclen,45);
+    if (find_range(dspec, speclen, &pmin, &pmax) < 0) return -1;
     prange = pmax - pmin;
-    fac = 100.0/prange;
-    fprintf(stderr,"pmin: %f pmax: %f range: %f\n",pmin,pmax,fac);
     for (i=0; i< speclen; i++){
-	k=0;
-	spec[i] -= pmin;                // min is zero
-	spec[i] = spec[i]*fac; // percentage of max
-	avg += spec[i];
-	k = (int)(spec[i]/binstep);
-	bin[k]++;
-	spec[i] = k*binstep;
+	avg += dspec[i];
+	avg2 += dspec[i]*dspec[i];
     }
-    avg = avg/(double)speclen;
-    double mid=0;
-    k=0;
-    while (mid*100.0/speclen < 50.0 && k < NBIN){
-	mid += bin[k];
-	k++;
+    avg /= (double)speclen;
+    avg2 /= (double)speclen;
+    var = avg2 - avg*avg;
+    fprintf(stderr,"pmin: %f pmax: %f range: %f  avg: %f avg2: %f var: %f\n",
+	    pmin, pmax, prange, avg, avg2, var);
+
+    
+    for (i=0; i< speclen; i++){
+	if (dspec[i]*dspec[i] < var) dspec[i]=0;
     }
-    fprintf(stderr,"average:%f med:%f %f\n", avg,(k-1)*binstep,binstep );
+    b->spec = dspec;
     return 0;
 }
 
-int find_peak(double *spec, int length, peak *p)
+int find_peak(double *spec, int length, peak *p, int min_width)
 {
     double avg = 0;
     int start = 0;
     int stop = 0;
-    
-    for (int i = 0; i < length; i++){
-	avg += spec[i];
+    int i,j,k;
+    int pcount = 0; 
+    int davg = min_width/2; //average over davg data points
+
+    for (i = davg; i < length; i++){
+	for (j = i-davg; j < i; j++){
+	    avg += spec[j];
+	}
+	avg = avg/davg;
+	if (spec[i] > avg) pcount++;
+	else pcount=0;
+	if (pcount == 1) start = i;
+	if (pcount > min_width) break;
     }
-    avg = avg/(double)length;
+    if (i < length - 2*davg){
 
-    int i=0;
-    while ( spec[i] < avg && i < length ) i++;
-    if (i < length) start = i;
-    else return -1;
-    while ( spec[i] > avg && i < length ) i++;
-    if (i < length) stop = i;
-    else return -1;
+    } else return length;
+				    
+    
 
-    p->width = stop - start;
-    p->mid = start+ p->width/2;
     return stop;
 }

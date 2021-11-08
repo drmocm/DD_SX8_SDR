@@ -508,6 +508,14 @@ void display_array_graph(graph *g, double *x, double *y, int first, int length)
     }
 }
 
+void display_array_graph_c(graph *g, double *x, double *y, int first,
+			   int length, uint8_t R, uint8_t G, uint8_t B)
+{
+    for (int i = first; i < first+length; i++){
+	plot_to_graph(g, x[i], y[i], R,G,B);
+    }
+}
+
 void graph_range(graph *g, double *x, double *y, int width)
 {    
     double range = 0;

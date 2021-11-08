@@ -11,6 +11,7 @@ void FFT(short dir, int m, double *x, double *y);
 double *intf(double *f, int length);
 double *df(double *f, int length);
 double *ddf(double *f, int length);
+void smoothen(double *f, int l, int range);
 void smooth(double *f, int l);
 void do_fft(fftw_complex *in, double *window, int num);
 

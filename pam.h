@@ -60,6 +60,8 @@ void plot_to_graph(graph *g, double x2, double y2,
 void plotline_graph(graph *g, double x, double y, double x2, double y2, 
 		    uint8_t R, uint8_t G, uint8_t B);
 void display_array_graph(graph *g, double *x, double *y, int length, int first);
+void display_array_graph_c(graph *g, double *x, double *y, int first,
+			   int length, uint8_t R, uint8_t G, uint8_t B);
 void graph_range(graph *g, double *x, double *y, int width);
 void clear_range_graph(graph *g, double dfirst, double dlast);
 #endif /* _PAM_H_*/

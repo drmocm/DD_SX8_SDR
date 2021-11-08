@@ -96,9 +96,38 @@ void do_fft(fftw_complex *in, double *window, int num)
 
 }
 
+
+void smoothen(double *f, int l, int range)
+{
+    double a1 = 0;
+    double a2 = 0;
+    double a3 = 0;
+    int r = range - (range%3);
+
+    for (int j = 0; j < r/3; j++){
+	a1 += f[j];
+    }
+    a1 /= r/3;
+
+    for (int i = 0; i < l ; i+= r){
+	a2 = 0;
+	a3 = 0;
+	for (int j = i; j < i+r/3; j++){
+	    a2 += f[j+r/3];
+	    a3 += f[j+2*r/3];
+	}
+	a2 /= r/3;
+	a3 /= r/3;
+	double m = fmax(fmin(a2,a1), fmin(fmax(a2,a1),a3));
+	a1 = a3; 
+	for (int j = i; j < i+r; j++){
+	    f[j] = m;
+	}
+    }
+}
+
 void smooth(double *f, int l)
 {
-    double av=0;
     double a = f[0];
     for (int i=1; i < l-1; i++){
 	double b = f[i-1];
@@ -106,7 +135,6 @@ void smooth(double *f, int l)
 	double m = fmax(fmin(a,b), fmin(fmax(a,b),c));
 	a = f[i];
 	f[i] = m;
-	av += f[i];;
     }
     a = f[0];
     for (int i=1; i < l-1; i++){
