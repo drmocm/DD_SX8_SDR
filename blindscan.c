@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "numeric.h"
 
 #define MAXPEAK 100
+static int find_peak(double *dspec, int length, int pos , peak *p);
 
 void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
 {
@@ -39,15 +40,8 @@ void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
 	}
     }
     memcpy(b->spec, spec, speclen*sizeof(double));
-    if (!(b->peaks = (double *) malloc(MAXPEAK*
-				       sizeof(double)))){
-	{
-	    fprintf(stderr,"not enough memory\n");
-	    exit(1);
-	}
-    }
-    if (!(b->widths = (double *) malloc(MAXPEAK*
-				       sizeof(double)))){
+    if (!(b->peaks = (peak *) malloc(MAXPEAK*
+				       sizeof(peak)))){
 	{
 	    fprintf(stderr,"not enough memory\n");
 	    exit(1);
@@ -71,7 +65,7 @@ int do_blindscan(blindscan *b)
     int i,j,k;
 
     dspec = df(spec, speclen);
-    smoothen(dspec, speclen,45);
+    smoothen(dspec, speclen,18);
     if (find_range(dspec, speclen, &pmin, &pmax) < 0) return -1;
     prange = pmax - pmin;
     for (i=0; i< speclen; i++){
@@ -88,34 +82,54 @@ int do_blindscan(blindscan *b)
     for (i=0; i< speclen; i++){
 	if (dspec[i]*dspec[i] < var) dspec[i]=0;
     }
+        
     b->spec = dspec;
+    int length = speclen;
+    double *ds=dspec;
+    int pos = 0;
+    for (i=0; i < MAXPEAK; i++){
+	int start = 0;
+	int stop = 0;
+	
+	if (!find_peak(ds, length, pos , &b->peaks[i])) break;
+	b->numpeaks++;
+	start = b->peaks[i].start;
+	stop = b->peaks[i].stop;
+	pos = stop;
+	b->peaks[i].width = stop*b->freq_step-start*b->freq_step;
+	b->peaks[i].freq = b->freq_start+b->freq_step*start+b->peaks[i].width/2;
+    }
+    fprintf(stderr,"found %d peaks\n", i);
+    for (i=0; i < b->numpeaks; i++){
+	fprintf(stderr,"%d start: %d  stop: %d freq: %f width: %f\n", i+1,
+		b->peaks[i].start,
+		b->peaks[i].stop,
+		b->peaks[i].freq,
+		b->peaks[i].width
+	    );
+    
+    }
     return 0;
 }
 
-int find_peak(double *spec, int length, peak *p, int min_width)
+int find_peak(double *dspec, int length, int pos, peak *p)
 {
-    double avg = 0;
+    int i = pos;
     int start = 0;
     int stop = 0;
-    int i,j,k;
-    int pcount = 0; 
-    int davg = min_width/2; //average over davg data points
-
-    for (i = davg; i < length; i++){
-	for (j = i-davg; j < i; j++){
-	    avg += spec[j];
-	}
-	avg = avg/davg;
-	if (spec[i] > avg) pcount++;
-	else pcount=0;
-	if (pcount == 1) start = i;
-	if (pcount > min_width) break;
+    while (dspec[i] <= 0 && i < length) i++;
+    if (i < length){
+	start = i;
+	while (dspec[i] >= 0 && i < length) i++;
+	if (i < length){
+	    while (dspec[i] < 0 && i < length) i++;
+	    stop = i;
+	} else return 0;
+    } else return 0;
+    if (start && stop){
+	p->start = start;
+	p->stop = stop;
+	return 1;
     }
-    if (i < length - 2*davg){
-
-    } else return length;
-				    
-    
-
-    return stop;
+    return 0;
 }
