@@ -47,6 +47,7 @@ typedef struct io_data_{
     int input;
     int fe_num;
     int full;
+    int smooth;
     char *filename;
     uint32_t fstart;
     uint32_t fstop;
@@ -149,6 +150,7 @@ void init_io(io_data *iod)
     iod->input = 0;
     iod->fe_num = 0;
     iod->full = 0;
+    iod->smooth = 6;
     iod->freq = 0;
     iod->fft_sr = FFT_SR;
     iod->step = -1;
@@ -163,7 +165,7 @@ void init_io(io_data *iod)
 void set_io(io_data *iod, int adapter, int num, int fe_num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, uint32_t hi,
 	    uint32_t length, uint32_t id, int full, int delay,
-	    uint32_t fstart, uint32_t fstop)
+	    uint32_t fstart, uint32_t fstop, int smooth)
 {
     iod->adapter = adapter;
     iod->input = num;
@@ -173,6 +175,7 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
     iod->fft_length = length;
     iod->id = id;
     iod->full = full;
+    iod->smooth = smooth;
     iod->window = (sr/2/1000);
     iod->delay = delay;
     iod->pol = pol;
@@ -203,7 +206,6 @@ void print_help(char *argv){
 		    " -d           : use 1s delay to wait for LNB power up\n"
 		    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 		    " -f frequency : center frequency of the spectrum in kHz\n"
-//		    " -g           : do a blindscan\n"
 		    " -i input     : the physical input of the SX8 (default=0)\n"
 		    " -k           : use Kaiser window before FFT\n"
 		    " -l alpha     : parameter of the Kaiser window\n"
@@ -217,7 +219,10 @@ void print_help(char *argv){
 		    " -u           : use hi band of LNB\n"
 		    " -x f1 f2     : full spectrum scan from f1 to f2\n"
 		    "                (default -x 0 : 950000 to 2150000 kHz)\n"
-		    " -h           : this help message\n\n");
+		    " -h           : this help message\n\n"
+	            " -g s         : blindscan, use s to improve scan (s=0 means no smoothing)" 
+                   "                 higher s can lead to less false positives, but may"
+                   "                 lead to missed peaks\n");
 	    
 }
 
@@ -242,6 +247,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int delay = 0;
     uint32_t pol = 2;
     uint32_t hi = 0;
+    int smooth = 0;
     char *nexts= NULL;
     
     if (argc < 2) {
@@ -259,7 +265,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"continuous", no_argument, 0, 'c'},
 	    {"delay", no_argument, 0, 'd'},
 	    {"frequency", required_argument, 0, 'f'},
-	    {"blindscan", no_argument, 0, 'g'},
+	    {"blindscan", required_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
 	    {"input", required_argument, 0, 'i'},
 	    {"frontend", required_argument, 0, 'e'},
@@ -278,7 +284,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:ghi:e:kl:n:o:p:qs:tTux:",
+			    "a:bcdf:g:hi:e:kl:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -316,6 +322,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 		exit(1);
 	    }
 	    full = 1;
+	    smooth = strtoul(optarg, NULL, 0);
 	    outmode = BLINDSCAN;
 	    break;
 
@@ -397,7 +404,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     */
     height = 9*width/16;
     set_io(iod, adapter, input, fe_num, freq, sr, pol, hi,
-	   width, id, full, delay, fstart, fstop);
+	   width, id, full, delay, fstart, fstop, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
@@ -521,7 +528,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		
 	    case BLINDSCAN:
 		init_blindscan(&blind, fullspec, fullfreq, fulllen);
-		do_blindscan(&blind);
+		do_blindscan(&blind, iod->smooth);
 		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
 		g.lastx = fullspec[0];
 		g.lasty = fullfreq[0];

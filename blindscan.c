@@ -62,7 +62,7 @@ static double *prepare_df(double *spec, int speclen, int smooth)
     int i;
 
     dspec = df(spec, speclen); //differentiate spectrum
-    smoothen(dspec, speclen, smooth); // smoothen differential 
+    if (smooth > 0) smoothen(dspec, speclen, smooth); // smoothen differential 
 
     // determine statistics of the differential function
     if (find_range(dspec, speclen, &pmin, &pmax) < 0) return NULL;
@@ -85,14 +85,15 @@ static double *prepare_df(double *spec, int speclen, int smooth)
 }
 
 // smoothing over this number of points
-int do_blindscan(blindscan *b)
+int do_blindscan(blindscan *b, int smooth)
 {
     int speclen = b->speclen;
     double *spec = b->spec;
     double *dspec = NULL;
     int i,j;
 
-    if (!(dspec = prepare_df(spec, speclen, SMOOTH))) return -1;
+    if (smooth < 0) smooth = 0;
+    if (!(dspec = prepare_df(spec, speclen, smooth))) return -1;
         
     int length = speclen;
     int pos = 0;

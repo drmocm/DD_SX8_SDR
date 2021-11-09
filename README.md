@@ -86,8 +86,10 @@ For usage information use the -h option.
                    (default -x 0 : 950000 to 2150000 kHz)
     -h           : this help message
 
-
-
+    -g s         : blindscan, use s to improve scan (s=0 means no smoothing) 
+                   higher s can lead to less false positives, but may
+                   lead to missed peaks
+				   
 Typical calls would be:
 
 `./ddsx8-spec -f 1030000  -k -t -o test.csv`
@@ -141,7 +143,14 @@ and play it with
 
 `vlc http://<myip>:8554`
 
+# Blindscan
+The -g option of ddsx8-spec is in an experimental stage and will output
+a list of peaks on stderr with some information about the peaks.
+It will also output a graph that shows the original spectrum and its
+modified derivative which is used to determine where the peaks are.
+Use to the number after g to fine tune the scan.
 
+`./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
 
 # dump_raw

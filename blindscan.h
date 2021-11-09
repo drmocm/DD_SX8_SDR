@@ -38,7 +38,7 @@ typedef struct blindscan_ {
 
 
 void init_blindscan (blindscan *b, double *spec, double *freq, int speclen);
-int do_blindscan(blindscan *b);
+int do_blindscan(blindscan *b, int smooth);
 
     
 #endif /* _blindscan_H_*/
