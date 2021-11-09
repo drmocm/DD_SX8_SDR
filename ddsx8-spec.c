@@ -222,7 +222,7 @@ void print_help(char *argv){
 		    " -h           : this help message\n\n"
 	            " -g s         : blindscan, use s to improve scan (higher\n"
 		    "                s can lead to less false positives,\n"
-                    "                but may lead to missed peaks\n");
+                    "                but may lead to missed peaks)\n");
 }
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)

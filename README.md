@@ -88,7 +88,7 @@ For usage information use the -h option.
 	
     -g s         : blindscan, use s to improve scan (higher
                    s can lead to less false positives,
-                   but may lead to missed peaks
+                   but may lead to missed peaks)
 				   
 Typical calls would be:
 
