@@ -85,10 +85,10 @@ For usage information use the -h option.
     -x f1 f2     : full spectrum scan from f1 to f2
                    (default -x 0 : 950000 to 2150000 kHz)
     -h           : this help message
-
-    -g s         : blindscan, use s to improve scan (s=0 means no smoothing) 
-                   higher s can lead to less false positives, but may
-                   lead to missed peaks
+	
+    -g s         : blindscan, use s to improve scan (higher
+                   s can lead to less false positives,
+                   but may lead to missed peaks
 				   
 Typical calls would be:
 

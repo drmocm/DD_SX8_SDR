@@ -220,10 +220,9 @@ void print_help(char *argv){
 		    " -x f1 f2     : full spectrum scan from f1 to f2\n"
 		    "                (default -x 0 : 950000 to 2150000 kHz)\n"
 		    " -h           : this help message\n\n"
-	            " -g s         : blindscan, use s to improve scan (s=0 means no smoothing)" 
-                   "                 higher s can lead to less false positives, but may"
-                   "                 lead to missed peaks\n");
-	    
+	            " -g s         : blindscan, use s to improve scan (higher\n"
+		    "                s can lead to less false positives,\n"
+                    "                but may lead to missed peaks\n");
 }
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
