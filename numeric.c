@@ -102,7 +102,7 @@ void smoothen(double *f, int l, int range)
     double a1 = 0;
     double a2 = 0;
     double a3 = 0;
-    int r = range - (range%3);
+    int r = 3*range;
 
     for (int j = 0; j < r/3; j++){
 	a1 += f[j];

@@ -49,24 +49,23 @@ void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
     }
 }
 
-#define NBIN 100
-int do_blindscan(blindscan *b)
+#define SMOOTH 6
+static double *prepare_df(double *spec, int speclen, int smooth)
 {
-    int speclen = b->speclen;
     double pmin = -1000;
     double pmax = 1000;
     double prange = 0;
-    double *spec = b->spec;
     double *dspec = NULL;
-    double *ddspec = NULL;
     double avg = 0;
     double avg2 = 0;
     double var = 0;
-    int i,j,k;
+    int i;
 
-    dspec = df(spec, speclen);
-    smoothen(dspec, speclen,60);
-    if (find_range(dspec, speclen, &pmin, &pmax) < 0) return -1;
+    dspec = df(spec, speclen); //differentiate spectrum
+    smoothen(dspec, speclen, smooth); // smoothen differential 
+
+    // determine statistics of the differential function
+    if (find_range(dspec, speclen, &pmin, &pmax) < 0) return NULL;
     prange = pmax - pmin;
     for (i=0; i< speclen; i++){
 	avg += dspec[i];
@@ -75,13 +74,25 @@ int do_blindscan(blindscan *b)
     avg /= (double)speclen;
     avg2 /= (double)speclen;
     var = avg2 - avg*avg;
-    fprintf(stderr,"pmin: %f pmax: %f range: %f  avg: %f avg2: %f var: %f\n",
-	    pmin, pmax, prange, avg, avg2, var);
-
     
+//    fprintf(stderr,"pmin: %f pmax: %f range: %f  avg: %f avg2: %f var: %f\n",
+//	    pmin, pmax, prange, avg, avg2, var);
+    // flatten differential function for easier peek finding
     for (i=0; i< speclen; i++){
 	if (dspec[i]*dspec[i] < var) dspec[i]=0;
     }
+    return dspec;
+}
+
+// smoothing over this number of points
+int do_blindscan(blindscan *b)
+{
+    int speclen = b->speclen;
+    double *spec = b->spec;
+    double *dspec = NULL;
+    int i,j;
+
+    if (!(dspec = prepare_df(spec, speclen, SMOOTH))) return -1;
         
     int length = speclen;
     int pos = 0;
@@ -99,9 +110,11 @@ int do_blindscan(blindscan *b)
 	startend = b->peaks[i].startend;
 	stopstart = b->peaks[i].stopstart;
 	pos = stop;
+
 	// caclculate peak data
 	b->peaks[i].width = (stopstart-startend)*b->freq_step;
-	b->peaks[i].freq = b->freq_start+b->freq_step*(startend+(stopstart-startend)/2);
+	b->peaks[i].freq = b->freq_start
+	    +b->freq_step*(startend+(stopstart-startend)/2);
 	for (j=startend; j <= stopstart; j++){
 	    h += spec[j];
 	}
@@ -117,7 +130,7 @@ int do_blindscan(blindscan *b)
     for (i=0; i < b->numpeaks; i++){
 	fprintf(stderr,
 		"%3d. start: %d  stop: %d freq: %.2f MHz width: %.2f MHZ\n"
-		"     height= %f slopestart: %f slopestop: %f \n\n", i+1,
+		"     height= %f upslope: %f downslope: %f \n\n", i+1,
 		b->peaks[i].start,
 		b->peaks[i].stop,
 		b->peaks[i].freq,
@@ -132,6 +145,7 @@ int do_blindscan(blindscan *b)
     return 0;
 }
 
+// search upwards slope
 static int find_up(double *d, int l, int p)
 {
     int i=p;
@@ -141,6 +155,7 @@ static int find_up(double *d, int l, int p)
     return i;
 }
 
+// search upwards slope backwards
 static int find_up_bw(double *d, int l, int p)
 {
     int i=p;
@@ -150,6 +165,7 @@ static int find_up_bw(double *d, int l, int p)
     return i;
 }
 
+// search downwards slope
 static int find_down(double *d, int l, int p)
 {
     int i=p;
@@ -159,6 +175,7 @@ static int find_down(double *d, int l, int p)
     return i;
 }
 
+// search next plateau
 static int find_flat(double *d, int l, int p)
 {
     int i=p;
@@ -168,6 +185,7 @@ static int find_flat(double *d, int l, int p)
     return i;
 }
 
+// search next plateau backwards
 static int find_flat_bw(double *d, int l, int p)
 {
     int i=p;
@@ -177,7 +195,7 @@ static int find_flat_bw(double *d, int l, int p)
     return i;
 }
 
-
+// find next peak from differential
 int find_peak(double *dspec, int length, int pos, peak *p)
 {
     int i = 0;
