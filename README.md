@@ -148,7 +148,7 @@ The -g option of ddsx8-spec is in an experimental stage and will output
 a list of peaks on stderr with some information about the peaks.
 It will also output a graph that shows the original spectrum and its
 modified derivative which is used to determine where the peaks are.
-Use the number after g to fine tune the scan.
+Use the number after g to fine-tune the scan.
 
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
