@@ -152,7 +152,8 @@ Use the number after g to fine-tune the scan.
 
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
-For my unicable LNB I get the following:
+I get the following with -g 6 for my unicable LNB. You can see
+that there are some false results and some peaks missing:
      
 	 found 23 peaks
      1. start: 324  stop: 954 freq: 983.30 MHz width: 23.40 MHZ
