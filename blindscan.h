@@ -16,9 +16,14 @@
 
 typedef struct peak_ {
     int start;
+    int startend;
     int stop;
+    int stopstart;
     double freq;
     double width;
+    double height;
+    double slopestart;
+    double slopestop;
 } peak;
 
 typedef struct blindscan_ {

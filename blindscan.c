@@ -65,7 +65,7 @@ int do_blindscan(blindscan *b)
     int i,j,k;
 
     dspec = df(spec, speclen);
-    smoothen(dspec, speclen,18);
+    smoothen(dspec, speclen,60);
     if (find_range(dspec, speclen, &pmin, &pmax) < 0) return -1;
     prange = pmax - pmin;
     for (i=0; i< speclen; i++){
@@ -83,52 +83,141 @@ int do_blindscan(blindscan *b)
 	if (dspec[i]*dspec[i] < var) dspec[i]=0;
     }
         
-    b->spec = dspec;
     int length = speclen;
-    double *ds=dspec;
     int pos = 0;
     for (i=0; i < MAXPEAK; i++){
 	int start = 0;
 	int stop = 0;
+	int startend = 0;
+	int stopstart = 0;
+	double h = 0;
 	
-	if (!find_peak(ds, length, pos , &b->peaks[i])) break;
+	if (!find_peak(dspec, length, pos , &b->peaks[i])) break;
 	b->numpeaks++;
 	start = b->peaks[i].start;
 	stop = b->peaks[i].stop;
+	startend = b->peaks[i].startend;
+	stopstart = b->peaks[i].stopstart;
 	pos = stop;
-	b->peaks[i].width = stop*b->freq_step-start*b->freq_step;
-	b->peaks[i].freq = b->freq_start+b->freq_step*start+b->peaks[i].width/2;
+	// caclculate peak data
+	b->peaks[i].width = (stopstart-startend)*b->freq_step;
+	b->peaks[i].freq = b->freq_start+b->freq_step*(startend+(stopstart-startend)/2);
+	for (j=startend; j <= stopstart; j++){
+	    h += spec[j];
+	}
+	b->peaks[i].height = h /(stopstart-startend); 
+	b->peaks[i].slopestart = (spec[startend]-spec[start])/
+	    (startend-start)*b->freq_step;
+	b->peaks[i].slopestop = (spec[stopstart]-spec[stop])/
+	    (stopstart-stop)*b->freq_step;
+	
     }
+
     fprintf(stderr,"found %d peaks\n", i);
     for (i=0; i < b->numpeaks; i++){
-	fprintf(stderr,"%d start: %d  stop: %d freq: %f width: %f\n", i+1,
+	fprintf(stderr,
+		"%3d. start: %d  stop: %d freq: %.2f MHz width: %.2f MHZ\n"
+		"     height= %f slopestart: %f slopestop: %f \n\n", i+1,
 		b->peaks[i].start,
 		b->peaks[i].stop,
 		b->peaks[i].freq,
-		b->peaks[i].width
+		b->peaks[i].width,
+		b->peaks[i].height,
+		b->peaks[i].slopestart,
+		b->peaks[i].slopestop
 	    );
     
     }
+    b->spec = dspec;
     return 0;
 }
 
+static int find_up(double *d, int l, int p)
+{
+    int i=p;
+
+    while (d[i] <= 0 && i < l) i++;
+    if (i >= l) return -1;    
+    return i;
+}
+
+static int find_up_bw(double *d, int l, int p)
+{
+    int i=p;
+
+    while (d[i] <= 0 && i >= 0) i--;
+    if (i < 0) return -1;    
+    return i;
+}
+
+static int find_down(double *d, int l, int p)
+{
+    int i=p;
+
+    while (d[i] >= 0 && i < l) i++;
+    if (i >= l) return -1;    
+    return i;
+}
+
+static int find_flat(double *d, int l, int p)
+{
+    int i=p;
+
+    while (d[i] != 0 && i < l) i++;
+    if (i >= l) return -1;    
+    return i;
+}
+
+static int find_flat_bw(double *d, int l, int p)
+{
+    int i=p;
+
+    while (d[i] != 0 && i >= 0) i--;
+    if (i < 0) return -1;    
+    return i;
+}
+
+
 int find_peak(double *dspec, int length, int pos, peak *p)
 {
-    int i = pos;
+    int i = 0;
     int start = 0;
     int stop = 0;
-    while (dspec[i] <= 0 && i < length) i++;
-    if (i < length){
-	start = i;
-	while (dspec[i] >= 0 && i < length) i++;
-	if (i < length){
-	    while (dspec[i] < 0 && i < length) i++;
-	    stop = i;
-	} else return 0;
-    } else return 0;
-    if (start && stop){
+    int startend = 0;
+    int stopstart = 0;
+    
+
+    if ((i = find_up(dspec,length,pos)) < 0) return 0;
+// found positive slope
+    start = i;
+
+    if ((i = find_flat(dspec,length,start)) < 0) return 0;
+// slope ends
+    startend = i;                            
+	
+    if ((i = find_down(dspec,length,i)) < 0) return 0;
+// found negative slope
+    stopstart = i;                        
+
+    if ((i = find_flat(dspec,length,stopstart)) < 0) return 0;
+// slope ends
+    stop = i;                             
+
+    if ((i = find_up_bw(dspec,length,stopstart)) < 0) return 0;
+    if ( i != startend -1){
+// found positive slope closer to negative slope
+	startend = i+1;
+	if ((i = find_flat_bw(dspec,length,startend)) < 0) return 0;
+// slope starts here
+	start = i;                            
+	
+    }
+
+    if (startend && stop){
 	p->start = start;
 	p->stop = stop;
+	p->startend = startend;
+	p->stopstart = stopstart;
 	return 1;
     }
     return 0;
