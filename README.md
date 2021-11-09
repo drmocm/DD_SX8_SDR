@@ -152,6 +152,79 @@ Use the number after g to fine-tune the scan.
 
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
+For my unicable LNB I get the following:
+     
+	 found 23 peaks
+     1. start: 324  stop: 954 freq: 983.30 MHz width: 23.40 MHZ
+        height= 51.254053 upslope: 0.008627 downslope: -0.006485 
+
+     2. start: 1044  stop: 1170 freq: 1004.45 MHz width: 0.90 MHZ
+        height= 43.429213 upslope: 0.018311 downslope: 0.003429 
+
+     3. start: 1872  stop: 2412 freq: 1055.75 MHz width: 24.30 MHZ
+        height= 51.414069 upslope: -nan downslope: -0.007720 
+
+     4. start: 3204  stop: 3960 freq: 1128.20 MHz width: 30.60 MHZ
+        height= 51.872362 upslope: 0.018603 downslope: -0.003470 
+
+     5. start: 4572  stop: 4644 freq: 1179.95 MHz width: 0.90 MHZ
+        height= 47.932874 upslope: 0.008685 downslope: -0.021443 
+
+     6. start: 4950  stop: 5490 freq: 1209.65 MHz width: 24.30 MHZ
+        height= 53.085864 upslope: -nan downslope: -0.006514 
+
+     7. start: 5850  stop: 6408 freq: 1254.65 MHz width: 24.30 MHZ
+        height= 52.308362 upslope: -nan downslope: -0.006030 
+
+     8. start: 6480  stop: 7272 freq: 1292.00 MHz width: 30.60 MHZ
+        height= 50.609054 upslope: 0.015831 downslope: 0.001396 
+
+     9. start: 8010  stop: 8568 freq: 1363.55 MHz width: 26.10 MHZ
+        height= 51.287901 upslope: -nan downslope: -0.006176 
+
+    10. start: 9126  stop: 9684 freq: 1418.90 MHz width: 25.20 MHZ
+        height= 51.727733 upslope: -nan downslope: -0.007445 
+
+    11. start: 9810  stop: 10512 freq: 1458.05 MHz width: 29.70 MHZ
+        height= 50.603375 upslope: 0.016746 downslope: -0.014481 
+
+    12. start: 10656  stop: 11124 freq: 1493.60 MHz width: 21.60 MHZ
+        height= 51.719175 upslope: -nan downslope: -0.008560 
+
+    13. start: 11376  stop: 11862 freq: 1529.60 MHz width: 21.60 MHZ
+        height= 51.248797 upslope: -nan downslope: -0.007196 
+
+    14. start: 12096  stop: 12582 freq: 1566.05 MHz width: 22.50 MHZ
+        height= 50.733334 upslope: -nan downslope: -0.007800 
+
+    15. start: 12780  stop: 13320 freq: 1600.70 MHz width: 23.40 MHZ
+        height= 50.220290 upslope: -nan downslope: -0.006161 
+
+    16. start: 13500  stop: 14040 freq: 1637.60 MHz width: 25.20 MHZ
+        height= 49.893844 upslope: -nan downslope: -0.006487 
+
+    17. start: 14382  stop: 14886 freq: 1680.35 MHz width: 22.50 MHZ
+        height= 50.597769 upslope: -nan downslope: -0.005337 
+
+    18. start: 15120  stop: 15552 freq: 1715.90 MHz width: 19.80 MHZ
+        height= 50.729791 upslope: -nan downslope: -0.004415 
+
+    19. start: 15768  stop: 16308 freq: 1751.45 MHz width: 26.10 MHZ
+        height= 49.184995 upslope: -nan downslope: -0.008236 
+
+    20. start: 16326  stop: 16398 freq: 1767.65 MHz width: 0.90 MHZ
+        height= 43.515097 upslope: 0.006816 downslope: -0.018857 
+
+    21. start: 16416  stop: 17118 freq: 1787.90 MHz width: 28.80 MHZ
+        height= 48.643773 upslope: 0.014783 downslope: -0.011196 
+
+    22. start: 17136  stop: 17838 freq: 1824.35 MHz width: 29.70 MHZ
+        height= 48.234743 upslope: 0.013793 downslope: -0.013790 
+
+    23. start: 21456  stop: 22140 freq: 2039.90 MHz width: 30.60 MHZ
+        height= 44.742677 upslope: 0.016685 downslope: -0.012275 
+
+
 ![spectrum of unicable LNB](screenshot/blindscan.jpg)
 
 # dump_raw
