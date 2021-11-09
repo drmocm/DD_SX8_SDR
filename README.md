@@ -152,6 +152,7 @@ Use the number after g to fine-tune the scan.
 
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
+![spectrum of unicable LNB](screenshot/blindscan.jpg)
 
 # dump_raw
 
