@@ -102,6 +102,15 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
     }
 }
 
+void box(bitmap *bm, int x0, int y0, int x1, int y1,
+	    uint8_t R,uint8_t G, uint8_t B)
+{
+    plotline(bm, x0, y0, x0, y1, R, G, B);
+    plotline(bm, x0, y1, x1, y1, R, G, B);
+    plotline(bm, x1, y1, x0, y1, R, G, B);
+    plotline(bm, x0, y1, x0, y0, R, G, B);
+}
+
 void circle(bitmap *bm, int x0, int y0, int r,
 	    uint8_t R,uint8_t G, uint8_t B)
 {
@@ -482,6 +491,70 @@ void plot_to_graph(graph *g, double x2, double y2,
     plotline (bm,ix,iy,ix2,iy2,R,G,B);
     g->lastx = x2;
     g->lasty = y2;
+}
+
+void box_graph(graph *g, double x0, double y0, double x1, double y1, 
+	      uint8_t R,
+	      uint8_t G,
+	      uint8_t B)
+{
+    plotline_graph(g, x0, y0, x0, y1, R, G, B);
+    plot_to_graph(g, x1, y1, R, G, B);
+    plot_to_graph(g, x0, y1, R, G, B);
+    plot_to_graph(g, x0, y0, R, G, B);
+}
+
+void ellipse_graph(graph *g, double x, double y, double rx, double ry,
+		   uint8_t R,
+		   uint8_t G,
+		   uint8_t B)
+{
+    bitmap *bm= g->bm;
+    int ix, irx;
+    int iy, iry;
+    int width = g->bm->width;
+    int height = g->bm->height;
+    
+    if ( x > g->xmax || x < g->xmin || y > g->ymax || y < g->ymin) return; 
+    ix = (int)((x-g->xmin)*width/g->xrange);
+    iy = height-(int)((y-g->ymin)*height/g->yrange);
+    irx = (int)(rx*width/g->xrange);
+    iry = (int)(ry*height/g->yrange);
+    ellipse( bm, ix, iy , irx, iry, R, G, B);
+    
+    g->lastx = x;
+    g->lasty = y;   
+}
+
+void circle_graph(graph *g, double x, double y, double r,
+		  uint8_t R,
+		  uint8_t G,
+		  uint8_t B)
+{
+    ellipse_graph(g, x, y, r, r, R, G, B);
+}
+
+void squircle_graph(graph *g, double x, double y, double rx, double ry,
+		    double n,
+		    uint8_t R,
+		    uint8_t G,
+		    uint8_t B)
+{
+    bitmap *bm= g->bm;
+    int ix, irx;
+    int iy, iry;
+    int width = g->bm->width;
+    int height = g->bm->height;
+    
+    if ( x > g->xmax || x < g->xmin || y > g->ymax || y < g->ymin) return; 
+    ix = (int)((x-g->xmin)*width/g->xrange);
+    iy = height-(int)((y-g->ymin)*height/g->yrange);
+    irx = (int)(rx*width/g->xrange);
+    iry = (int)(ry*height/g->yrange);
+    squircle( bm, ix, iy , irx, iry, n,  R, G, B);
+    
+    g->lastx = x;
+    g->lasty = y;   
 }
 
 void clear_range_graph(graph *g, double dfirst, double dlast)

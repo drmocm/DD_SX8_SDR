@@ -160,12 +160,13 @@ void init_io(io_data *iod)
     iod->fstart = MIN_FREQ;
     iod->fstop = MAX_FREQ;
     iod->frange = (MAX_FREQ - MIN_FREQ);
+    iod->lnb = 0;
 }
 
 void set_io(io_data *iod, int adapter, int num, int fe_num,
-	    uint32_t freq, uint32_t sr, uint32_t pol, uint32_t hi,
-	    uint32_t length, uint32_t id, int full, int delay,
-	    uint32_t fstart, uint32_t fstop, int smooth)
+	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
+	    uint32_t hi, uint32_t length, uint32_t id, int full,
+	    int delay, uint32_t fstart, uint32_t fstop, int smooth)
 {
     iod->adapter = adapter;
     iod->input = num;
@@ -180,6 +181,7 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
     iod->delay = delay;
     iod->pol = pol;
     iod->hi = hi;
+    iod->lnb = lnb;
     if (fstart < MIN_FREQ || fstart > MAX_FREQ ||
 	fstop < MIN_FREQ || fstop > MAX_FREQ){
 	fprintf(stderr,"Frequencies out of range (%d %d ) using default: %d -  %d\n",
@@ -208,10 +210,12 @@ void print_help(char *argv){
 		    " -f frequency : center frequency of the spectrum in kHz\n"
 		    " -i input     : the physical input of the SX8 (default=0)\n"
 		    " -k           : use Kaiser window before FFT\n"
+		    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
 		    " -l alpha     : parameter of the Kaiser window\n"
 		    " -n number    : number of FFTs averaging (default 1000)\n"
 		    " -o filename  : output filename (default stdout)\n"
 		    " -p pol       : polarisation 0=vertical 1=horizontal\n"
+	            "              : (must be set for any diseqc command to be send)\n"
 		    " -q           : faster FFT\n"
 		    " -s rate      : the symbol rate used for the FFT in Hz\n"
 		    " -t           : output CSV \n"
@@ -248,6 +252,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     uint32_t hi = 0;
     int smooth = 0;
     char *nexts= NULL;
+    int lnb = 0;
     
     if (argc < 2) {
 	print_help(argv[0]);
@@ -269,6 +274,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"input", required_argument, 0, 'i'},
 	    {"frontend", required_argument, 0, 'e'},
 	    {"Kaiserwindow", no_argument, 0, 'k'},
+	    {"lnb", required_argument, 0, 'L'},
 	    {"alpha", required_argument, 0, 'l'},
 	    {"nfft", required_argument, 0, 'n'},	    
 	    {"output", required_argument , 0, 'o'},
@@ -283,7 +289,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:g:hi:e:kl:n:o:p:qs:tTux:",
+			    "a:bcdf:g:hi:e:kL:l:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -335,6 +341,10 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	case 'k':
 	    use_window = 1;
+	    break;
+	    
+	case 'L':
+	    lnb = strtod(optarg, NULL);	    
 	    break;
 	    
 	case 'l':
@@ -402,7 +412,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     }
     */
     height = 9*width/16;
-    set_io(iod, adapter, input, fe_num, freq, sr, pol, hi,
+    set_io(iod, adapter, input, fe_num, freq, sr, pol, lnb, hi,
 	   width, id, full, delay, fstart, fstop, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
@@ -539,7 +549,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		display_array_graph_c( &g, fullfreq, fullspec,
 				       0, fulllen,255,0,0);
 		
-		/*
+/*
 		    write_csv (iod->fd_out, fulllen,
 			   iod->fft_sr/spec->width/1000,
 			   iod->fstart, blind.spec, 0, 0, min);

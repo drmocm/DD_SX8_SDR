@@ -73,10 +73,12 @@ For usage information use the -h option.
     -f frequency : center frequency of the spectrum in kHz
     -i input     : the physical input of the SX8 (default=0)
     -k           : use Kaiser window before FFT
+    -L n         : diseqc switch to LNB/SAT number n (default 0)
     -l alpha     : parameter of the Kaiser window
     -n number    : number of FFTs averaging (default 1000)
     -o filename  : output filename (default stdout)
-    -p pol       : polarisation 0=vertical 1=horizontal
+    -p pol       : polarisation 0=vertical 1=horizontal 
+	             : (must be set for any diseqc command to be send) 
     -q           : faster FFT
     -s rate      : the symbol rate used for the FFT in Hz
     -t           : output CSV
