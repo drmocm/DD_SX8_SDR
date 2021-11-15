@@ -93,9 +93,9 @@ int read_spec_data(int fdin, int8_t *bufx, int8_t *bufy, int size)
       
 	for (i=0; i < re; i+=TS_SIZE){
 	    if (ibuf[0] != 0x47 || ibuf[1] != 0x02 || ibuf[2] !=0 ) {
-		printf("unaligned buffer error\n");
-		printf("0x%02x 0x%02x 0x%02x 0x%02x %d\n",ibuf[0],ibuf[1],ibuf[2],ibuf[3],s);
-		//	exit(0);
+		fprintf(stderr,"unaligned buffer error\n");
+		fprintf(stderr,"0x%02x 0x%02x 0x%02x 0x%02x %d\n",ibuf[0],ibuf[1],ibuf[2],ibuf[3],s);
+		exit(0x47);
 	    }
 	    for (j=4; j<TS_SIZE; j+=2){
 		bufx[c] = ibuf[i+j];
