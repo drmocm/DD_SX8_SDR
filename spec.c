@@ -233,7 +233,7 @@ void spec_write_graph (int fd, graph *g, specdata *spec)
     graph_range(g, spec->freq, p, spec->width);
 
     clear_bitmap(g->bm);
-    display_array_graph( g, spec->freq, p, 50, spec->width);
+    display_array_graph( g, spec->freq, p, 50, spec->width,0);
     coordinate_axes(g->bm, 200, 255,0);
     write_pam (fd, g->bm);
 }

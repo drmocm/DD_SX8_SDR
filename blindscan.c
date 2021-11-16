@@ -127,21 +127,6 @@ int do_blindscan(blindscan *b, int smooth)
 	
     }
 
-    fprintf(stderr,"found %d peaks\n", i);
-    for (i=0; i < b->numpeaks; i++){
-	fprintf(stderr,
-		"%3d. start: %d  stop: %d freq: %.2f MHz width: %.2f MHZ\n"
-		"     height= %f upslope: %f downslope: %f \n\n", i+1,
-		b->peaks[i].start,
-		b->peaks[i].stop,
-		b->peaks[i].freq,
-		b->peaks[i].width,
-		b->peaks[i].height,
-		b->peaks[i].slopestart,
-		b->peaks[i].slopestop
-	    );
-    
-    }
     b->spec = dspec;
     return 0;
 }
@@ -241,3 +226,24 @@ int find_peak(double *dspec, int length, int pos, peak *p)
     }
     return 0;
 }
+
+void write_peaks(int fd, peak *pk, int l)
+{
+    FILE* fp = fdopen(fd, "w");
+
+    fprintf(fp, "#number of peaks %d\n", l);
+    fprintf(fp,"#start, stop, freq, width, height, upslope, downslope\n");
+    for (int p=0; p < l; p++){ 
+	fprintf(fp,
+		"%d, %d, %.2f, %.2f, %f, %f, %f \n",
+		pk[p].start,
+		pk[p].stop,
+		pk[p].freq,
+		pk[p].width,
+		pk[p].height,
+		pk[p].slopestart,
+		pk[p].slopestop
+	    );
+    }
+}
+

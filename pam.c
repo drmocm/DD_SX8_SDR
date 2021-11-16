@@ -103,12 +103,18 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
 }
 
 void box(bitmap *bm, int x0, int y0, int x1, int y1,
-	    uint8_t R,uint8_t G, uint8_t B)
+	 uint8_t R,uint8_t G, uint8_t B, int f)
 {
-    plotline(bm, x0, y0, x0, y1, R, G, B);
-    plotline(bm, x0, y1, x1, y1, R, G, B);
-    plotline(bm, x1, y1, x0, y1, R, G, B);
-    plotline(bm, x0, y1, x0, y0, R, G, B);
+    if (!f){
+	plotline(bm, x0, y0, x0, y1, R, G, B);
+	plotline(bm, x0, y1, x1, y1, R, G, B);
+	plotline(bm, x1, y1, x0, y1, R, G, B);
+	plotline(bm, x0, y1, x0, y0, R, G, B);
+    } else {
+	for (int i=x0; i < x1; i++){
+	    plotline(bm, i, y0, i, y1, R, G, B);
+	}
+    }
 }
 
 void circle(bitmap *bm, int x0, int y0, int r,
@@ -272,17 +278,17 @@ void get_rgb(int val, uint8_t *R, uint8_t *G, uint8_t *B)
     *G = 0;
     *B = 0;
 
-    if  (val < 64){
-	*B = 4*val;
-	*G = 4*val;
-    } else {
-	if (val >128) {
-	    *G = val;
-	} else {
-	    *G = 2*val;
-	    *R = 2*val;
-	}
-    }
+    val = val & 0x1ff;
+    if (val <256){
+	*R = 0;
+	*G = val;
+	*B = 255-val;
+    } else if (val < 512){
+	*R = val;
+	*G = 255-val;
+	*B = 0;
+    } 
+    
 }
 
 static double check_range(double *pow, int width, double *ma, double *mi)
@@ -496,12 +502,22 @@ void plot_to_graph(graph *g, double x2, double y2,
 void box_graph(graph *g, double x0, double y0, double x1, double y1, 
 	      uint8_t R,
 	      uint8_t G,
-	      uint8_t B)
+	       uint8_t B, int f)
 {
-    plotline_graph(g, x0, y0, x0, y1, R, G, B);
-    plot_to_graph(g, x1, y1, R, G, B);
-    plot_to_graph(g, x0, y1, R, G, B);
-    plot_to_graph(g, x0, y0, R, G, B);
+    if (!f){
+	plotline_graph(g, x0, y0, x0, y1, R, G, B);
+	plot_to_graph(g, x1, y1, R, G, B);
+	plot_to_graph(g, x1, y0, R, G, B);
+	plot_to_graph(g, x0, y0, R, G, B);
+    } else {
+	int width = g->bm->width;
+	int height = g->bm->height;
+	int ix0 = (int)((x0-g->xmin)*width/g->xrange);
+	int iy0 = height-(int)((y0-g->ymin)*height/g->yrange);
+	int ix1 = (int)((x1-g->xmin)*width/g->xrange);
+	int iy1 = height-(int)((y1-g->ymin)*height/g->yrange);
+        box(g->bm, ix0,iy0, ix1,iy1, R,G,B,f);
+    }
 }
 
 void ellipse_graph(graph *g, double x, double y, double rx, double ry,
@@ -569,25 +585,54 @@ void clear_range_graph(graph *g, double dfirst, double dlast)
     clear_range_bitmap(g->bm,first,last);
 }
 
-void display_array_graph(graph *g, double *x, double *y, int first, int length)
+void display_array_graph(graph *g, double *x, double *y, int first, int length, int f)
 {
     uint8_t R = 0;
     uint8_t G = 0;
     uint8_t B = 0;
 
-    for (int i = first; i < first+length; i++){
-	get_rgb((int)(255*(y[i] - g->ymin)/g->yrange), &R, &G, &B);
-	plot_to_graph(g, x[i], y[i], R,G,B);
+    if (!f){
+	for (int i = first; i < first+length; i++){
+	    get_rgb((int)(512*(y[i] - g->ymin)/g->yrange), &R, &G, &B);
+	    plot_to_graph(g, x[i], y[i], R,G,B);
+	}
+    } else {
+	for (int i = first; i < first+length; i++){
+	    int l = (int)(512*(y[i] - g->ymin)/g->yrange);
+	    for (int j = 0; j < l; j++){
+		double y0 = g->yrange*j/512+g->ymin;
+		double y1 = g->yrange*(j+1)/512+g->ymin;
+		get_rgb(j, &R, &G, &B);	
+		plotline_graph(g, x[i], y0, x[i], y1, R,G,B);
+	    }
+	}
+	
     }
 }
 
 void display_array_graph_c(graph *g, double *x, double *y, int first,
-			   int length, uint8_t R, uint8_t G, uint8_t B)
+			   int length, uint8_t R, uint8_t G, uint8_t B, int f )
 {
     for (int i = first; i < first+length; i++){
-	plot_to_graph(g, x[i], y[i], R,G,B);
+	if (!f){
+	    plot_to_graph(g, x[i], y[i], R,G,B);
+	} else {
+	    plotline_graph(g, x[i], g->ymin, x[i], y[i], R,G,B);
+	}
     }
 }
+
+void display_peak(graph *g, double mid, double width, double height,
+		  uint8_t R, uint8_t G, uint8_t B, int f )
+{
+    double y0 = g->ymin;
+    box_graph( g, mid-width/2, y0, mid+width/2, height, R, G, B, f);
+    if (f)
+	plotline_graph( g, mid, y0, mid, height, 255-R, 255-G, 255-B);
+    else 
+	plotline_graph( g, mid, y0, mid, height, R, G, B);
+}
+
 
 void graph_range(graph *g, double *x, double *y, int width)
 {    

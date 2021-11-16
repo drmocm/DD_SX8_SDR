@@ -40,7 +40,7 @@ void plot(bitmap *bm, int x, int y, uint8_t R, uint8_t G, uint8_t B);
 void plotline(bitmap *bm, int x, int y, int x2, int y2, 
 	      uint8_t r, uint8_t g, uint8_t b);
 void box(bitmap *bm, int x0, int y0, int x1, int y1,
-	 uint8_t R,uint8_t G, uint8_t B);
+	 uint8_t R,uint8_t G, uint8_t B, int f);
 void circle(bitmap *bm, int x0, int y0, int r, uint8_t R, uint8_t G, uint8_t B);
 void squircle(bitmap *bm, int x0, int y0, int rx, int ry, double n,
 	      uint8_t R,uint8_t G, uint8_t B);
@@ -62,16 +62,19 @@ void plot_to_graph(graph *g, double x2, double y2,
 void plotline_graph(graph *g, double x, double y, double x2, double y2, 
 		    uint8_t R, uint8_t G, uint8_t B);
 void box_graph(graph *g, double x0, double y0, double x1, double y1, 
-	       uint8_t R, uint8_t G, uint8_t B);
+	       uint8_t R, uint8_t G, uint8_t B, int f);
 void ellipse_graph(graph *g, double x, double y, double rx, double ry,
 		   uint8_t R, uint8_t G, uint8_t B);
 void circle_graph(graph *g, double x, double y, double r,
 		  uint8_t R, uint8_t G, uint8_t B);
 void squircle_graph(graph *g, double x, double y, double rx, double ry,
 		    double n, uint8_t R, uint8_t G, uint8_t B);
-void display_array_graph(graph *g, double *x, double *y, int length, int first);
+void display_array_graph(graph *g, double *x, double *y, int length,
+			 int first, int f);
 void display_array_graph_c(graph *g, double *x, double *y, int first,
-			   int length, uint8_t R, uint8_t G, uint8_t B);
+			   int length, uint8_t R, uint8_t G, uint8_t B, int f);
+void display_peak(graph *g, double mid, double width, double height,
+		  uint8_t R, uint8_t G, uint8_t B, int f );
 void graph_range(graph *g, double *x, double *y, int width);
 void clear_range_graph(graph *g, double dfirst, double dlast);
 #endif /* _PAM_H_*/

@@ -25,9 +25,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "blindscan.h"
 
 // various outmodes
-#define SINGLE_PAM 0
+#define SINGLE_PAM 1
 #define CSV 2
-#define BLINDSCAN 8
+#define BLINDSCAN 3
+#define BLINDSCAN_CSV 4
 
 static int min= 0;
 static int multi= 0;
@@ -237,7 +238,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int full = 0;
     int width = FFT_LENGTH;
     int height = 9*FFT_LENGTH/16;
-    int outmode = SINGLE_PAM;
+    int outmode = 0;
     int adapter = 0;
     int input = 0;
     int fe_num = 0;
@@ -321,14 +322,16 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    break;
 	    
 	case 'g':
-	    if (outmode) {
+	    if (outmode == CSV){
+		outmode = BLINDSCAN_CSV;
+	    } else if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
 		fprintf(stderr, "chose only one of the options -c -t -g\n");
 		exit(1);
 	    }
+	    if (!outmode) outmode = BLINDSCAN;
 	    full = 1;
 	    smooth = strtoul(optarg, NULL, 0);
-	    outmode = BLINDSCAN;
 	    break;
 
 	case 'h':
@@ -374,12 +377,14 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	case 'T':
 	    min = 1;
 	case 't':
-	    if (outmode) {
+	    if (outmode == BLINDSCAN) outmode = BLINDSCAN_CSV;
+	    else if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t -g\n");
+		fprintf(stderr, "chose only one of the options -c -t\n");
 		exit(1);
 	    }
-	    outmode = CSV;
+	    if (!outmode) outmode = CSV;
+	    
 	    break;
 	    
 	case 'u':
@@ -418,6 +423,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 		      nfft, use_window) < 0) {
 	exit(1);
     }
+    if (!outmode) outmode = SINGLE_PAM;
 
     return outmode;
 }
@@ -531,8 +537,17 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		g.lasty = fullfreq[0];
 
 		display_array_graph( &g, fullfreq, fullspec,
-				     0, fulllen);
+				     0, fulllen,1);
 		write_pam (iod->fd_out, bm);
+		break;
+		
+	    case BLINDSCAN_CSV:
+		init_blindscan(&blind, fullspec, fullfreq, fulllen);
+		do_blindscan(&blind, iod->smooth);
+		write_csv (iod->fd_out, fulllen,
+			   iod->fft_sr/spec->width/1000,
+			   iod->fstart, fullspec, 0, 0, min);
+		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks);
 		break;
 		
 	    case BLINDSCAN:
@@ -541,19 +556,21 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
 		g.lastx = fullspec[0];
 		g.lasty = fullfreq[0];
-		graph_range(&g, fullfreq, blind.spec, blind.speclen);
-		display_array_graph_c( &g, fullfreq, blind.spec,
-				       0, fulllen,255,255,255);
-		
 		graph_range(&g, fullfreq, fullspec, fulllen);
 		display_array_graph_c( &g, fullfreq, fullspec,
-				       0, fulllen,255,0,0);
-		
+				       0, fulllen,0,200,0,1);
+
+		for (int p=0; p < blind.numpeaks; p++){ 
+		    peak *pk = blind.peaks;
+		    display_peak(&g, pk[p].freq, pk[p].width, pk[p].height,
+				 255, 0, 0, 1 );
+		}
 /*
-		    write_csv (iod->fd_out, fulllen,
-			   iod->fft_sr/spec->width/1000,
-			   iod->fstart, blind.spec, 0, 0, min);
-		*/
+		graph_range(&g, fullfreq, blind.spec, blind.speclen);
+		display_array_graph_c( &g, fullfreq, blind.spec,
+				       0, fulllen,255,255,255, 0);
+*/		
+		
 		write_pam (iod->fd_out, bm);
 		break;
 		
