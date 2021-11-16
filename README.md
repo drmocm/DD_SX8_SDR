@@ -147,10 +147,11 @@ and play it with
 
 # Blindscan
 The -g option of ddsx8-spec is in an experimental stage and will output
-a list of peaks in CSV format with some information about the peaks if 
+a list of peaks in CSV format with some information about the peaks, if 
 you also chose the -t option.
 Otherwise, it will output a graph that shows the original spectrum and 
-boxes where the respective peaks were found.
+boxes where the respective peaks were found. 
+
 Use the number after g to fine-tune the scan.
 
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`

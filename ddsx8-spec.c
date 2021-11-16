@@ -253,7 +253,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     uint32_t hi = 0;
     int smooth = 0;
     char *nexts= NULL;
-    int lnb = 0;
+    uint32_t lnb = 0;
     
     if (argc < 2) {
 	print_help(argv[0]);
@@ -347,7 +347,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    break;
 	    
 	case 'L':
-	    lnb = strtod(optarg, NULL);	    
+	    lnb = strtoul(optarg, NULL,0);	    
 	    break;
 	    
 	case 'l':
