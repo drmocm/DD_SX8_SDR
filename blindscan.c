@@ -32,8 +32,7 @@ void init_blindscan (blindscan *b, double *spec, double *freq, int speclen)
     b->speclen = speclen;
     b->numpeaks = 0;
     
-    if (!(b->spec = (double *) malloc(speclen*
-				       sizeof(double)))){
+    if (!(b->spec = (double *) malloc(speclen*sizeof(double)))){
 	{
 	    fprintf(stderr,"not enough memory\n");
 	    exit(1);

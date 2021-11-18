@@ -344,11 +344,12 @@ void display_array(bitmap *bm, double *pow, int length,
 
 void write_pam (int fd, bitmap *bm)
 {
-    char HEAD[255];
+    char HEAD[128];
     sprintf(HEAD,"P7\nWIDTH %d\nHEIGHT %d\nDEPTH %d\nMAXVAL 255\nTUPLTYPE RGB\nENDHDR\n",bm->width,bm->height,bm->depth);
     int headlen = strlen(HEAD);
     int size = bm->width*bm->height*bm->depth;    
     int we=0;
+    
     we=write(fd,HEAD,headlen);
     we=write(fd,bm->data,size);
 }
@@ -655,8 +656,11 @@ void graph_range(graph *g, double *x, double *y, int width)
     
     g->yrange = g->ymax-g->ymin;
     g->xrange = g->xmax-g->xmin;
-    fprintf(stderr," xmin: %f xmax: %f  xrange: %f\n"
-	    "ymin: %f ymax: %f yrange: %f\n",
+
+#if 1
+    fprintf(stderr,"width: %d xmin: %f xmax: %f  xrange: %f\n"
+	    "ymin: %f ymax: %f yrange: %f\n", width,
 	    g->xmin,g->xmax,g->xrange,
 	    g->ymin,g->ymax,g->yrange);
+#endif
 }

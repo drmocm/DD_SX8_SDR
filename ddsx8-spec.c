@@ -431,7 +431,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 {
     int full = iod->full;
     int run = 1;
-    bitmap *bm=NULL;
+    bitmap *bm = NULL;
     int64_t str;
     int width = 1920;
     int height = width*9/16;
@@ -472,26 +472,31 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    }
 	} else {
 	    int step = 0;
-	    
+	    if (maxstep<2){
+		fprintf (stderr,"Error maxstep = %d use single spectrum\n",
+			 maxstep);
+		exit(1);
+	    }	    
 	    k = 0;
 	    if (!fullspec){
 		iod->step = -1;
-		if (!(fullspec = (double *) malloc(fulllen*
-						   sizeof(double)))){
+		int maxmem = sizeof(double) *spec->width/2*
+		    ((MAX_FREQ - MIN_FREQ)/iod->window+1);
+
+		if (!(fullspec = (double *) malloc(maxmem))){
 		    {
 			fprintf(stderr,"not enough memory\n");
 			exit(1);
 		    }
 		}
-		if (!(fullfreq = (double *) malloc(fulllen*
-						   sizeof(double)))){
+		if (!(fullfreq = (double *) malloc(maxmem))){
 		    {
 			fprintf(stderr,"not enough memory\n");
 			exit(1);
 		    }
 		}
-		memset(fullspec, 0, fulllen*sizeof(double));
-		memset(fullfreq, 0, fulllen*sizeof(double));
+		memset(fullspec, 0, maxmem);
+		memset(fullfreq, 0, maxmem);
 		if (mode != CSV){
 		    bm = init_bitmap(width, height, 3);
 		    clear_bitmap(bm);
@@ -499,6 +504,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 			       iod->fstop/1000.0, 0, 0);
 		}
 	    } else iod->step = 0;
+
 	    while ((step=next_freq_step(iod)) >= 0){
 		spec_set_freq(spec, iod->freq, iod->fft_sr);
 		spec_read_data(iod->fdin, spec);
@@ -519,6 +525,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		}
 		k += spec->width/2;
 	    }
+
 	    // from here use k instead of fullen, because of discrete steps
 	    switch (mode){
 	    case CSV:
@@ -529,19 +536,15 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		break;
 		    
 	    case SINGLE_PAM:
-		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec,
-					       k);
-
-		display_array_graph( &g, fullfreq, fullspec,
-				     0, k,1);
+		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec, k);
+		display_array_graph( &g, fullfreq, fullspec, 0, k, 1);
 		write_pam (iod->fd_out, bm);
 		break;
 		
 	    case BLINDSCAN_CSV:
-		init_blindscan(&blind, fullspec, fullfreq, k);
+		init_blindscan(&blind, fullspec, fullfreq, k+spec->width);
 		do_blindscan(&blind, iod->smooth);
-		write_csv (iod->fd_out, k,
-			   iod->fft_sr/spec->width/1000,
+		write_csv (iod->fd_out, k, iod->fft_sr/spec->width/1000,
 			   iod->fstart, fullspec, 0, 0, min);
 		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks);
 		break;
@@ -549,12 +552,9 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    case BLINDSCAN:
 		init_blindscan(&blind, fullspec, fullfreq, k);
 		do_blindscan(&blind, iod->smooth);
-		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
-		g.lastx = fullspec[0];
-		g.lasty = fullfreq[0];
 		graph_range(&g, fullfreq, fullspec, k);
 		display_array_graph_c( &g, fullfreq, fullspec,
-				       0, k,0,200,0,1);
+				       0, k, 0, 200, 0, 1);
 
 		for (int p=0; p < blind.numpeaks; p++){ 
 		    peak *pk = blind.peaks;
