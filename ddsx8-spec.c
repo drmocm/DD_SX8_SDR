@@ -473,7 +473,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	} else {
 	    int step = 0;
 	    if (maxstep<2){
-		fprintf (stderr,"Error maxstep = %d use single spectrum\n",
+		fprintf (stderr,"Range too small use single spectrum\n",
 			 maxstep);
 		exit(1);
 	    }	    
@@ -539,7 +539,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec, k);
 		display_array_graph( &g, fullfreq, fullspec, 0, k, 1);
 		write_pam (iod->fd_out, bm);
-		break;
+		break; 
 		
 	    case BLINDSCAN_CSV:
 		init_blindscan(&blind, fullspec, fullfreq, k+spec->width);
