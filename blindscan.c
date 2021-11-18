@@ -113,13 +113,30 @@ int do_blindscan(blindscan *b, int smooth)
 	pos = stop;
 
 	// caclculate peak data
-	b->peaks[i].width = (stopstart-startend)*b->freq_step;
-	b->peaks[i].freq = b->freq_start
-	    +b->freq_step*(startend+(stopstart-startend)/2);
-	for (j=startend; j <= stopstart; j++){
+	int iwidth = stopstart-startend;
+	for (j=startend+iwidth/4; j <= startend+3*iwidth/4; j++){
 	    h += spec[j];
 	}
-	b->peaks[i].height = h /(stopstart-startend); 
+	double height =  2*h /iwidth; 
+	b->peaks[i].height = height;
+
+	double cutoff = height-4.0;
+	j = start;
+	while (j < stopstart && spec[j] < cutoff) j++;
+	startend = j;
+	b->peaks[i].startend = startend;
+
+	j = stop;
+	while (j > startend && spec[j] < cutoff) j--;
+	stopstart = j;
+	b->peaks[i].stopstart = stopstart;
+
+	iwidth = stopstart-startend; 
+	
+	b->peaks[i].width = iwidth*b->freq_step;
+
+	b->peaks[i].freq = b->freq_start
+	    +b->freq_step*(startend+(stopstart-startend)/2);
 	b->peaks[i].slopestart = (spec[startend]-spec[start])/
 	    (startend-start)*b->freq_step;
 	b->peaks[i].slopestop = (spec[stopstart]-spec[stop])/
