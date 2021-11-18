@@ -122,7 +122,6 @@ int next_freq_step(io_data *iod)
 			 SYS_DVBS2, iod->input, iod->id) < 0){
 	    exit(1);
 	}
-	//iod->id = AGC_OFF_C;  no longer necessary with latest driver
 	iod->step = 0;
     }
     freq = sfreq+iod->window*iod->step;
@@ -442,12 +441,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
     graph g;
     double *fullspec = NULL;
     double *fullfreq=NULL;
-//    int maxstep = (iod->fstop - iod->fstart)/iod->window;
     int maxstep = (iod->fstop - iod->fstart)/iod->window+1;
     int fulllen =  spec->width/2*maxstep;
     int k = 0;
     blindscan blind;
-    
 
     iod->step = -1;
 
@@ -522,43 +519,42 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		}
 		k += spec->width/2;
 	    }
+	    // from here use k instead of fullen, because of discrete steps
 	    switch (mode){
 	    case CSV:
 		if (!min){
-		    write_csv (iod->fd_out, fulllen,
-			       iod->fft_sr/spec->width/1000,
+		    write_csv (iod->fd_out, k, iod->fft_sr/spec->width/1000,
 			       iod->fstart, fullspec, 0, 0, min);
 		}
 		break;
 		    
 	    case SINGLE_PAM:
-		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec, fulllen);
-		g.lastx = fullspec[0];
-		g.lasty = fullfreq[0];
+		if (g.yrange == 0) graph_range(&g, fullfreq, fullspec,
+					       k);
 
 		display_array_graph( &g, fullfreq, fullspec,
-				     0, fulllen,1);
+				     0, k,1);
 		write_pam (iod->fd_out, bm);
 		break;
 		
 	    case BLINDSCAN_CSV:
-		init_blindscan(&blind, fullspec, fullfreq, fulllen);
+		init_blindscan(&blind, fullspec, fullfreq, k);
 		do_blindscan(&blind, iod->smooth);
-		write_csv (iod->fd_out, fulllen,
+		write_csv (iod->fd_out, k,
 			   iod->fft_sr/spec->width/1000,
 			   iod->fstart, fullspec, 0, 0, min);
 		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks);
 		break;
 		
 	    case BLINDSCAN:
-		init_blindscan(&blind, fullspec, fullfreq, fulllen);
+		init_blindscan(&blind, fullspec, fullfreq, k);
 		do_blindscan(&blind, iod->smooth);
 		if (g.yrange == 0) graph_range(&g, fullfreq, blind.spec, blind.speclen);
 		g.lastx = fullspec[0];
 		g.lasty = fullfreq[0];
-		graph_range(&g, fullfreq, fullspec, fulllen);
+		graph_range(&g, fullfreq, fullspec, k);
 		display_array_graph_c( &g, fullfreq, fullspec,
-				       0, fulllen,0,200,0,1);
+				       0, k,0,200,0,1);
 
 		for (int p=0; p < blind.numpeaks; p++){ 
 		    peak *pk = blind.peaks;

@@ -592,9 +592,9 @@ void display_array_graph(graph *g, double *x, double *y, int first, int length, 
     uint8_t B = 0;
 
     if (!f){
-	for (int i = first; i < first+length; i++){
+	for (int i = first+1; i < first+length; i++){
 	    get_rgb((int)(512*(y[i] - g->ymin)/g->yrange), &R, &G, &B);
-	    plot_to_graph(g, x[i], y[i], R,G,B);
+	    plotline_graph(g,x[i-1],y[i-1],x[i], y[i], R,G,B);
 	}
     } else {
 	for (int i = first; i < first+length; i++){
@@ -637,7 +637,7 @@ void display_peak(graph *g, double mid, double width, double height,
 void graph_range(graph *g, double *x, double *y, int width)
 {    
     double range = 0;
-
+    
     g->ymin = y[0];
     g->ymax = y[0];
     g->xmin = x[0];
@@ -655,4 +655,8 @@ void graph_range(graph *g, double *x, double *y, int width)
     
     g->yrange = g->ymax-g->ymin;
     g->xrange = g->xmax-g->xmin;
+    fprintf(stderr," xmin: %f xmax: %f  xrange: %f\n"
+	    "ymin: %f ymax: %f yrange: %f\n",
+	    g->xmin,g->xmax,g->xrange,
+	    g->ymin,g->ymax,g->yrange);
 }
