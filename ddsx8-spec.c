@@ -118,7 +118,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     uint32_t t =0;
     uint32_t sr = FFT_SR;
     uint32_t id = AGC_OFF;
-    int delay = 0;
+    int delay = 100;
     uint32_t pol = 2;
     uint32_t hi = 0;
     int smooth = 0;

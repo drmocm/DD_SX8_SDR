@@ -46,7 +46,7 @@ void open_io(io_data *iod)
 	exit(1);
     }
 
-    if (iod->delay) power_on_delay(iod->fe_fd, iod->delay);
+    if (iod->pol != 2) power_on_delay(iod->fe_fd, iod->delay);
 
     if ( (iod->fd_dmx = open_dmx(iod->adapter, iod->fe_num)) < 0){
 	exit(1);
