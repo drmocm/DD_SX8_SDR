@@ -1,6 +1,8 @@
 #ifndef _IOD_H_
 #define _IOD_H_
 
+#include <getopt.h>
+#include <stdlib.h>
 #include "dvb.h"
 
 #define SINGLE_PAM 1
@@ -49,11 +51,17 @@ typedef struct io_data_{
     uint32_t id;
     int step;
     int delay;
+    enum fe_delivery_system delsys;
 } io_data;
 
 
-int tune(enum fe_delivery_system delsys, io_data *iod, int quick);
-void set_io(io_data *iod, int adapter, int num, int fe_num,
+int tune(io_data *iod, int quick);
+void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
+		 int adapter, int num, int fe_num,
+		 uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
+		 uint32_t hi, uint32_t id, int delay,  int lnb_type);
+void set_io(io_data *iod, enum fe_delivery_system delsys,
+	    int adapter, int num, int fe_num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
 	    uint32_t hi, uint32_t length, uint32_t id, int full,
 	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,

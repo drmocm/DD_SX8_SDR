@@ -39,8 +39,8 @@ int check_tune(enum fe_delivery_system delsys, io_data *iod)
     
     fprintf(stderr,"Trying to tune freq: %d sr: %d delsys: %s ",  iod->freq,
 	    iod->fft_sr, delsys == SYS_DVBS ? "DVB-S" : "DVB-S2");
-    
-    if (tune(delsys, iod, 0)){
+    iod->delsys = delsys;
+    if (tune(iod, 0)){
 	fprintf(stderr,"Tuning failed\n");
 	exit(1);
     }
@@ -66,7 +66,7 @@ int next_freq_step(io_data *iod)
     if (iod->step < 0){ 
 	freq = iod->fstart + iod->frange/2;
 	iod->freq = freq;
-	if (tune(SYS_DVBS2, iod, 0)){
+	if (tune(iod, 0)){
 	    fprintf(stderr,"Tuning failed\n");
 	    exit(1);
 	}
@@ -77,7 +77,7 @@ int next_freq_step(io_data *iod)
     if (freq  > iod->fstop) return -1;
     iod->freq = freq;
     fprintf(stderr,"Setting frequency %d step %d\n",freq,iod->step);
-    if (tune(SYS_DVBS2, iod, 1)){
+    if (tune(iod, 1)){
 	fprintf(stderr,"Tuning failed\n");
 	exit(1);
     }
@@ -102,6 +102,7 @@ void print_help(char *argv){
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 {
+    enum fe_delivery_system delsys = SYS_DVBS2;
     int use_window = 0;
     double alpha = 2.0;
     int nfft = 1000; //number of FFTs for average
@@ -140,7 +141,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"agc", no_argument, 0, 'b'},
 	    {"continuous", no_argument, 0, 'c'},
 	    {"check_tune", no_argument, 0, 'C'},
-	    {"delay", no_argument, 0, 'd'},
+	    {"delay", no_argument, 0, 'D'},
 	    {"frequency", required_argument, 0, 'f'},
 	    {"blindscan", required_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
@@ -151,7 +152,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"alpha", required_argument, 0, 'l'},
 	    {"nfft", required_argument, 0, 'n'},	    
 	    {"output", required_argument , 0, 'o'},
-	    {"polarisation", no_argument, 0, 'p'},
+	    {"polarisation", required_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
 	    {"symbol_rate", required_argument, 0, 's'},
 	    {"csv", no_argument, 0, 't'},
@@ -162,7 +163,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcCdf:g:hi:e:kL:l:n:o:p:qs:tTux:",
+			    "a:bcCDf:g:hi:e:kL:l:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -299,7 +300,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     }
     */
     height = 9*width/16;
-    set_io(iod, adapter, input, fe_num, freq, sr, pol, lnb, hi,
+    set_io(iod, delsys, adapter, input, fe_num, freq, sr, pol, lnb, hi,
 	   width, id, full, delay, fstart, fstop, lnb_type, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
@@ -481,7 +482,7 @@ int main(int argc, char **argv){
     open_io(&iod);
     if (outm != CHECK_TUNE) {
 	if (!iod.full){
-	    if (tune(SYS_DVBS2, &iod, 0)){
+	    if (tune(&iod, 0)){
 		fprintf(stderr,"Tuning failed\n");
 		exit(1);
 	    }

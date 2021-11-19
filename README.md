@@ -62,9 +62,9 @@ For usage information use the -h option.
 	-o filename  : output filename (default stdout)
 
 	TUNING OPTIONS:
+	-d delsys    : the delivery system (not needed for sepctrum)
 	-a adapter   : the number n of the DVB adapter, i.e. 
 		           /dev/dvb/adapter[n] (default=0)
-	-d           : use 1s delay to wait for LNB power up
 	-e frontend  : the frontend/dmx/dvr to be used (default=0)
 	-f frequency : center frequency of the spectrum in kHz
 	-i input     : the physical input of the SX8 (default=0)
@@ -73,6 +73,7 @@ For usage information use the -h option.
                  : (must be set for any diseqc command to be send)
 	-s rate      : the symbol rate in Symbols/s
 	-u           : use hi band of LNB
+	-D           : use 1s delay to wait for LNB power up
 
 	SPECTRUM OPTIONS:
 	-b           : turn on agc

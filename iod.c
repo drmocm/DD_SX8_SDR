@@ -20,17 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "iod.h"
 
-#include <stdlib.h>
-
-
-int tune(enum fe_delivery_system delsys, io_data *iod, int quick)
+int tune(io_data *iod, int quick)
 {
     if (iod->pol != 2 && !quick)
 	diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
 
     if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
 	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-			 delsys, iod->input, iod->id) < 0){
+			 iod->delsys, iod->input, iod->id) < 0){
 	    return -1;
 	}
     }
@@ -91,26 +88,38 @@ void init_io(io_data *iod)
     iod->lnb = 0;
 }
 
-void set_io(io_data *iod, int adapter, int num, int fe_num,
-	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
-	    uint32_t hi, uint32_t length, uint32_t id, int full,
-	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,
-	    int smooth)
+void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
+		 int adapter, int num, int fe_num,
+		 uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
+		 uint32_t hi, uint32_t id, int delay,  int lnb_type)
 {
     iod->adapter = adapter;
     iod->input = num;
     iod->fe_num = fe_num;
     iod->freq = freq;
     iod->fft_sr = sr;
-    iod->fft_length = length;
     iod->id = id;
-    iod->full = full;
-    iod->smooth = smooth;
     iod->window = (sr/2/1000);
     iod->delay = delay;
     iod->pol = pol;
     iod->hi = hi;
     iod->lnb = lnb;
+    iod->delsys = delsys;
+}
+
+void set_io(io_data *iod, enum fe_delivery_system delsys,
+	    int adapter, int num, int fe_num,
+	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
+	    uint32_t hi, uint32_t length, uint32_t id, int full,
+	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,
+	    int smooth)
+{
+    set_io_tune(iod, delsys, adapter, num, fe_num, freq, sr, pol,
+		lnb, hi, id, delay, lnb_type);
+    iod->fft_length = length;
+    iod->full = full;
+    iod->smooth = smooth;
+    iod->window = (sr/2/1000);
     if (fstart < MIN_FREQ || fstart > MAX_FREQ ||
 	fstop < MIN_FREQ || fstop > MAX_FREQ){
 	fprintf(stderr,"Frequencies out of range (%d %d ) using default: %d -  %d\n",
@@ -134,9 +143,9 @@ void print_tuning_options()
 {
     fprintf(stderr,
 	    "\n TUNING OPTIONS:\n"
+	    " -d delsys    : the delivery system (not needed for sepctrum) \n"
 	    " -a adapter   : the number n of the DVB adapter, i.e. \n"
 	    "                /dev/dvb/adapter[n] (default=0)\n"
-	    " -d           : use 1s delay to wait for LNB power up\n"
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 	    " -f frequency : center frequency in kHz\n"
 	    " -i input     : the physical input of the SX8 (default=0)\n"
@@ -145,13 +154,14 @@ void print_tuning_options()
 	    "              : (must be set for any diseqc command to be send)\n"
 	    " -s rate      : the symbol rate in Symbols/s\n"
 	    " -u           : use hi band of LNB\n"
+	    " -D           : use 1s delay to wait for LNB power up\n"
 	);
 }
 
 void print_check_options()
 {
     fprintf(stderr,
-	    "\n CHEcK OPTIONS:\n"
+	    "\n CHECK OPTIONS:\n"
 	    " -C           : try to tune the frequency and symbolrate\n"
     	    "              : determine delivery system\n");
 }
@@ -180,3 +190,91 @@ void print_spectrum_options()
 
 
 
+int parse_args_io_tune(int argc, char **argv, io_data *iod)
+{
+    enum fe_delivery_system delsys = SYS_DVBS2;
+    int adapter = 0;
+    int input = 0;
+    int fe_num = 0;
+    uint32_t freq = -1;
+    uint32_t sr = FFT_SR;
+    uint32_t id = AGC_OFF;
+    int delay = 0;
+    uint32_t pol = 2;
+    uint32_t hi = 0;
+    uint32_t lnb = 0;
+    int lnb_type = UNIVERSAL;
+    
+    while (1) {
+	int cur_optind = optind ? optind : 1;
+	int option_index = 0;
+	int c;
+	static struct option long_options[] = {
+	    {"adapter", required_argument, 0, 'a'},
+	    {"delay", no_argument, 0, 'D'},
+	    {"frequency", required_argument, 0, 'f'},
+	    {"input", required_argument, 0, 'i'},
+	    {"frontend", required_argument, 0, 'e'},
+	    {"lnb", required_argument, 0, 'L'},
+	    {"polarisation", required_argument, 0, 'p'},
+	    {"symbol_rate", required_argument, 0, 's'},
+	    {"band", no_argument, 0, 'u'},
+	    {0, 0, 0, 0}
+	};
+
+	    c = getopt_long(argc, argv, 
+			    "a:Df:i:e:L:p:s:u",
+			    long_options, &option_index);
+	if (c==-1)
+	    break;
+	
+	switch (c) {
+
+	case 'a':
+	    adapter = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'd':
+	    delay = 1000000;
+	    break;
+	    
+	case 'e':
+	    fe_num = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'f':
+	    freq = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'i':
+	    input = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'L':
+	    lnb = strtoul(optarg, NULL,0);	    
+	    break;
+	    
+	case'p':
+	    pol =  strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 's':
+	    sr = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'u':
+	    if (pol == 2) pol = 0;
+	    hi  = 1;
+	    break;
+
+	default:
+	    break;
+	    
+	}
+    }
+
+    set_io_tune(iod, delsys, adapter, input, fe_num, freq, sr, pol, lnb,
+		hi, id, delay,  lnb_type);
+
+    return 0;
+}
