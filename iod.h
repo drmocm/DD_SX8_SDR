@@ -61,6 +61,7 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
 void init_io(io_data *iod);
 void close_io(io_data *iod);
 void open_io(io_data *iod);
+void file_options();
 void print_spectrum_options();
 void print_check_options();
 void print_tuning_options();

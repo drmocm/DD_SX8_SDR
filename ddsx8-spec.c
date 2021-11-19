@@ -91,6 +91,7 @@ void print_help(char *argv){
     fprintf(stderr,
 	    " usage: %s <options> \n\n",
 	    argv);
+    file_options();
     print_tuning_options();
     print_spectrum_options();
     print_check_options();

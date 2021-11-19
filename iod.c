@@ -123,6 +123,13 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
     iod->frange = (fstop - fstart);
 }
 
+void file_options()
+{
+    fprintf(stderr,
+	    " -o filename  : output filename (default stdout)\n"
+	);
+}
+
 void print_tuning_options()
 {
     fprintf(stderr,
@@ -131,7 +138,7 @@ void print_tuning_options()
 	    "                /dev/dvb/adapter[n] (default=0)\n"
 	    " -d           : use 1s delay to wait for LNB power up\n"
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
-	    " -f frequency : center frequency of the spectrum in kHz\n"
+	    " -f frequency : center frequency in kHz\n"
 	    " -i input     : the physical input of the SX8 (default=0)\n"
 	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
 	    " -p pol       : polarisation 0=vertical 1=horizontal\n"

@@ -59,6 +59,8 @@ For usage information use the -h option.
 
 	usage: ./ddsx8-spec <options> 
 
+	-o filename  : output filename (default stdout)
+
 	TUNING OPTIONS:
 	-a adapter   : the number n of the DVB adapter, i.e. 
 		           /dev/dvb/adapter[n] (default=0)
@@ -68,7 +70,7 @@ For usage information use the -h option.
 	-i input     : the physical input of the SX8 (default=0)
 	-L n         : diseqc switch to LNB/SAT number n (default 0)
 	-p pol       : polarisation 0=vertical 1=horizontal
-              : (must be set for any diseqc command to be send)
+                 : (must be set for any diseqc command to be send)
 	-s rate      : the symbol rate in Symbols/s
 	-u           : use hi band of LNB
 
@@ -79,20 +81,13 @@ For usage information use the -h option.
 	-l alpha     : parameter of the Kaiser window
 	-n number    : number of FFTs averaging (default 1000)
 	-q           : faster FFT
-	-o filename  : output filename (default stdout)
 	-t           : output CSV 
 	-T           : output minimal CSV
 	-x f1 f2     : full spectrum scan from f1 to f2
-                (default -x 0 : 950000 to 2150000 kHz)
+                   (default -x 0 : 950000 to 2150000 kHz)
 	-g s         : blindscan, use s to improve scan (higher
                    s can lead to less false positives,
                    but may lead to missed peaks)
-
- CHEcK OPTIONS:
- -C           : try to tune the frequency and symbolrate
-              : determine delivery system
- -h           : this help message
-
 				   
 Typical calls would be:
 
