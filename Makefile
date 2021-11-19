@@ -1,7 +1,8 @@
 CFLAGS =  -g  -Wno-unused -Wall -Wno-format -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE 
 LIBS =  -lm  -lfftw3 
-OBJ = ddsx8-spec.o numeric.o pam.o spec.o dvb.o blindscan.o
-HEADER = numeric.h spec.h dvb.h pam.h blindscan.h
+DDSX8OBJ = ddsx8-spec.o numeric.o pam.o spec.o dvb.o blindscan.o iod.o
+PAMOBJ = pam_test.o pam.o
+HEADER = numeric.h spec.h dvb.h pam.h blindscan.h iod.h
 SRC = $(HEADER) numeric.c spec.c dvb.c blindscan.c
 INCS = -I.
 
@@ -14,11 +15,14 @@ TARGETS = ddsx8-spec pam_test
 
 all: $(TARGETS)
 
-ddsx8-spec: $(OBJ) $(INC)
-	$(CC) $(CFLAGS) -o ddsx8-spec $(OBJ) $(LIBS)
+ddsx8-spec: $(DDSX8OBJ) $(INC)
+	$(CC) $(CFLAGS) -o ddsx8-spec $(DDSX8OBJ) $(LIBS)
 
-pam_test: pam_test.o pam.o pam.h
-	$(CC) $(CFLAGS) -o pam_test pam_test.o pam.o $(LIBS)
+pam_test: $(PAMOBJ) pam.h
+	$(CC) $(CFLAGS) -o pam_test $(PAMOBJ) $(LIBS)
+
+iod.o: $(HEADER) iod.c
+	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) iod.c
 
 spec.o: $(HEADER) spec.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) spec.c
