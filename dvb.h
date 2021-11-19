@@ -16,6 +16,7 @@
 #include <errno.h>
 
 #define DTV_INPUT 71
+#define DVB_UNDEF  (~0U)
 #define AGC_ON    0x20000000
 #define AGC_OFF   0x20020080
 #define AGC_OFF_C 0x20020020

@@ -29,6 +29,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define CSV 2
 #define BLINDSCAN 3
 #define BLINDSCAN_CSV 4
+#define CHECK_TUNE 5
+
+#define UNICABLE 1
+#define UNIVERSAL 2
 
 static int min= 0;
 static int multi= 0;
@@ -50,11 +54,11 @@ typedef struct io_data_{
     int full;
     int smooth;
     char *filename;
+    int lnb_type;
     uint32_t fstart;
     uint32_t fstop;
     uint32_t frange;
     uint32_t freq;
-    uint32_t sat;
     uint32_t pol;
     uint32_t hi;
     uint32_t lnb;
@@ -71,8 +75,49 @@ typedef struct io_data_{
     int delay;
 } io_data;
 
+
+int tune(enum fe_delivery_system delsys, io_data *iod, int quick)
+{
+    if (iod->pol != 2 && !quick)
+	diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
+
+    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
+	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
+			 delsys, iod->input, iod->id) < 0){
+	    return -1;
+	}
+    }
+    return 0;
+}
+
+#define MAXTRY 5
+int check_tune(enum fe_delivery_system delsys, io_data *iod)
+{
+    int lock = 0;
+    int t = 0;
+
+    
+    fprintf(stderr,"Trying to tune freq: %d sr: %d delsys: %s ",  iod->freq,
+	    iod->fft_sr, delsys == SYS_DVBS ? "DVB-S" : "DVB-S2");
+    
+    if (tune(delsys, iod, 0)){
+	fprintf(stderr,"Tuning failed\n");
+	exit(1);
+    }
+    
+    while (!lock && t < MAXTRY){
+	t++;
+	fprintf(stderr,".");
+	lock = read_status(iod->fe_fd);
+	sleep(1);
+    }
+    fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
+    return lock;
+}
+
 void open_io(io_data *iod)
 {
+
     if (iod->filename){
 	iod->fd_out = open(iod->filename, O_WRONLY | O_CREAT | O_TRUNC,
 			   00644);
@@ -83,17 +128,7 @@ void open_io(io_data *iod)
     }
 
     if (iod->delay) power_on_delay(iod->fe_fd, iod->delay);
-    if (iod->pol != 2) diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
 
-    if (!iod->full){
-	if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
-	    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-			     SYS_DVBS2, iod->input, iod->id) < 0){
-		exit(1);
-	    }
-	}
-    }
-    
     if ( (iod->fd_dmx = open_dmx(iod->adapter, iod->fe_num)) < 0){
 	exit(1);
     }
@@ -113,13 +148,14 @@ int next_freq_step(io_data *iod)
 {
     uint32_t sfreq = iod->fstart+iod->window/2;
     uint32_t freq;
-	
+    
     if (!iod->full) return -1;
 
-    if (iod->step < 0 && iod->id == AGC_OFF){
+    if (iod->step < 0){ 
 	freq = iod->fstart + iod->frange/2;
-	if (set_fe_input(iod->fe_fd, sfreq, iod->fft_sr,
-			 SYS_DVBS2, iod->input, iod->id) < 0){
+	iod->freq = freq;
+	if (tune(SYS_DVBS2, iod, 0)){
+	    fprintf(stderr,"Tuning failed\n");
 	    exit(1);
 	}
 	iod->step = 0;
@@ -129,8 +165,8 @@ int next_freq_step(io_data *iod)
     if (freq  > iod->fstop) return -1;
     iod->freq = freq;
     fprintf(stderr,"Setting frequency %d step %d\n",freq,iod->step);
-    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-		     SYS_DVBS2, iod->input, iod->id) < 0){
+    if (tune(SYS_DVBS2, iod, 1)){
+	fprintf(stderr,"Tuning failed\n");
 	exit(1);
     }
     while (!read_status(iod->fe_fd))
@@ -147,6 +183,7 @@ void init_io(io_data *iod)
     iod->fdin = -1;
     iod->id = AGC_OFF;
     iod->adapter = 0;
+    iod->lnb_type = UNIVERSAL;
     iod->input = 0;
     iod->fe_num = 0;
     iod->full = 0;
@@ -166,7 +203,8 @@ void init_io(io_data *iod)
 void set_io(io_data *iod, int adapter, int num, int fe_num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
 	    uint32_t hi, uint32_t length, uint32_t id, int full,
-	    int delay, uint32_t fstart, uint32_t fstop, int smooth)
+	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,
+	    int smooth)
 {
     iod->adapter = adapter;
     iod->input = num;
@@ -205,6 +243,8 @@ void print_help(char *argv){
 		    "                /dev/dvb/adapter[n] (default=0)\n"
 		    " -b           : turn on agc\n"
 		    " -c           : continuous PAM output\n"
+		    " -C           : try to tune the frequency and symbolrate\n"
+		    "              : determine delivery system\n"
 		    " -d           : use 1s delay to wait for LNB power up\n"
 		    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 		    " -f frequency : center frequency of the spectrum in kHz\n"
@@ -253,6 +293,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int smooth = 0;
     char *nexts= NULL;
     uint32_t lnb = 0;
+    int lnb_type = UNIVERSAL;
     
     if (argc < 2) {
 	print_help(argv[0]);
@@ -267,6 +308,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"adapter", required_argument, 0, 'a'},
 	    {"agc", no_argument, 0, 'b'},
 	    {"continuous", no_argument, 0, 'c'},
+	    {"check_tune", no_argument, 0, 'C'},
 	    {"delay", no_argument, 0, 'd'},
 	    {"frequency", required_argument, 0, 'f'},
 	    {"blindscan", required_argument, 0, 'g'},
@@ -289,7 +331,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	};
 
 	    c = getopt_long(argc, argv, 
-			    "a:bcdf:g:hi:e:kL:l:n:o:p:qs:tTux:",
+			    "a:bcCdf:g:hi:e:kL:l:n:o:p:qs:tTux:",
 			    long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -306,6 +348,16 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	case 'c':
 	    multi = 1;
+	    break;
+
+	case 'C':
+	    if (outmode) {
+		fprintf(stderr, "Error conflicting options\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
+		exit(1);
+	    }
+	    outmode = CHECK_TUNE;
+	    uint32_t id = DVB_UNDEF;
 	    break;
 	    
 	case 'd':
@@ -417,7 +469,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     */
     height = 9*width/16;
     set_io(iod, adapter, input, fe_num, freq, sr, pol, lnb, hi,
-	   width, id, full, delay, fstart, fstop, smooth);
+	   width, id, full, delay, fstart, fstop, lnb_type, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(1);
@@ -596,7 +648,25 @@ int main(int argc, char **argv){
 	exit(1);
 
     open_io(&iod);
-
-    spectrum_output (outm,  &iod, &spec );
+    if (outm != CHECK_TUNE) {
+	if (!iod.full){
+	    if (tune(SYS_DVBS2, &iod, 0)){
+		fprintf(stderr,"Tuning failed\n");
+		exit(1);
+	    }
+	}
+	spectrum_output (outm,  &iod, &spec );
+    } else {
+	if (check_tune(SYS_DVBS, &iod)){
+	    printf("Successfully tuned freq: %d sr: %d delsys: DVB-S\n",
+		   iod.freq, iod.fft_sr);
+	} else if (check_tune(SYS_DVBS2, &iod)){
+	    printf("Successfully tuned freq: %d sr: %d delsys: DVB-S2\n",
+		   iod.freq, iod.fft_sr);
+	} else {
+	    printf("Tuning failed freq: %d sr: %d\n",
+		   iod.freq, iod.fft_sr);
+	}
+    }
 
 }
