@@ -36,7 +36,6 @@ int check_tune(enum fe_delivery_system delsys, io_data *iod)
     int lock = 0;
     int t = 0;
 
-    
     fprintf(stderr,"Trying to tune freq: %d sr: %d delsys: %s ",  iod->freq,
 	    iod->fft_sr, delsys == SYS_DVBS ? "DVB-S" : "DVB-S2");
     iod->delsys = delsys;
@@ -189,7 +188,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 		exit(1);
 	    }
 	    outmode = CHECK_TUNE;
-	    uint32_t id = DVB_UNDEF;
+	    id = DVB_UNDEF;
 	    break;
 	    
 	case 'd':
