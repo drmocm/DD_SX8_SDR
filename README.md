@@ -159,14 +159,6 @@ Use the number after g to fine-tune the scan.
 
 ![spectrum of unicable LNB](screenshot/blindscan.jpg)
 
-# dump_raw
-
-dump_raw is a small program to just dump the IQ data in dump1090 format.
-It can be used in conjunction with the [dump1090](https://github.com/MalcolmRobb/dump1090)
-
-Moved to other [repository](https://github.com/drmocm/dump_raw)
-
-
 #  pam_test
 
 pam_test ist just a helper program to test the pam graphics.
