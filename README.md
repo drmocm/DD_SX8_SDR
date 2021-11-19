@@ -56,41 +56,43 @@ and compile the program
 **Usage**
 
 For usage information use the -h option.
-    
-	./ddsx8-spec -h
-    usage:
 
-    ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] [-a adapter] [-i input]
-               [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]
-               [-d] [-q] [-n number] [-t] [-h] [-o filename]
+	usage: ./ddsx8-spec <options> 
 
-    -a adapter   : the number n of the DVB adapter, i.e. 
-                   /dev/dvb/adapter[n] (default=0)
-    -b           : turn on agc
-    -c           : continuous PAM output
-    -d           : use 1s delay to wait for LNB power up
-    -e frontend  : the frontend/dmx/dvr to be used (default=0)
-    -f frequency : center frequency of the spectrum in kHz
-    -i input     : the physical input of the SX8 (default=0)
-    -k           : use Kaiser window before FFT
-    -L n         : diseqc switch to LNB/SAT number n (default 0)
-    -l alpha     : parameter of the Kaiser window
-    -n number    : number of FFTs averaging (default 1000)
-    -o filename  : output filename (default stdout)
-    -p pol       : polarisation 0=vertical 1=horizontal 
-	             : (must be set for any diseqc command to be send) 
-    -q           : faster FFT
-    -s rate      : the symbol rate used for the FFT in Hz
-    -t           : output CSV
-    -T           : output minimal CSV
-    -u           : use hi band of LNB
-    -x f1 f2     : full spectrum scan from f1 to f2
-                   (default -x 0 : 950000 to 2150000 kHz)
-    -h           : this help message
-	
-    -g s         : blindscan, use s to improve scan (higher
+	TUNING OPTIONS:
+	-a adapter   : the number n of the DVB adapter, i.e. 
+		           /dev/dvb/adapter[n] (default=0)
+	-d           : use 1s delay to wait for LNB power up
+	-e frontend  : the frontend/dmx/dvr to be used (default=0)
+	-f frequency : center frequency of the spectrum in kHz
+	-i input     : the physical input of the SX8 (default=0)
+	-L n         : diseqc switch to LNB/SAT number n (default 0)
+	-p pol       : polarisation 0=vertical 1=horizontal
+              : (must be set for any diseqc command to be send)
+	-s rate      : the symbol rate in Symbols/s
+	-u           : use hi band of LNB
+
+	SPECTRUM OPTIONS:
+	-b           : turn on agc
+	-c           : continuous PAM output
+	-k           : use Kaiser window before FFT
+	-l alpha     : parameter of the Kaiser window
+	-n number    : number of FFTs averaging (default 1000)
+	-q           : faster FFT
+	-o filename  : output filename (default stdout)
+	-t           : output CSV 
+	-T           : output minimal CSV
+	-x f1 f2     : full spectrum scan from f1 to f2
+                (default -x 0 : 950000 to 2150000 kHz)
+	-g s         : blindscan, use s to improve scan (higher
                    s can lead to less false positives,
                    but may lead to missed peaks)
+
+ CHEcK OPTIONS:
+ -C           : try to tune the frequency and symbolrate
+              : determine delivery system
+ -h           : this help message
+
 				   
 Typical calls would be:
 

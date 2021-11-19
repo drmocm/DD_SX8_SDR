@@ -52,6 +52,7 @@ typedef struct io_data_{
 } io_data;
 
 
+int tune(enum fe_delivery_system delsys, io_data *iod, int quick);
 void set_io(io_data *iod, int adapter, int num, int fe_num,
 	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
 	    uint32_t hi, uint32_t length, uint32_t id, int full,
@@ -60,5 +61,8 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
 void init_io(io_data *iod);
 void close_io(io_data *iod);
 void open_io(io_data *iod);
+void print_spectrum_options();
+void print_check_options();
+void print_tuning_options();
 
 #endif

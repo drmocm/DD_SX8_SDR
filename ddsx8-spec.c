@@ -30,21 +30,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static int min= 0;
 static int multi= 0;
 
-
-int tune(enum fe_delivery_system delsys, io_data *iod, int quick)
-{
-    if (iod->pol != 2 && !quick)
-	diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
-
-    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
-	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-			 delsys, iod->input, iod->id) < 0){
-	    return -1;
-	}
-    }
-    return 0;
-}
-
 #define MAXTRY 5
 int check_tune(enum fe_delivery_system delsys, io_data *iod)
 {
@@ -102,42 +87,16 @@ int next_freq_step(io_data *iod)
     return iod->step-1;
 }
 
-
 void print_help(char *argv){
-	    fprintf(stderr," usage:\n\n"
-                    " ddsx8-spec [-f frequency] [-p pol] [-s rate] [-u] "
-		    "[-a adapter] [-i input]\n"
-		    "            [-k] [-l alpha] [-b] [-c] [-x (f1 f2)]\n"
-		    "            [-d] [-q] [-n number] [-t] [-h] "
-		    "[-o filename]\n\n"
-		    " -a adapter   : the number n of the DVB adapter, i.e. \n"
-		    "                /dev/dvb/adapter[n] (default=0)\n"
-		    " -b           : turn on agc\n"
-		    " -c           : continuous PAM output\n"
-		    " -C           : try to tune the frequency and symbolrate\n"
-		    "              : determine delivery system\n"
-		    " -d           : use 1s delay to wait for LNB power up\n"
-		    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
-		    " -f frequency : center frequency of the spectrum in kHz\n"
-		    " -i input     : the physical input of the SX8 (default=0)\n"
-		    " -k           : use Kaiser window before FFT\n"
-		    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
-		    " -l alpha     : parameter of the Kaiser window\n"
-		    " -n number    : number of FFTs averaging (default 1000)\n"
-		    " -o filename  : output filename (default stdout)\n"
-		    " -p pol       : polarisation 0=vertical 1=horizontal\n"
-	            "              : (must be set for any diseqc command to be send)\n"
-		    " -q           : faster FFT\n"
-		    " -s rate      : the symbol rate used for the FFT in Hz\n"
-		    " -t           : output CSV \n"
-		    " -T           : output minimal CSV\n"
-		    " -u           : use hi band of LNB\n"
-		    " -x f1 f2     : full spectrum scan from f1 to f2\n"
-		    "                (default -x 0 : 950000 to 2150000 kHz)\n"
-		    " -h           : this help message\n\n"
-	            " -g s         : blindscan, use s to improve scan (higher\n"
-		    "                s can lead to less false positives,\n"
-                    "                but may lead to missed peaks)\n");
+    fprintf(stderr,
+	    " usage: %s <options> \n\n",
+	    argv);
+    print_tuning_options();
+    print_spectrum_options();
+    print_check_options();
+    fprintf(stderr,
+	    " -h           : this help message\n\n"
+	);
 }
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)

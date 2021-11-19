@@ -1,6 +1,41 @@
+/*
+ddsx8-spec is an **example** program written in C to show how to use 
+the SDR mode of the DigitalDevices MAX SX8 to get IQ data.
+
+Copyright (C) 2021  Marcus Metzler
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "iod.h"
 
 #include <stdlib.h>
+
+
+int tune(enum fe_delivery_system delsys, io_data *iod, int quick)
+{
+    if (iod->pol != 2 && !quick)
+	diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
+
+    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
+	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
+			 delsys, iod->input, iod->id) < 0){
+	    return -1;
+	}
+    }
+    return 0;
+}
 
 void open_io(io_data *iod)
 {
@@ -87,3 +122,54 @@ void set_io(io_data *iod, int adapter, int num, int fe_num,
     iod->fstop = fstop;
     iod->frange = (fstop - fstart);
 }
+
+void print_tuning_options()
+{
+    fprintf(stderr,
+	    "\n TUNING OPTIONS:\n"
+	    " -a adapter   : the number n of the DVB adapter, i.e. \n"
+	    "                /dev/dvb/adapter[n] (default=0)\n"
+	    " -d           : use 1s delay to wait for LNB power up\n"
+	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
+	    " -f frequency : center frequency of the spectrum in kHz\n"
+	    " -i input     : the physical input of the SX8 (default=0)\n"
+	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
+	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
+	    "              : (must be set for any diseqc command to be send)\n"
+	    " -s rate      : the symbol rate in Symbols/s\n"
+	    " -u           : use hi band of LNB\n"
+	);
+}
+
+void print_check_options()
+{
+    fprintf(stderr,
+	    "\n CHEcK OPTIONS:\n"
+	    " -C           : try to tune the frequency and symbolrate\n"
+    	    "              : determine delivery system\n");
+}
+
+void print_spectrum_options()
+{
+    fprintf(stderr,
+	    "\n SPECTRUM OPTIONS:\n"
+	    " -b           : turn on agc\n"
+	    " -c           : continuous PAM output\n"
+	    " -k           : use Kaiser window before FFT\n"
+	    " -l alpha     : parameter of the Kaiser window\n"
+	    " -n number    : number of FFTs averaging (default 1000)\n"
+	    " -q           : faster FFT\n"
+	    " -o filename  : output filename (default stdout)\n"
+	    " -t           : output CSV \n"
+	    " -T           : output minimal CSV\n"
+	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
+	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
+	    " -g s         : blindscan, use s to improve scan (higher\n"
+	    "                s can lead to less false positives,\n"
+	    "                but may lead to missed peaks)\n"
+	);
+}
+
+
+
+
