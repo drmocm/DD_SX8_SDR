@@ -62,7 +62,7 @@ For usage information use the -h option.
 	-o filename  : output filename (default stdout)
 
 	TUNING OPTIONS:
-	-d delsys    : the delivery system (not needed for sepctrum)
+	-d delsys    : the delivery system (not needed for spectrum)
 	-a adapter   : the number n of the DVB adapter, i.e. 
 		           /dev/dvb/adapter[n] (default=0)
 	-e frontend  : the frontend/dmx/dvr to be used (default=0)
