@@ -96,7 +96,7 @@ void print_help(char *argv){
     print_spectrum_options();
     print_check_options();
     fprintf(stderr,
-	    " -h           : this help message\n\n"
+	    "\n -h           : this help message\n\n"
 	);
 }
 
