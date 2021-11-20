@@ -657,7 +657,7 @@ void graph_range(graph *g, double *x, double *y, int width)
     g->yrange = g->ymax-g->ymin;
     g->xrange = g->xmax-g->xmin;
 
-#if 1
+#if 0
     fprintf(stderr,"width: %d xmin: %f xmax: %f  xrange: %f\n"
 	    "ymin: %f ymax: %f yrange: %f\n", width,
 	    g->xmin,g->xmax,g->xrange,

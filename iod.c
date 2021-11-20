@@ -22,13 +22,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int tune(io_data *iod, int quick)
 {
-    if (iod->pol != 2 && !quick)
-	diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
+    if (iod->pol != 2 && !quick){
+	
+	tune_sat(iod->fe_fd, iod->lnb_type, iod->freq, 
+		 iod->fft_sr, iod->delsys, iod->input, iod->id, 
+		 iod->sat, iod->pol, iod->hi,
+		 iod->lnb, iod->lofs, iod->lof1, iod->lof2,
+		 iod->scif_slot, iod->scif_freq);
 
-    if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
-	if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
-			 iod->delsys, iod->input, iod->id) < 0){
-	    return -1;
+	//diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
+    } else {
+	if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
+	    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
+			     iod->delsys, iod->input, iod->id) < 0){
+		return -1;
+	    }
 	}
     }
     return 0;
@@ -73,6 +81,7 @@ void init_io(io_data *iod)
     iod->adapter = 0;
     iod->lnb_type = UNIVERSAL;
     iod->input = 0;
+    iod->sat = 0;
     iod->fe_num = 0;
     iod->full = 0;
     iod->smooth = 6;
@@ -86,15 +95,24 @@ void init_io(io_data *iod)
     iod->fstop = MAX_FREQ;
     iod->frange = (MAX_FREQ - MIN_FREQ);
     iod->lnb = 0;
+// default LNBs
+    iod->lofs = 11700000;
+    iod->lof1 =  9750000;
+    iod->lof2 = 10600000;
+    iod->scif_slot = 1;
+    iod->scif_freq = 1210;
 }
 
 void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
-		 int adapter, int num, int fe_num,
+		 int adapter, int input, int fe_num, int sat,
 		 uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
-		 uint32_t hi, uint32_t id, int delay,  int lnb_type)
+		 uint32_t hi, uint32_t id, int delay,  int lnb_type,
+		 uint32_t lofs, uint32_t lof1, uint32_t lof2,
+		 uint32_t scif_slot, uint32_t scif_freq)
 {
     iod->adapter = adapter;
-    iod->input = num;
+    iod->input = input;
+    iod->sat = sat;
     iod->fe_num = fe_num;
     iod->freq = freq;
     iod->fft_sr = sr;
@@ -105,6 +123,13 @@ void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
     iod->hi = hi;
     iod->lnb = lnb;
     iod->delsys = delsys;
+
+    if (lofs) iod->lofs = lofs;
+    if (lof1) iod->lof1 = lof1;
+    if (lof2) iod->lof2 = lof2;
+    if (scif_slot) iod->scif_slot = scif_slot;
+    if (scif_freq) iod->scif_freq = scif_freq;
+    
 }
 
 void set_io(io_data *iod, enum fe_delivery_system delsys,
@@ -114,8 +139,8 @@ void set_io(io_data *iod, enum fe_delivery_system delsys,
 	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,
 	    int smooth)
 {
-    set_io_tune(iod, delsys, adapter, num, fe_num, freq, sr, pol,
-		lnb, hi, id, delay, lnb_type);
+    set_io_tune(iod, delsys, adapter, num, fe_num, 0,freq, sr, pol,
+		lnb, hi, id, delay, lnb_type, 0, 0, 0, 0, 0);
     iod->fft_length = length;
     iod->full = full;
     iod->smooth = smooth;
@@ -149,12 +174,18 @@ void print_tuning_options()
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 	    " -f frequency : center frequency in kHz\n"
 	    " -i input     : the physical input of the SX8 (default=0)\n"
-	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
+#ifdef FULLTUNE
+	    " -l ls l1 l2  : set lofs lof1 lof2 \n"
+	    "              : (default 11700000 9750000 10600000)\n"
+#endif
+ 	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
 	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
 	    "              : (must be set for any diseqc command to be send)\n"
 	    " -s rate      : the symbol rate in Symbols/s\n"
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
+	    " -U t (s f)   : lnb is unicable type t (1: EN 50494, 2: TS 50607\n"
+	    "              : slot s freqency f ( default slot 1 freq 1210000)\n"
 	);
 }
 
@@ -204,6 +235,14 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
     uint32_t hi = 0;
     uint32_t lnb = 0;
     int lnb_type = UNIVERSAL;
+    uint32_t lofs = 0;
+    uint32_t lof1 = 0;
+    uint32_t lof2 = 0;
+    uint32_t scif_slot = 0;
+    uint32_t scif_freq = 0;
+    int sat = 0 ;
+    char *nexts= NULL;
+    opterr = 0;
     
     while (1) {
 	int cur_optind = optind ? optind : 1;
@@ -213,18 +252,27 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {"adapter", required_argument, 0, 'a'},
 	    {"delay", no_argument, 0, 'D'},
 	    {"frequency", required_argument, 0, 'f'},
+#ifdef FULLTUNE
+	    {"lofs", required_argument, 0, 'l'},
+#endif
+	    {"unicable", required_argument, 0, 'U'},
 	    {"input", required_argument, 0, 'i'},
 	    {"frontend", required_argument, 0, 'e'},
 	    {"lnb", required_argument, 0, 'L'},
 	    {"polarisation", required_argument, 0, 'p'},
 	    {"symbol_rate", required_argument, 0, 's'},
+	    {"sat", required_argument, 0, 'S'},
 	    {"band", no_argument, 0, 'u'},
 	    {0, 0, 0, 0}
 	};
 
-	    c = getopt_long(argc, argv, 
-			    "a:Df:i:e:L:p:s:u",
-			    long_options, &option_index);
+	c = getopt_long(argc, argv, 
+#ifdef FULLTUNE
+			"a:Df:i:e:L:p:s:ul:U:s:",
+#else
+			"a:Df:i:e:L:p:s:uU:s:",
+#endif
+			long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -246,6 +294,41 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    freq = strtoul(optarg, NULL, 0);
 	    break;
 
+#ifdef FULLTUNE
+	case 'l':
+	    nexts= NULL;
+
+	    lofs = strtoul(optarg, &nexts, 0);
+	    if (nexts){
+		nexts++;
+		lof1 = strtoul(nexts, &nexts, 0);
+	    } if (nexts) {
+		nexts++;
+		lof2 = strtoul(nexts, NULL, 0);
+	    } else {
+		fprintf(stderr, "Error Missing data in -l (--lofs)");
+		return -1;
+	    } 
+	    break;
+#endif
+	    
+	case 'U':
+	    nexts= NULL;
+	    lnb_type = strtoul(optarg, &nexts, 0);
+	    if (nexts){
+		nexts++;
+		scif_slot = strtoul(nexts, &nexts, 0);
+		if (nexts){
+		    nexts++;
+		    scif_freq = strtoul(nexts, NULL, 0);
+		    scif_freq = scif_freq/1000;
+		} else {
+		    fprintf(stderr, "Error Missing data in -U (--scifs)");
+		    return -1;
+		}
+	    } 
+	    break;
+
 	case 'i':
 	    input = strtoul(optarg, NULL, 0);
 	    break;
@@ -261,6 +344,10 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	case 's':
 	    sr = strtoul(optarg, NULL, 0);
 	    break;
+
+	case 'S':
+	    sat = strtoul(optarg, NULL, 0);
+	    break;
 	    
 	case 'u':
 	    if (pol == 2) pol = 0;
@@ -273,8 +360,9 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	}
     }
 
-    set_io_tune(iod, delsys, adapter, input, fe_num, freq, sr, pol, lnb,
-		hi, id, delay,  lnb_type);
+    set_io_tune(iod, delsys, adapter, input, fe_num, sat,
+		freq, sr, pol, lnb, hi, id, delay, lnb_type,
+		lofs, lof1, lof2, scif_slot, scif_freq);
 
     return 0;
 }

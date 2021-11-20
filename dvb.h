@@ -21,6 +21,10 @@
 #define AGC_OFF   0x20020080
 #define AGC_OFF_C 0x20020020
 
+#define UNIVERSAL 0
+#define UNICABLE1 1
+#define UNICABLE2 2
+
 int set_fe_input(int fd, uint32_t fr,
 		 uint32_t sr, fe_delivery_system_t ds,
 		 uint32_t input, uint32_t id);

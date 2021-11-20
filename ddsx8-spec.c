@@ -160,15 +160,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"full_spectrum", required_argument, 0, 'x'},	    
 	    {0, 0, 0, 0}
 	};
-
-	    c = getopt_long(argc, argv, 
-			    "a:bcCDf:g:hi:e:kL:l:n:o:p:qs:tTux:",
-			    long_options, &option_index);
+	
+	c = getopt_long(argc, argv, 
+			"a:bcCDf:g:hi:e:kL:l:n:o:p:qs:tTux:",
+			long_options, &option_index);
 	if (c==-1)
 	    break;
 	
 	switch (c) {
-
+	    
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
 	    break;
@@ -185,7 +185,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
 		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		exit(1);
+		return -1;
 	    }
 	    outmode = CHECK_TUNE;
 	    id = DVB_UNDEF;
@@ -201,6 +201,11 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	case 'f':
 	    freq = strtoul(optarg, NULL, 0);
+	    if (freq < MIN_FREQ || freq > MAX_FREQ){
+		fprintf(stderr,"Error: Freqency must be between %d and %d\n",
+			MIN_FREQ,MAX_FREQ);
+		return -1;
+	    }
 	    break;
 	    
 	case 'g':
@@ -209,7 +214,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    } else if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
 		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		exit(1);
+		return -1;
 	    }
 	    if (!outmode) outmode = BLINDSCAN;
 	    full = 1;
@@ -258,12 +263,13 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	case 'T':
 	    min = 1;
+
 	case 't':
 	    if (outmode == BLINDSCAN) outmode = BLINDSCAN_CSV;
 	    else if (outmode) {
 		fprintf(stderr, "Error conflicting options\n");
 		fprintf(stderr, "chose only one of the options -c -t\n");
-		exit(1);
+		return -1;
 	    }
 	    if (!outmode) outmode = CSV;
 	    
@@ -303,7 +309,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	   width, id, full, delay, fstart, fstop, lnb_type, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
-	exit(1);
+	exit(3);
     }
     if (!outmode) outmode = SINGLE_PAM;
 
@@ -358,7 +364,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 	    if (maxstep<2){
 		fprintf (stderr,"Range too small use single spectrum\n",
 			 maxstep);
-		exit(1);
+		exit(4);
 	    }	    
 	    k = 0;
 	    if (!fullspec){
@@ -369,13 +375,13 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		if (!(fullspec = (double *) malloc(maxmem))){
 		    {
 			fprintf(stderr,"not enough memory\n");
-			exit(1);
+			exit(5);
 		    }
 		}
 		if (!(fullfreq = (double *) malloc(maxmem))){
 		    {
 			fprintf(stderr,"not enough memory\n");
-			exit(1);
+			exit(5);
 		    }
 		}
 		memset(fullspec, 0, maxmem);
@@ -476,7 +482,7 @@ int main(int argc, char **argv){
     init_spec(&spec);
     
     if ((outm = parse_args(argc, argv, &spec, &iod)) < 0)
-	exit(1);
+	exit(2);
 
     open_io(&iod);
     if (outm != CHECK_TUNE) {

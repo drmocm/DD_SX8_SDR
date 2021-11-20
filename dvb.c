@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 /******************************************************************************/
 
-
 static int set_property(int fd, uint32_t cmd, uint32_t data)
 {
 	struct dtv_property p;
@@ -280,13 +279,13 @@ int tune_sat(int fd, int type, uint32_t freq,
 	
 	if (freq > 3000000) {
 	    if (lofs)
-                        hi = (freq > lofs) ? 1 : 0;
-                if (hi) 
-                        freq -= lof2;
-                else
-                        freq -= lof1;
+		hi = (freq > lofs) ? 1 : 0;
+	    if (hi) 
+		freq -= lof2;
+	    else
+		freq -= lof1;
         }
-	//    fprintf(stderr, "tune_sat IF=%u\n", freq);
+	    fprintf(stderr, "tune_sat IF=%u\n", freq);
 
         //fprintf(stderr, "scif_type = %u\n", type);
 	int re=-1;
