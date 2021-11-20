@@ -101,7 +101,6 @@ void print_help(char *argv){
 
 int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 {
-    enum fe_delivery_system delsys = SYS_DVBS2;
     int use_window = 0;
     double alpha = 2.0;
     int nfft = 1000; //number of FFTs for average
@@ -109,10 +108,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     int width = FFT_LENGTH;
     int height = 9*FFT_LENGTH/16;
     int outmode = 0;
-    int adapter = 0;
-    int input = 0;
-    int fe_num = 0;
-    uint32_t freq = -1;
     uint32_t fstart = MIN_FREQ;
     uint32_t fstop = MAX_FREQ;
     uint32_t t =0;
@@ -126,53 +121,44 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     uint32_t lnb = 0;
     int lnb_type = UNIVERSAL;
     
+    opterr = 0;
+
     if (argc < 2) {
 	print_help(argv[0]);
 	return -1;
     }
-    
+        
+    if (parse_args_io_tune(argc, argv, iod)< 0) return -1;
+    optind = 1;
+
     while (1) {
-	int cur_optind = optind ? optind : 1;
 	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
-	    {"adapter", required_argument, 0, 'a'},
 	    {"agc", no_argument, 0, 'b'},
 	    {"continuous", no_argument, 0, 'c'},
 	    {"check_tune", no_argument, 0, 'C'},
-	    {"delay", no_argument, 0, 'D'},
-	    {"frequency", required_argument, 0, 'f'},
 	    {"blindscan", required_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
-	    {"input", required_argument, 0, 'i'},
-	    {"frontend", required_argument, 0, 'e'},
 	    {"Kaiserwindow", no_argument, 0, 'k'},
-	    {"lnb", required_argument, 0, 'L'},
+	    {"frontend", required_argument, 0, 'e'},
 	    {"alpha", required_argument, 0, 'l'},
 	    {"nfft", required_argument, 0, 'n'},	    
 	    {"output", required_argument , 0, 'o'},
-	    {"polarisation", required_argument, 0, 'p'},
 	    {"quick", no_argument, 0, 'q'},
-	    {"symbol_rate", required_argument, 0, 's'},
 	    {"csv", no_argument, 0, 't'},
 	    {"csvmin", no_argument, 0, 'T'},
-	    {"band", no_argument, 0, 'u'},
 	    {"full_spectrum", required_argument, 0, 'x'},	    
 	    {0, 0, 0, 0}
 	};
 	
 	c = getopt_long(argc, argv, 
-			"a:bcCDf:g:hi:e:kL:l:n:o:p:qs:tTux:",
+			"bcCg:hke:l:n:o:qtTx:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
 	
 	switch (c) {
-	    
-	case 'a':
-	    adapter = strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'b':
 	    id = AGC_ON;
 	    break;
@@ -191,22 +177,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    id = DVB_UNDEF;
 	    break;
 	    
-	case 'd':
-	    delay = 1000000;
-	    break;
-	    
-	case 'e':
-	    fe_num = strtoul(optarg, NULL, 0);
-	    break;
-	    
-	case 'f':
-	    freq = strtoul(optarg, NULL, 0);
-	    if (freq < MIN_FREQ || freq > MAX_FREQ){
-		fprintf(stderr,"Error: Freqency must be between %d and %d\n",
-			MIN_FREQ,MAX_FREQ);
-		return -1;
-	    }
-	    break;
 	    
 	case 'g':
 	    if (outmode == CSV){
@@ -225,16 +195,8 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    print_help(argv[0]);
 	    return -1;
 
-	case 'i':
-	    input = strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'k':
 	    use_window = 1;
-	    break;
-	    
-	case 'L':
-	    lnb = strtoul(optarg, NULL,0);	    
 	    break;
 	    
 	case 'l':
@@ -249,18 +211,10 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    nfft = strtoul(optarg, NULL, 10);
 	    break;
 
-	case'p':
-	    pol =  strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'q':
 	    width = FFT_LENGTH/2;
 	    break;
 
-	case 's':
-	    sr = strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'T':
 	    min = 1;
 
@@ -273,11 +227,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    }
 	    if (!outmode) outmode = CSV;
 	    
-	    break;
-	    
-	case 'u':
-	    if (pol == 2) pol = 0;
-	    hi  = 1;
 	    break;
 	    
 	case 'x':
@@ -299,14 +248,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	}
     }
-    /*
-    if (optind < argc) {
-	fprintf(stderr,"Warning: unused arguments\n");
-    }
-    */
+
     height = 9*width/16;
-    set_io(iod, delsys, adapter, input, fe_num, freq, sr, pol, lnb, hi,
-	   width, id, full, delay, fstart, fstop, lnb_type, smooth);
+    if (iod->freq && (iod->freq < MIN_FREQ || iod->freq > MAX_FREQ)){
+	fprintf(stderr,"Error: Freqency %d must be between %d and %d\n",
+		iod->freq,
+		MIN_FREQ,MAX_FREQ);
+	return -1;
+    }
+    set_io(iod, width, full, fstart, fstop, smooth);
     if (init_specdata(spec, width, height, alpha,
 		      nfft, use_window) < 0) {
 	exit(3);

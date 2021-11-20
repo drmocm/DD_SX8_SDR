@@ -132,19 +132,13 @@ void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
     
 }
 
-void set_io(io_data *iod, enum fe_delivery_system delsys,
-	    int adapter, int num, int fe_num,
-	    uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
-	    uint32_t hi, uint32_t length, uint32_t id, int full,
-	    int delay, uint32_t fstart, uint32_t fstop, int lnb_type,
-	    int smooth)
+void set_io(io_data *iod, uint32_t length, int full, uint32_t fstart,
+	    uint32_t fstop,  int smooth)
 {
-    set_io_tune(iod, delsys, adapter, num, fe_num, 0,freq, sr, pol,
-		lnb, hi, id, delay, lnb_type, 0, 0, 0, 0, 0);
     iod->fft_length = length;
     iod->full = full;
     iod->smooth = smooth;
-    iod->window = (sr/2/1000);
+    iod->window = (iod->fft_sr/2/1000);
     if (fstart < MIN_FREQ || fstart > MAX_FREQ ||
 	fstop < MIN_FREQ || fstop > MAX_FREQ){
 	fprintf(stderr,"Frequencies out of range (%d %d ) using default: %d -  %d\n",
@@ -227,7 +221,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
     int adapter = 0;
     int input = 0;
     int fe_num = 0;
-    uint32_t freq = -1;
+    uint32_t freq = 0;
     uint32_t sr = FFT_SR;
     uint32_t id = AGC_OFF;
     int delay = 0;
@@ -243,9 +237,13 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
     int sat = 0 ;
     char *nexts= NULL;
     opterr = 0;
+    optind = 1;
+    char **myargv;
+
+    myargv = malloc(argc*sizeof(char*));
+    memcpy(myargv, argv, argc*sizeof(char*));
     
     while (1) {
-	int cur_optind = optind ? optind : 1;
 	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
@@ -266,7 +264,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 
-	c = getopt_long(argc, argv, 
+	c = getopt_long(argc, myargv, 
 #ifdef FULLTUNE
 			"a:Df:i:e:L:p:s:ul:U:s:",
 #else
@@ -275,9 +273,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 			long_options, &option_index);
 	if (c==-1)
 	    break;
-	
 	switch (c) {
-
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
 	    break;
