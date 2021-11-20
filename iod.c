@@ -23,7 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 int tune(io_data *iod, int quick)
 {
     if (iod->pol != 2 && !quick){
-	
 	tune_sat(iod->fe_fd, iod->lnb_type, iod->freq, 
 		 iod->fft_sr, iod->delsys, iod->input, iod->id, 
 		 iod->sat, iod->pol, iod->hi,
@@ -183,37 +182,16 @@ void print_tuning_options()
 	);
 }
 
-void print_check_options()
+void print_mode_options()
 {
     fprintf(stderr,
-	    "\n CHECK OPTIONS:\n"
-	    " -C           : try to tune the frequency and symbolrate\n"
-    	    "              : determine delivery system\n");
-}
-
-void print_spectrum_options()
-{
-    fprintf(stderr,
-	    "\n SPECTRUM OPTIONS:\n"
-	    " -b           : turn on agc\n"
+	    "\n MODE OPTIONS:\n"
 	    " -c           : continuous PAM output\n"
-	    " -k           : use Kaiser window before FFT\n"
-	    " -l alpha     : parameter of the Kaiser window\n"
-	    " -n number    : number of FFTs averaging (default 1000)\n"
-	    " -q           : faster FFT\n"
-	    " -o filename  : output filename (default stdout)\n"
+	    " -C           : try to tune the frequency and symbolrate\n"
 	    " -t           : output CSV \n"
 	    " -T           : output minimal CSV\n"
-	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
-	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
-	    " -g s         : blindscan, use s to improve scan (higher\n"
-	    "                s can lead to less false positives,\n"
-	    "                but may lead to missed peaks)\n"
-	);
+    	    "              : determine delivery system\n");
 }
-
-
-
 
 int parse_args_io_tune(int argc, char **argv, io_data *iod)
 {
@@ -361,4 +339,129 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 		lofs, lof1, lof2, scif_slot, scif_freq);
 
     return 0;
+}
+
+
+void print_spectrum_options()
+{
+    fprintf(stderr,
+	    "\n SPECTRUM OPTIONS:\n"
+	    " -b           : turn on agc\n"
+	    " -k           : use Kaiser window before FFT\n"
+	    " -l alpha     : parameter of the Kaiser window\n"
+	    " -n number    : number of FFTs averaging (default 1000)\n"
+	    " -q           : faster FFT\n"
+	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
+	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
+	    " -g s         : blindscan, use s to improve scan (higher\n"
+	    "                s can lead to less false positives,\n"
+	    "                but may lead to missed peaks)\n"
+	);
+}
+
+
+int parse_args_io_spectrum(int argc, char **argv, specdata *spec, io_data *iod)
+{
+    int use_window = 0;
+    double alpha = 2.0;
+    int nfft = 1000; //number of FFTs for average
+    int full = 0;
+    int width = FFT_LENGTH;
+    int height = 9*FFT_LENGTH/16;
+    int outmode = 0;
+    uint32_t fstart = MIN_FREQ;
+    uint32_t fstop = MAX_FREQ;
+    int smooth = 0;
+    char *nexts= NULL;
+    uint32_t lnb = 0;
+    opterr = 0;
+    optind = 1;
+    char **myargv;
+
+    myargv = malloc(argc*sizeof(char*));
+    memcpy(myargv, argv, argc*sizeof(char*));
+    
+    while (1) {
+	int option_index = 0;
+	int c;
+	static struct option long_options[] = {
+	    {"agc", no_argument, 0, 'b'},
+	    {"blindscan", required_argument, 0, 'g'},
+	    {"Kaiserwindow", no_argument, 0, 'k'},
+	    {"alpha", required_argument, 0, 'l'},
+	    {"nfft", required_argument, 0, 'n'},	    
+	    {"quick", no_argument, 0, 'q'},
+	    {"full_spectrum", required_argument, 0, 'x'},	    
+	    {0, 0, 0, 0}
+	};
+	
+	c = getopt_long(argc, argv, 
+			"bg:kl:n:qx:",
+			long_options, &option_index);
+	if (c==-1)
+	    break;
+	
+	switch (c) {
+	case 'b':
+	    iod->id = AGC_ON;
+	    break;
+	    
+	case 'g':
+	    if (outmode == CSV){
+		outmode = BLINDSCAN_CSV;
+	    } else if (outmode) {
+		fprintf(stderr, "Error conflicting options\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
+		return -1;
+	    }
+	    if (!outmode) outmode = BLINDSCAN;
+	    full = 1;
+	    smooth = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'k':
+	    use_window = 1;
+	    break;
+	    
+	case 'l':
+	    alpha = strtod(optarg, NULL);	    
+	    break;
+	    
+	case 'n':
+	    nfft = strtoul(optarg, NULL, 10);
+	    break;
+
+	case 'q':
+	    width = FFT_LENGTH/2;
+	    break;
+
+	case 'x':
+	    full = 1;
+	    uint32_t t = strtoul(optarg, &nexts, 0);
+	    if (t) {
+		fstart = t;
+		if (nexts){
+		    nexts++;
+		    fstop = strtoul(nexts, NULL, 0);
+		}
+//		fprintf(stderr,"nexts: %s   %d %d\n",nexts, fstart, fstop);
+		nexts = NULL;
+	    }
+	    break;
+
+	default:
+	    break;
+	    
+	}
+    }
+
+    height = 9*width/16;
+    set_io(iod, width, full, fstart, fstop, smooth);
+    if (init_specdata(spec, width, height, alpha,
+		      nfft, use_window) < 0) {
+	exit(3);
+    }
+    if (!outmode) outmode = SINGLE_PAM;
+
+    return outmode;
 }

@@ -285,7 +285,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	    else
 		freq -= lof1;
         }
-	    fprintf(stderr, "tune_sat IF=%u\n", freq);
+//	fprintf(stderr, "tune_sat IF=%u lnb_type=%d\n", freq, type);
 
         //fprintf(stderr, "scif_type = %u\n", type);
 	int re=-1;

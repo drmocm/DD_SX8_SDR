@@ -25,8 +25,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dvb.h"
 #include "blindscan.h"
 
-// various outmodes
-
 static int min= 0;
 static int multi= 0;
 
@@ -62,7 +60,7 @@ int next_freq_step(io_data *iod)
     
     if (!iod->full) return -1;
 
-    if (iod->step < 0){ 
+    if (iod->step < 0){  // first tune to middle of spectrum 
 	freq = iod->fstart + iod->frange/2;
 	iod->freq = freq;
 	if (tune(iod, 0)){
@@ -93,7 +91,7 @@ void print_help(char *argv){
     file_options();
     print_tuning_options();
     print_spectrum_options();
-    print_check_options();
+    print_mode_options();
     fprintf(stderr,
 	    "\n -h           : this help message\n\n"
 	);

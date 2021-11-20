@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include "dvb.h"
+#include "spec.h"
 
 #define SINGLE_PAM 1
 #define CSV 2
@@ -58,7 +59,6 @@ typedef struct io_data_{
     uint32_t fft_sr;
     uint32_t id;
     enum fe_delivery_system delsys;
-
 } io_data;
 
 
@@ -76,8 +76,9 @@ void close_io(io_data *iod);
 void open_io(io_data *iod);
 void file_options();
 void print_spectrum_options();
-void print_check_options();
+void print_mode_options();
 void print_tuning_options();
 int parse_args_io_tune(int argc, char **argv, io_data *iod);
+int parse_args_io_spectrum(int argc, char **argv, specdata *spec, io_data *iod);
 
 #endif
