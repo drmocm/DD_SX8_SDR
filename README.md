@@ -59,8 +59,6 @@ For usage information use the -h option.
 
 	usage: ./ddsx8-spec <options> 
 
-	-o filename  : output filename (default stdout)
-
 	TUNING OPTIONS:
 	-d delsys    : the delivery system (not needed for spectrum)
 	-a adapter   : the number n of the DVB adapter, i.e. 
@@ -97,6 +95,8 @@ For usage information use the -h option.
                    s can lead to less false positives,
                    but may lead to missed peaks)
 
+	OTHERS:
+	-o filename  : output filename (default stdout)
 	-h           : this help message
 		   
 				   
@@ -193,6 +193,9 @@ set all the parameters by hand, i.e.
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
 	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
 
+	OTHERS:
+	-o filename  : output filename (default stdout)
+	-h           : this help message
 
 
 #  pam_test

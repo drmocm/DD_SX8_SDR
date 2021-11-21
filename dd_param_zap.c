@@ -22,6 +22,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MAXTRY 5
 #define BUFFSIZE (1024*188)
 
+void print_help()
+{
+    print_tuning_options();
+    fprintf(stderr,
+	    "\n OTHERS:\n"
+	    " -o filename  : output filename\n"
+	    " -h           : this help message\n\n"
+	);
+}
 
 int parse_args(int argc, char **argv, io_data *iod)
 {
@@ -55,7 +64,7 @@ int parse_args(int argc, char **argv, io_data *iod)
 	    break;
 	    
 	case 'h':
-	    print_tuning_options();
+	    print_help();
 	    return -1;
 	    break;
 	default:

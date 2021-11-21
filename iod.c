@@ -144,12 +144,6 @@ void set_io(io_data *iod, uint32_t length, int full, uint32_t fstart,
     iod->frange = (fstop - fstart);
 }
 
-void file_options()
-{
-    fprintf(stderr,
-	    " -o filename  : output filename (default stdout)\n"
-	);
-}
 
 void print_tuning_options()
 {
@@ -172,21 +166,6 @@ void print_tuning_options()
 	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
 	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)\n"
 	);
-}
-
-void print_mode_options()
-{
-    fprintf(stderr,
-	    "\n MODE OPTIONS:\n"
-	    " -b           : turn on agc\n"
-	    " -c           : continuous PAM output\n"
-	    " -t           : output CSV \n"
-	    " -T           : output minimal CSV\n"
-	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
-	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
-	    " -g s         : blindscan, use s to improve scan (higher\n"
-	    "                s can lead to less false positives,\n"
-	    "                but may lead to missed peaks)\n");
 }
 
 int parse_args_io_tune(int argc, char **argv, io_data *iod)

@@ -72,8 +72,6 @@ void set_io(io_data *iod, uint32_t length, int full, uint32_t fstart,
 void init_io(io_data *iod);
 void close_io(io_data *iod);
 void open_io(io_data *iod);
-void file_options();
-void print_mode_options();
 void print_tuning_options();
 int parse_args_io_tune(int argc, char **argv, io_data *iod);
 

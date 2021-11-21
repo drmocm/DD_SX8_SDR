@@ -60,16 +60,34 @@ int next_freq_step(io_data *iod)
     return iod->step-1;
 }
 
+void print_mode_options()
+{
+    fprintf(stderr,
+	    "\n MODE OPTIONS:\n"
+	    " -b           : turn on agc\n"
+	    " -c           : continuous PAM output\n"
+	    " -t           : output CSV \n"
+	    " -T           : output minimal CSV\n"
+	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
+	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
+	    " -g s         : blindscan, use s to improve scan (higher\n"
+	    "                s can lead to less false positives,\n"
+	    "                but may lead to missed peaks)\n\n"
+	);
+}
+
+
 void print_help(char *argv){
     fprintf(stderr,
 	    " usage: %s <options> \n\n",
 	    argv);
-    file_options();
     print_tuning_options();
     print_spectrum_options();
     print_mode_options();
     fprintf(stderr,
-	    "\n -h           : this help message\n\n"
+	    "\n OTHERS:\n"
+	    " -o filename  : output filename (default stdout)\n"
+	    " -h           : this help message\n\n"
 	);
 }
 
