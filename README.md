@@ -182,6 +182,7 @@ set all the parameters by hand, i.e.
 	-e frontend  : the frontend/dmx/dvr to be used (default=0)
 	-f frequency : center frequency in kHz
 	-i input     : the physical input of the SX8 (default=0)
+	-I id        : set id (don not use if you don't know)
 	-l ls l1 l2  : set lofs lof1 lof2 
                  : (default 11700000 9750000 10600000)
 	-L n         : diseqc switch to LNB/SAT number n (default 0)

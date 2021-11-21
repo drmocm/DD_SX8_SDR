@@ -132,7 +132,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {"agc", no_argument, 0, 'b'},
 	    {"blindscan", required_argument, 0, 'g'},
 	    {"continuous", no_argument, 0, 'c'},
-	    {"check_tune", no_argument, 0, 'C'},
 	    {"help", no_argument , 0, 'h'},
 	    {"output", required_argument , 0, 'o'},
 	    {"quick", no_argument, 0, 'q'},
@@ -142,14 +141,14 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "bg:cCho:qtTx:",
+	c = getopt_long(argc, argv, "bg:cho:qtTx:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
 	
 	switch (c) {
 	case 'b':
-	    iod->id = AGC_ON;
+	    id = AGC_ON;
 	    break;
 	    
 	case 'g':
@@ -167,16 +166,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 
 	case 'c':
 	    multi = 1;
-	    break;
-
-	case 'C':
-	    if (outmode) {
-		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		return -1;
-	    }
-	    outmode = CHECK_TUNE;
-	    id = DVB_UNDEF;
 	    break;
 
 	case 'h':
@@ -231,6 +220,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	return -1;
     }
     set_io(iod, spec->width, full, fstart, fstop, smooth);
+    iod->id = id;
 
     if (!outmode) outmode = SINGLE_PAM;
 

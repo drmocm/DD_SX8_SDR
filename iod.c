@@ -155,6 +155,7 @@ void print_tuning_options()
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 	    " -f frequency : center frequency in kHz\n"
 	    " -i input     : the physical input of the SX8 (default=0)\n"
+	    " -I id        : set id (do not use if you don't know)\n"
 	    " -l ls l1 l2  : set lofs lof1 lof2 \n"
 	    "              : (default 11700000 9750000 10600000)\n"
  	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
@@ -176,7 +177,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
     int fe_num = 0;
     uint32_t freq = 0;
     uint32_t sr = FFT_SR;
-    uint32_t id = AGC_OFF;
+    uint32_t id = DVB_UNDEF;
     int delay = 0;
     uint32_t pol = 2;
     uint32_t hi = 0;
@@ -207,6 +208,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {"unicable", required_argument, 0, 'U'},
 	    {"slot", required_argument, 0, 'j'},
 	    {"input", required_argument, 0, 'i'},
+	    {"id", required_argument, 0, 'I'},
 	    {"frontend", required_argument, 0, 'e'},
 	    {"lnb", required_argument, 0, 'L'},
 	    {"polarisation", required_argument, 0, 'p'},
@@ -216,7 +218,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	};
 
 	c = getopt_long(argc, myargv, 
-			"a:d:Df:i:e:L:p:s:ul:U:S:",
+			"a:d:Df:I:i:e:L:p:s:ul:U:S:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -297,6 +299,10 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    
 	case 'i':
 	    input = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'I':
+	    id = strtoul(optarg, NULL, 0);
 	    break;
 
 	case 'L':
