@@ -170,7 +170,7 @@ void print_tuning_options()
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
 	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
-	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210000)\n"
+	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)\n"
 	);
 }
 

@@ -77,7 +77,7 @@ For usage information use the -h option.
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
-	-j slot freq : slot s freqency f ( default slot 1 freq 1210000)
+	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
 
 
 	SPECTRUM OPTIONS:
@@ -121,7 +121,7 @@ or continuously:
 If you use the -t option and write the resulting comma separated list
 into the file test.csv like this: 
 
-`./ddsx8-spec -f 1210000  -t  -o test.csv` 
+`./ddsx8-spec -f 1210  -t  -o test.csv` 
 
 you can use the gnuplot program to display the data with the added 
 gnuplot file test.gnuplot like this:
@@ -172,7 +172,7 @@ Use the number after g to fine-tune the scan.
 dd_param_zap is a DVB tuning program, where you can (or have to)
 set all the parameters by hand, i.e.
 
-`./dd_param_zap -f 12188000 -s 27500000 -p h -U 2 -j 1 1210000 -i 2 1420000 -l 1170000 9750000 10600000`
+`./dd_param_zap -f 12188000 -s 27500000 -p h -U 2 -j 1 1210 -i 2 1420000 -l 1170000 9750000 10600000`
 
 
 	TUNING OPTIONS:
@@ -191,7 +191,7 @@ set all the parameters by hand, i.e.
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
-	-j slot freq : slot s freqency f ( default slot 1 freq 1210000)
+	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
 
 
 
