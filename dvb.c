@@ -188,14 +188,14 @@ int diseqc(int fd, int sat, int hor, int band)
 static int set_en50494(int fd, uint32_t freq, uint32_t sr, 
                        int sat, int hor, int band, 
                        uint32_t slot, uint32_t ubfreq,
-                       fe_delivery_system_t ds, uint32_t id)
+                       fe_delivery_system_t ds, uint32_t id,
+		       uint32_t input)
 {
         struct dvb_diseqc_master_cmd cmd = {
                 .msg = {0xe0, 0x11, 0x5a, 0x00, 0x00},
                 .msg_len = 5
         };
         uint16_t t;
-        uint32_t input = 3 & (sat >> 6);
 
         t = (freq + ubfreq + 2) / 4 - 350;
         hor &= 1;
@@ -225,16 +225,16 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
 static int set_en50607(int fd, uint32_t freq, uint32_t sr, 
                        int sat, int hor, int band, 
                        uint32_t slot, uint32_t ubfreq,
-                       fe_delivery_system_t ds, uint32_t id)
+                       fe_delivery_system_t ds, uint32_t id,
+		       uint32_t input)
 {
         struct dvb_diseqc_master_cmd cmd = {
                 .msg = {0x70, 0x00, 0x00, 0x00, 0x00},
                 .msg_len = 4
         };
         uint32_t t = freq - 100;
-        uint32_t input = 3 & (sat >> 6);
         
-        //printf("input = %u, sat = %u\n", input, sat&0x3f);
+        printf("input = %u, sat = %u\n", input, sat&0x3f);
         hor &= 1;
         cmd.msg[1] = slot << 3;
         cmd.msg[1] |= ((t >> 8) & 0x07);
@@ -253,10 +253,10 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
 
-        //fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
-        //          cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
-        //fprintf(stderr, "EN50607 freq %u sr %u hor %u\n", 
-        //          freq, sr, hor);
+//        fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
+//                  cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
+        fprintf(stderr, "EN50607 freq %u sr %u hor %u ufreq %d\n", 
+		freq, sr, hor, ubfreq*1000);
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 }
 
@@ -285,22 +285,17 @@ int tune_sat(int fd, int type, uint32_t freq,
 	    else
 		freq -= lof1;
         }
-//	fprintf(stderr, "tune_sat IF=%u lnb_type=%d\n", freq, type);
+	fprintf(stderr, "tune_sat IF=%u scif_type=%d\n", freq, type);
 
-        //fprintf(stderr, "scif_type = %u\n", type);
 	int re=-1;
         if (type == 1) { 
 	       re = set_en50494(fd, freq / 1000, sr, lnb, pol, hi,
-				scif_slot, scif_freq, ds, id);
+				scif_slot, scif_freq, ds, id, input);
         } else if (type == 2) {
 	        re = set_en50607(fd, freq / 1000, sr, sat, pol, hi,
-				 scif_slot, scif_freq, ds, id);
+				 scif_slot, scif_freq, ds, id, input);
         } else {
-                if (input != (~0U)) {
-                        input = 3 & (input >> 6);
-                        printf("input = %u\n", input);
-                }
-                diseqc(fd, lnb, pol, hi);
+	        diseqc(fd, lnb, pol, hi);
                 re = set_fe_input(fd, freq, sr, ds, input, id );
         }
 	return re;

@@ -237,3 +237,82 @@ void spec_write_graph (int fd, graph *g, specdata *spec)
     coordinate_axes(g->bm, 200, 255,0);
     write_pam (fd, g->bm);
 }
+
+void print_spectrum_options()
+{
+    fprintf(stderr,
+	    "\n SPECTRUM OPTIONS:\n"
+	    " -k           : use Kaiser window before FFT\n"
+	    " -l alpha     : parameter of the Kaiser window\n"
+	    " -n number    : number of FFTs averaging (default 1000)\n"
+	    " -q           : faster FFT\n"
+	);
+}
+
+int parse_args_spectrum(int argc, char **argv, specdata *spec)
+{
+    int use_window = 0;
+    double alpha = 2.0;
+    int nfft = 1000; //number of FFTs for average
+    int full = 0;
+    int width = FFT_LENGTH;
+    int height = 9*FFT_LENGTH/16;
+    char *nexts= NULL;
+    uint32_t lnb = 0;
+    opterr = 0;
+    optind = 1;
+    char **myargv;
+
+    myargv = malloc(argc*sizeof(char*));
+    memcpy(myargv, argv, argc*sizeof(char*));
+    
+    while (1) {
+	int option_index = 0;
+	int c;
+	static struct option long_options[] = {
+	    {"Kaiserwindow", no_argument, 0, 'k'},
+	    {"alpha", required_argument, 0, 'l'},
+	    {"nfft", required_argument, 0, 'n'},	    
+	    {"quick", no_argument, 0, 'q'},
+	    {0, 0, 0, 0}
+	};
+	
+	c = getopt_long(argc, argv, 
+			"kl:n:q",
+			long_options, &option_index);
+	if (c==-1)
+	    break;
+	
+	switch (c) {
+
+	case 'k':
+	    use_window = 1;
+	    break;
+	    
+	case 'l':
+	    alpha = strtod(optarg, NULL);	    
+	    break;
+	    
+	case 'n':
+	    nfft = strtoul(optarg, NULL, 10);
+	    break;
+
+	case 'q':
+	    width = FFT_LENGTH/2;
+	    break;
+
+
+	default:
+	    break;
+	    
+	}
+    }
+
+    height = 9*width/16;
+    if (init_specdata(spec, width, height, alpha,
+		      nfft, use_window) < 0) {
+	exit(3);
+    }
+
+    return 0;
+}

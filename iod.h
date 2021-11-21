@@ -19,7 +19,6 @@
 #define MIN_FREQ     950000  // kHz
 #define MAX_FREQ    2150000  // kHz
 
-#define FFT_LENGTH 1024
 #define FFT_SR (50000*FFT_LENGTH) // 1 point 50kHz (in Hz)
 
 
@@ -75,10 +74,8 @@ void init_io(io_data *iod);
 void close_io(io_data *iod);
 void open_io(io_data *iod);
 void file_options();
-void print_spectrum_options();
 void print_mode_options();
 void print_tuning_options();
 int parse_args_io_tune(int argc, char **argv, io_data *iod);
-int parse_args_io_spectrum(int argc, char **argv, specdata *spec, io_data *iod);
 
 #endif

@@ -2,6 +2,7 @@ CFLAGS =  -g  -Wno-unused -Wall -Wno-format -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEF
 LIBS =  -lm  -lfftw3 
 DDSX8OBJ = ddsx8-spec.o numeric.o pam.o spec.o dvb.o blindscan.o iod.o
 PAMOBJ = pam_test.o pam.o
+PARAMOBJ = dd_param_zap.o dvb.o iod.o 
 HEADER = numeric.h spec.h dvb.h pam.h blindscan.h iod.h
 SRC = $(HEADER) numeric.c spec.c dvb.c blindscan.c
 INCS = -I.
@@ -11,7 +12,7 @@ CPP = g++
 
 .PHONY: clean 
 
-TARGETS = ddsx8-spec pam_test
+TARGETS = ddsx8-spec pam_test dd_param_zap
 
 all: $(TARGETS)
 
@@ -20,6 +21,10 @@ ddsx8-spec: $(DDSX8OBJ) $(INC)
 
 pam_test: $(PAMOBJ) pam.h
 	$(CC) $(CFLAGS) -o pam_test $(PAMOBJ) $(LIBS)
+
+dd_param_zap: $(PARAMOBJ) iod.h dvb.h 
+	$(CC) $(CFLAGS) -o dd_param_zap $(PARAMOBJ) $(LIBS)
+
 
 iod.o: $(HEADER) iod.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) iod.c
@@ -41,6 +46,9 @@ ddsx8-spec.o: $(HEADER) ddsx8-spec.c
 
 pam_test.o: $(HEADER) pam_test.c
 	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) pam_test.c
+
+dd_param_zap.o: $(HEADER) dd_param_zap.c
+	$(CC) -c $(CFLAGS) $(INCS) $(DEFINES) dd_param_zap.c
 
 
 clean:

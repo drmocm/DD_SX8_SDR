@@ -28,30 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 static int min= 0;
 static int multi= 0;
 
-#define MAXTRY 5
-int check_tune(enum fe_delivery_system delsys, io_data *iod)
-{
-    int lock = 0;
-    int t = 0;
-
-    fprintf(stderr,"Trying to tune freq: %d sr: %d delsys: %s ",  iod->freq,
-	    iod->fft_sr, delsys == SYS_DVBS ? "DVB-S" : "DVB-S2");
-    iod->delsys = delsys;
-    if (tune(iod, 0)){
-	fprintf(stderr,"Tuning failed\n");
-	exit(1);
-    }
-    
-    while (!lock && t < MAXTRY){
-	t++;
-	fprintf(stderr,".");
-	lock = read_status(iod->fe_fd);
-	sleep(1);
-    }
-    fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
-    return lock;
-}
-
 
 int next_freq_step(io_data *iod)
 {
@@ -118,30 +94,28 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     char *nexts= NULL;
     uint32_t lnb = 0;
     int lnb_type = UNIVERSAL;
-    
-    opterr = 0;
 
+    opterr = 0;
+    
     if (argc < 2) {
 	print_help(argv[0]);
 	return -1;
     }
-        
+    
     if (parse_args_io_tune(argc, argv, iod)< 0) return -1;
+    if (parse_args_spectrum( argc, argv, spec)<0)
+	return -1;
+    
     optind = 1;
-
     while (1) {
 	int option_index = 0;
 	int c;
 	static struct option long_options[] = {
 	    {"agc", no_argument, 0, 'b'},
+	    {"blindscan", required_argument, 0, 'g'},
 	    {"continuous", no_argument, 0, 'c'},
 	    {"check_tune", no_argument, 0, 'C'},
-	    {"blindscan", required_argument, 0, 'g'},
 	    {"help", no_argument , 0, 'h'},
-	    {"Kaiserwindow", no_argument, 0, 'k'},
-	    {"frontend", required_argument, 0, 'e'},
-	    {"alpha", required_argument, 0, 'l'},
-	    {"nfft", required_argument, 0, 'n'},	    
 	    {"output", required_argument , 0, 'o'},
 	    {"quick", no_argument, 0, 'q'},
 	    {"csv", no_argument, 0, 't'},
@@ -150,31 +124,15 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, 
-			"bcCg:hke:l:n:o:qtTx:",
+	c = getopt_long(argc, argv, "bg:cCho:qtTx:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
 	
 	switch (c) {
 	case 'b':
-	    id = AGC_ON;
+	    iod->id = AGC_ON;
 	    break;
-	    
-	case 'c':
-	    multi = 1;
-	    break;
-
-	case 'C':
-	    if (outmode) {
-		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		return -1;
-	    }
-	    outmode = CHECK_TUNE;
-	    id = DVB_UNDEF;
-	    break;
-	    
 	    
 	case 'g':
 	    if (outmode == CSV){
@@ -189,28 +147,26 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    smooth = strtoul(optarg, NULL, 0);
 	    break;
 
+	case 'c':
+	    multi = 1;
+	    break;
+
+	case 'C':
+	    if (outmode) {
+		fprintf(stderr, "Error conflicting options\n");
+		fprintf(stderr, "chose only one of the options -c -t -g\n");
+		return -1;
+	    }
+	    outmode = CHECK_TUNE;
+	    id = DVB_UNDEF;
+	    break;
+
 	case 'h':
 	    print_help(argv[0]);
 	    return -1;
-
-	case 'k':
-	    use_window = 1;
-	    break;
-	    
-	case 'l':
-	    alpha = strtod(optarg, NULL);	    
-	    break;
 	    
 	case 'o':
 	    iod->filename = strdup(optarg);
-	    break;
-	    
-	case 'n':
-	    nfft = strtoul(optarg, NULL, 10);
-	    break;
-
-	case 'q':
-	    width = FFT_LENGTH/2;
 	    break;
 
 	case 'T':
@@ -226,19 +182,20 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    if (!outmode) outmode = CSV;
 	    
 	    break;
-	    
+
 	case 'x':
 	    full = 1;
-	    t = strtoul(optarg, &nexts, 0);
+	    nexts = NULL;
+	    uint32_t t = strtoul(optarg, &nexts, 0);
 	    if (t) {
 		fstart = t;
 		if (nexts){
 		    nexts++;
 		    fstop = strtoul(nexts, NULL, 0);
 		}
-//		fprintf(stderr,"nexts: %s   %d %d\n",nexts, fstart, fstop);
 		nexts = NULL;
 	    }
+	    //    fprintf(stderr,"nexts: %s   %d %d\n",nexts, fstart, fstop);
 	    break;
 
 	default:
@@ -246,6 +203,7 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 	    
 	}
     }
+    if (!outmode) outmode = SINGLE_PAM;
 
     height = 9*width/16;
     if (iod->freq && (iod->freq < MIN_FREQ || iod->freq > MAX_FREQ)){
@@ -254,15 +212,12 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
 		MIN_FREQ,MAX_FREQ);
 	return -1;
     }
-    set_io(iod, width, full, fstart, fstop, smooth);
-    if (init_specdata(spec, width, height, alpha,
-		      nfft, use_window) < 0) {
-	exit(3);
-    }
+    set_io(iod, spec->width, full, fstart, fstop, smooth);
+
     if (!outmode) outmode = SINGLE_PAM;
 
     return outmode;
-}
+}	
 
 void spectrum_output( int mode, io_data *iod, specdata *spec)
 {
@@ -441,17 +396,6 @@ int main(int argc, char **argv){
 	    }
 	}
 	spectrum_output (outm,  &iod, &spec );
-    } else {
-	if (check_tune(SYS_DVBS, &iod)){
-	    printf("Successfully tuned freq: %d sr: %d delsys: DVB-S\n",
-		   iod.freq, iod.fft_sr);
-	} else if (check_tune(SYS_DVBS2, &iod)){
-	    printf("Successfully tuned freq: %d sr: %d delsys: DVB-S2\n",
-		   iod.freq, iod.fft_sr);
-	} else {
-	    printf("Tuning failed freq: %d sr: %d\n",
-		   iod.freq, iod.fft_sr);
-	}
-    }
+    } 
 
 }

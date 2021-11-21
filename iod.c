@@ -1,7 +1,4 @@
 /*
-ddsx8-spec is an **example** program written in C to show how to use 
-the SDR mode of the DigitalDevices MAX SX8 to get IQ data.
-
 Copyright (C) 2021  Marcus Metzler
 
 This program is free software: you can redistribute it and/or modify
@@ -19,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "iod.h"
+//#define FULLTUNE 1 
 
 int tune(io_data *iod, int quick)
 {
@@ -121,6 +119,7 @@ void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
     iod->pol = pol;
     iod->hi = hi;
     iod->lnb = lnb;
+    iod->lnb_type = lnb_type;
     iod->delsys = delsys;
 
     if (lofs) iod->lofs = lofs;
@@ -175,10 +174,11 @@ void print_tuning_options()
 	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
 	    "              : (must be set for any diseqc command to be send)\n"
 	    " -s rate      : the symbol rate in Symbols/s\n"
+	    " -S number    : sattelite number/s\n"
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
-	    " -U t (s f)   : lnb is unicable type t (1: EN 50494, 2: TS 50607\n"
-	    "              : slot s freqency f ( default slot 1 freq 1210000)\n"
+	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
+	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210000)\n"
 	);
 }
 
@@ -186,11 +186,15 @@ void print_mode_options()
 {
     fprintf(stderr,
 	    "\n MODE OPTIONS:\n"
+	    " -b           : turn on agc\n"
 	    " -c           : continuous PAM output\n"
-	    " -C           : try to tune the frequency and symbolrate\n"
 	    " -t           : output CSV \n"
 	    " -T           : output minimal CSV\n"
-    	    "              : determine delivery system\n");
+	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
+	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
+	    " -g s         : blindscan, use s to improve scan (higher\n"
+	    "                s can lead to less false positives,\n"
+	    "                but may lead to missed peaks)\n");
 }
 
 int parse_args_io_tune(int argc, char **argv, io_data *iod)
@@ -232,6 +236,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {"lofs", required_argument, 0, 'l'},
 #endif
 	    {"unicable", required_argument, 0, 'U'},
+	    {"slot", required_argument, 0, 'j'},
 	    {"input", required_argument, 0, 'i'},
 	    {"frontend", required_argument, 0, 'e'},
 	    {"lnb", required_argument, 0, 'L'},
@@ -244,9 +249,9 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 
 	c = getopt_long(argc, myargv, 
 #ifdef FULLTUNE
-			"a:Df:i:e:L:p:s:ul:U:s:",
+			"a:Df:i:e:L:p:s:ul:U:S:",
 #else
-			"a:Df:i:e:L:p:s:uU:s:",
+			"a:Df:i:e:L:p:s:uU:S:j:",
 #endif
 			long_options, &option_index);
 	if (c==-1)
@@ -270,8 +275,6 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 
 #ifdef FULLTUNE
 	case 'l':
-	    nexts= NULL;
-
 	    lofs = strtoul(optarg, &nexts, 0);
 	    if (nexts){
 		nexts++;
@@ -287,22 +290,18 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 #endif
 	    
 	case 'U':
-	    nexts= NULL;
-	    lnb_type = strtoul(optarg, &nexts, 0);
-	    if (nexts){
-		nexts++;
-		scif_slot = strtoul(nexts, &nexts, 0);
-		if (nexts){
-		    nexts++;
-		    scif_freq = strtoul(nexts, NULL, 0);
-		    scif_freq = scif_freq/1000;
-		} else {
-		    fprintf(stderr, "Error Missing data in -U (--scifs)");
-		    return -1;
-		}
-	    } 
+	    lnb_type = strtoul(optarg, NULL, 0);
+//	    fprintf(stderr,"%c lnb_type: %d\n",c,lnb_type);
 	    break;
 
+	case 'j':
+	    nexts = NULL;
+	    scif_slot = strtoul(nexts, &nexts, 0);
+	    nexts++;
+	    scif_freq = strtoul(nexts, NULL, 0);
+	    scif_freq = scif_freq/1000;
+	    break;
+	    
 	case 'i':
 	    input = strtoul(optarg, NULL, 0);
 	    break;
@@ -312,11 +311,20 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    break;
 	    
 	case'p':
-	    pol =  strtoul(optarg, NULL, 0);
+	    if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
+	    {
+		pol = 1;
+	    } else if (!strcmp(optarg, "v") || !strcmp(optarg, "V"))
+	    {
+		pol = 0;
+	    } else {
+		pol =  strtoul(optarg, NULL, 0);
+	    }
 	    break;
 	    
 	case 's':
 	    sr = strtoul(optarg, NULL, 0);
+	    fprintf(stderr,"%c sr: %d\n",c,sr);
 	    break;
 
 	case 'S':
@@ -342,126 +350,5 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 }
 
 
-void print_spectrum_options()
-{
-    fprintf(stderr,
-	    "\n SPECTRUM OPTIONS:\n"
-	    " -b           : turn on agc\n"
-	    " -k           : use Kaiser window before FFT\n"
-	    " -l alpha     : parameter of the Kaiser window\n"
-	    " -n number    : number of FFTs averaging (default 1000)\n"
-	    " -q           : faster FFT\n"
-	    " -x f1 f2     : full spectrum scan from f1 to f2\n"
-	    "                (default -x 0 : 950000 to 2150000 kHz)\n"
-	    " -g s         : blindscan, use s to improve scan (higher\n"
-	    "                s can lead to less false positives,\n"
-	    "                but may lead to missed peaks)\n"
-	);
-}
 
 
-int parse_args_io_spectrum(int argc, char **argv, specdata *spec, io_data *iod)
-{
-    int use_window = 0;
-    double alpha = 2.0;
-    int nfft = 1000; //number of FFTs for average
-    int full = 0;
-    int width = FFT_LENGTH;
-    int height = 9*FFT_LENGTH/16;
-    int outmode = 0;
-    uint32_t fstart = MIN_FREQ;
-    uint32_t fstop = MAX_FREQ;
-    int smooth = 0;
-    char *nexts= NULL;
-    uint32_t lnb = 0;
-    opterr = 0;
-    optind = 1;
-    char **myargv;
-
-    myargv = malloc(argc*sizeof(char*));
-    memcpy(myargv, argv, argc*sizeof(char*));
-    
-    while (1) {
-	int option_index = 0;
-	int c;
-	static struct option long_options[] = {
-	    {"agc", no_argument, 0, 'b'},
-	    {"blindscan", required_argument, 0, 'g'},
-	    {"Kaiserwindow", no_argument, 0, 'k'},
-	    {"alpha", required_argument, 0, 'l'},
-	    {"nfft", required_argument, 0, 'n'},	    
-	    {"quick", no_argument, 0, 'q'},
-	    {"full_spectrum", required_argument, 0, 'x'},	    
-	    {0, 0, 0, 0}
-	};
-	
-	c = getopt_long(argc, argv, 
-			"bg:kl:n:qx:",
-			long_options, &option_index);
-	if (c==-1)
-	    break;
-	
-	switch (c) {
-	case 'b':
-	    iod->id = AGC_ON;
-	    break;
-	    
-	case 'g':
-	    if (outmode == CSV){
-		outmode = BLINDSCAN_CSV;
-	    } else if (outmode) {
-		fprintf(stderr, "Error conflicting options\n");
-		fprintf(stderr, "chose only one of the options -c -t -g\n");
-		return -1;
-	    }
-	    if (!outmode) outmode = BLINDSCAN;
-	    full = 1;
-	    smooth = strtoul(optarg, NULL, 0);
-	    break;
-
-	case 'k':
-	    use_window = 1;
-	    break;
-	    
-	case 'l':
-	    alpha = strtod(optarg, NULL);	    
-	    break;
-	    
-	case 'n':
-	    nfft = strtoul(optarg, NULL, 10);
-	    break;
-
-	case 'q':
-	    width = FFT_LENGTH/2;
-	    break;
-
-	case 'x':
-	    full = 1;
-	    uint32_t t = strtoul(optarg, &nexts, 0);
-	    if (t) {
-		fstart = t;
-		if (nexts){
-		    nexts++;
-		    fstop = strtoul(nexts, NULL, 0);
-		}
-//		fprintf(stderr,"nexts: %s   %d %d\n",nexts, fstart, fstop);
-		nexts = NULL;
-	    }
-	    break;
-
-	default:
-	    break;
-	    
-	}
-    }
-
-    height = 9*width/16;
-    set_io(iod, width, full, fstart, fstop, smooth);
-    if (init_specdata(spec, width, height, alpha,
-		      nfft, use_window) < 0) {
-	exit(3);
-    }
-    if (!outmode) outmode = SINGLE_PAM;
-
-    return outmode;
-}
