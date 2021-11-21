@@ -44,7 +44,6 @@ typedef struct io_data_{
 
     int delay;
     int input;
-    int sat;
     int lnb_type;
     uint32_t freq;
     uint32_t pol;
@@ -63,7 +62,7 @@ typedef struct io_data_{
 
 int tune(io_data *iod, int quick);
 void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
-		 int adapter, int input, int fe_num, int sat,
+		 int adapter, int input, int fe_num,
 		 uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
 		 uint32_t hi, uint32_t id, int delay,  int lnb_type,
 		 uint32_t lofs, uint32_t lof1, uint32_t lof2,

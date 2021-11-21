@@ -22,12 +22,10 @@ int tune(io_data *iod, int quick)
 {
     if (iod->pol != 2 && !quick){
 	tune_sat(iod->fe_fd, iod->lnb_type, iod->freq, 
-		 iod->fft_sr, iod->delsys, iod->input, iod->id, 
-		 iod->sat, iod->pol, iod->hi,
+		 iod->fft_sr, iod->delsys, iod->input,
+		 iod->id, iod->pol, iod->hi,
 		 iod->lnb, iod->lofs, iod->lof1, iod->lof2,
 		 iod->scif_slot, iod->scif_freq);
-
-	//diseqc(iod->fe_fd, iod->lnb, iod->pol, iod->hi);
     } else {
 	if (iod->freq >MIN_FREQ && iod->freq < MAX_FREQ){
 	    if (set_fe_input(iod->fe_fd, iod->freq, iod->fft_sr,
@@ -78,7 +76,6 @@ void init_io(io_data *iod)
     iod->adapter = 0;
     iod->lnb_type = UNIVERSAL;
     iod->input = 0;
-    iod->sat = 0;
     iod->fe_num = 0;
     iod->full = 0;
     iod->smooth = 6;
@@ -96,12 +93,12 @@ void init_io(io_data *iod)
     iod->lofs = 11700000;
     iod->lof1 =  9750000;
     iod->lof2 = 10600000;
-    iod->scif_slot = 1;
+    iod->scif_slot = 0;
     iod->scif_freq = 1210;
 }
 
 void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
-		 int adapter, int input, int fe_num, int sat,
+		 int adapter, int input, int fe_num,
 		 uint32_t freq, uint32_t sr, uint32_t pol, int lnb,
 		 uint32_t hi, uint32_t id, int delay,  int lnb_type,
 		 uint32_t lofs, uint32_t lof1, uint32_t lof2,
@@ -109,7 +106,6 @@ void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
 {
     iod->adapter = adapter;
     iod->input = input;
-    iod->sat = sat;
     iod->fe_num = fe_num;
     iod->freq = freq;
     iod->fft_sr = sr;
@@ -174,7 +170,6 @@ void print_tuning_options()
 	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
 	    "              : (must be set for any diseqc command to be send)\n"
 	    " -s rate      : the symbol rate in Symbols/s\n"
-	    " -S number    : sattelite number/s\n"
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
 	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
@@ -216,7 +211,6 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
     uint32_t lof2 = 0;
     uint32_t scif_slot = 0;
     uint32_t scif_freq = 0;
-    int sat = 0 ;
     char *nexts= NULL;
     opterr = 0;
     optind = 1;
@@ -231,6 +225,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	static struct option long_options[] = {
 	    {"adapter", required_argument, 0, 'a'},
 	    {"delay", no_argument, 0, 'D'},
+	    {"delsys", required_argument, 0, 'd'},
 	    {"frequency", required_argument, 0, 'f'},
 #ifdef FULLTUNE
 	    {"lofs", required_argument, 0, 'l'},
@@ -242,16 +237,15 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {"lnb", required_argument, 0, 'L'},
 	    {"polarisation", required_argument, 0, 'p'},
 	    {"symbol_rate", required_argument, 0, 's'},
-	    {"sat", required_argument, 0, 'S'},
 	    {"band", no_argument, 0, 'u'},
 	    {0, 0, 0, 0}
 	};
 
 	c = getopt_long(argc, myargv, 
 #ifdef FULLTUNE
-			"a:Df:i:e:L:p:s:ul:U:S:",
+			"a:d:Df:i:e:L:p:s:ul:U:S:",
 #else
-			"a:Df:i:e:L:p:s:uU:S:j:",
+			"a:d:Df:i:e:L:p:s:uU:S:j:",
 #endif
 			long_options, &option_index);
 	if (c==-1)
@@ -260,8 +254,39 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	case 'a':
 	    adapter = strtoul(optarg, NULL, 0);
 	    break;
-	    
+
 	case 'd':
+	    if (!strcmp(optarg, "C"))
+		delsys = SYS_DVBC_ANNEX_A;
+	    if (!strcmp(optarg, "DVBC"))
+		delsys = SYS_DVBC_ANNEX_A;
+	    if (!strcmp(optarg, "S"))
+		delsys = SYS_DVBS;
+	    if (!strcmp(optarg, "DVBS"))
+		delsys = SYS_DVBS;
+	    if (!strcmp(optarg, "S2"))
+		delsys = SYS_DVBS2;
+	    if (!strcmp(optarg, "DVBS2"))
+		delsys = SYS_DVBS2;
+	    if (!strcmp(optarg, "T"))
+		delsys = SYS_DVBT;
+	    if (!strcmp(optarg, "DVBT"))
+		delsys = SYS_DVBT;
+	    if (!strcmp(optarg, "T2"))
+		delsys = SYS_DVBT2;
+	    if (!strcmp(optarg, "DVBT2"))
+		delsys = SYS_DVBT2;
+	    if (!strcmp(optarg, "J83B"))
+		delsys = SYS_DVBC_ANNEX_B;
+	    if (!strcmp(optarg, "ISDBC"))
+		delsys = SYS_ISDBC;
+	    if (!strcmp(optarg, "ISDBT"))
+		delsys = SYS_ISDBT;
+	    if (!strcmp(optarg, "ISDBS"))
+		delsys = SYS_ISDBS;
+	    break;
+
+	case 'D':
 	    delay = 1000000;
 	    break;
 	    
@@ -291,12 +316,12 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    
 	case 'U':
 	    lnb_type = strtoul(optarg, NULL, 0);
-//	    fprintf(stderr,"%c lnb_type: %d\n",c,lnb_type);
 	    break;
 
 	case 'j':
 	    nexts = NULL;
 	    scif_slot = strtoul(nexts, &nexts, 0);
+	    scif_slot = scif_slot-1;
 	    nexts++;
 	    scif_freq = strtoul(nexts, NULL, 0);
 	    scif_freq = scif_freq/1000;
@@ -324,13 +349,8 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    
 	case 's':
 	    sr = strtoul(optarg, NULL, 0);
-	    fprintf(stderr,"%c sr: %d\n",c,sr);
 	    break;
 
-	case 'S':
-	    sat = strtoul(optarg, NULL, 0);
-	    break;
-	    
 	case 'u':
 	    if (pol == 2) pol = 0;
 	    hi  = 1;
@@ -342,7 +362,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	}
     }
 
-    set_io_tune(iod, delsys, adapter, input, fe_num, sat,
+    set_io_tune(iod, delsys, adapter, input, fe_num, 
 		freq, sr, pol, lnb, hi, id, delay, lnb_type,
 		lofs, lof1, lof2, scif_slot, scif_freq);
 
