@@ -251,12 +251,13 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
         usleep(15000);
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
-
+/*
         fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
                   cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
         fprintf(stderr, "EN50607 freq %u sr %u hor %u band: %d "
 		"ds: %d ufreq %d\n", 
 		freq, sr, hor, band,ds , ubfreq*1000);
+*/
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 }
 
@@ -283,7 +284,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	    else
 		freq -= lof1;
         }
-	fprintf(stderr, "tune_sat IF=%u scif_type=%d\n", freq, type);
+//	fprintf(stderr, "tune_sat IF=%u scif_type=%d\n", freq, type);
 
 	int re=-1;
         if (type == 1) { 

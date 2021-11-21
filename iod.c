@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "iod.h"
-//#define FULLTUNE 1 
 
 int tune(io_data *iod, int quick)
 {
@@ -162,10 +161,8 @@ void print_tuning_options()
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
 	    " -f frequency : center frequency in kHz\n"
 	    " -i input     : the physical input of the SX8 (default=0)\n"
-#ifdef FULLTUNE
 	    " -l ls l1 l2  : set lofs lof1 lof2 \n"
 	    "              : (default 11700000 9750000 10600000)\n"
-#endif
  	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
 	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
 	    "              : (must be set for any diseqc command to be send)\n"
@@ -227,9 +224,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    {"delay", no_argument, 0, 'D'},
 	    {"delsys", required_argument, 0, 'd'},
 	    {"frequency", required_argument, 0, 'f'},
-#ifdef FULLTUNE
 	    {"lofs", required_argument, 0, 'l'},
-#endif
 	    {"unicable", required_argument, 0, 'U'},
 	    {"slot", required_argument, 0, 'j'},
 	    {"input", required_argument, 0, 'i'},
@@ -242,11 +237,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	};
 
 	c = getopt_long(argc, myargv, 
-#ifdef FULLTUNE
 			"a:d:Df:i:e:L:p:s:ul:U:S:",
-#else
-			"a:d:Df:i:e:L:p:s:uU:S:j:",
-#endif
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -298,7 +289,6 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	    freq = strtoul(optarg, NULL, 0);
 	    break;
 
-#ifdef FULLTUNE
 	case 'l':
 	    lofs = strtoul(optarg, &nexts, 0);
 	    if (nexts){
@@ -312,7 +302,6 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 		return -1;
 	    } 
 	    break;
-#endif
 	    
 	case 'U':
 	    lnb_type = strtoul(optarg, NULL, 0);
@@ -320,11 +309,11 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 
 	case 'j':
 	    nexts = NULL;
-	    scif_slot = strtoul(nexts, &nexts, 0);
+	    scif_slot = strtoul(optarg, &nexts, 0);
 	    scif_slot = scif_slot-1;
 	    nexts++;
 	    scif_freq = strtoul(nexts, NULL, 0);
-	    scif_freq = scif_freq/1000;
+	    scif_freq = scif_freq;
 	    break;
 	    
 	case 'i':

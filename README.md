@@ -68,20 +68,27 @@ For usage information use the -h option.
 	-e frontend  : the frontend/dmx/dvr to be used (default=0)
 	-f frequency : center frequency of the spectrum in kHz
 	-i input     : the physical input of the SX8 (default=0)
+	-l ls l1 l2  : set lofs lof1 lof2 
+                 : (default 11700000 9750000 10600000)
 	-L n         : diseqc switch to LNB/SAT number n (default 0)
 	-p pol       : polarisation 0=vertical 1=horizontal
                  : (must be set for any diseqc command to be send)
 	-s rate      : the symbol rate in Symbols/s
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
+	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
+	-j slot freq : slot s freqency f ( default slot 1 freq 1210000)
+
 
 	SPECTRUM OPTIONS:
-	-b           : turn on agc
-	-c           : continuous PAM output
 	-k           : use Kaiser window before FFT
 	-l alpha     : parameter of the Kaiser window
 	-n number    : number of FFTs averaging (default 1000)
 	-q           : faster FFT
+	
+	MODE OPTIONS:
+	-b           : turn on agc
+	-c           : continuous PAM output
 	-t           : output CSV 
 	-T           : output minimal CSV
 	-x f1 f2     : full spectrum scan from f1 to f2
@@ -89,7 +96,7 @@ For usage information use the -h option.
 	-g s         : blindscan, use s to improve scan (higher
                    s can lead to less false positives,
                    but may lead to missed peaks)
-	
+
 	-h           : this help message
 		   
 				   
@@ -158,6 +165,35 @@ Use the number after g to fine-tune the scan.
 `./ddsx8-spec -k -x 0 -g 6 | ffplay -f pam_pipe -`
 
 ![spectrum of unicable LNB](screenshot/blindscan.jpg)
+
+
+# dd_param_zap
+
+dd_param_zap is a DVB tuning program, where you can (or have to)
+set all the parameters by hand, i.e.
+
+`./dd_param_zap -f 12188000 -s 27500000 -p h -U 2 -j 1 1210000 -i 2 1420000 -l 1170000 9750000 10600000`
+
+
+	TUNING OPTIONS:
+	-d delsys    : the delivery system 
+	-a adapter   : the number n of the DVB adapter, i.e. 
+	               /dev/dvb/adapter[n] (default=0)
+	-e frontend  : the frontend/dmx/dvr to be used (default=0)
+	-f frequency : center frequency in kHz
+	-i input     : the physical input of the SX8 (default=0)
+	-l ls l1 l2  : set lofs lof1 lof2 
+                 : (default 11700000 9750000 10600000)
+	-L n         : diseqc switch to LNB/SAT number n (default 0)
+	-p pol       : polarisation 0=vertical 1=horizontal
+                 : (must be set for any diseqc command to be send)
+	-s rate      : the symbol rate in Symbols/s
+	-u           : use hi band of LNB
+	-D           : use 1s delay to wait for LNB power up
+	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
+	-j slot freq : slot s freqency f ( default slot 1 freq 1210000)
+
+
 
 #  pam_test
 
