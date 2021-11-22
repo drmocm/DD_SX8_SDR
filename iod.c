@@ -218,7 +218,7 @@ int parse_args_io_tune(int argc, char **argv, io_data *iod)
 	};
 
 	c = getopt_long(argc, myargv, 
-			"a:d:Df:I:i:e:L:p:s:ul:U:S:",
+			"a:d:Df:I:i:j:e:L:p:s:ul:U:S:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;

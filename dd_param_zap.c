@@ -16,7 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <unistd.h>
-#include "iod.h"
+#include <stdlib.h>
+#include <getopt.h>
 #include "dvb.h"
 
 #define MAXTRY 5
@@ -24,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 void print_help()
 {
-    print_tuning_options();
+    dvb_print_tuning_options();
     fprintf(stderr,
 	    "\n OTHERS:\n"
 	    " -o filename  : output filename\n"
@@ -32,10 +33,11 @@ void print_help()
 	);
 }
 
-int parse_args(int argc, char **argv, io_data *iod)
+int parse_args(int argc, char **argv, dvb_devices *dev,
+	       dvb_fe *fe, dvb_lnb *lnb, char *fname)
 {
     int out = 0;
-    if (parse_args_io_tune(argc, argv, iod)< 0) return -1;
+    if (dvb_parse_args(argc, argv, dev, fe, lnb)< 0) return -1;
 
     optind = 1;
 
@@ -55,7 +57,7 @@ int parse_args(int argc, char **argv, io_data *iod)
 	
 	switch (c) {
 	case 'o':
-	    iod->filename = strdup(optarg);
+	    fname = strdup(optarg);
 	    out = 1;
 	    break;
 
@@ -71,52 +73,54 @@ int parse_args(int argc, char **argv, io_data *iod)
 	    break;
 	}
     }
+
     return out;
 }	
 
 
 int main(int argc, char **argv){
-    io_data iod;
+    dvb_devices dev;
+    dvb_lnb lnb;
+    dvb_fe fe;
     int lock = 0;
     int t=0;
     int out = 0;
     int fd = 0;
+    char *filename = NULL;
     
-    init_io(&iod);
-    if ((out=parse_args(argc, argv, &iod)) < 0)
+    dvb_init(&dev, &fe, &lnb);
+    if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
-    open_io(&iod);
-    iod.id = DVB_UNDEF;
-    fprintf(stderr,"out %d\n", out);
-
+    dvb_open(&dev, &fe, &lnb);
     fprintf(stderr,
 	    "Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
 	    "               lnb_type: %d input: %d\n",
-	    iod.freq, iod.pol ? "h":"v", iod.fft_sr,
-	    iod.delsys == SYS_DVBS ? "DVB-S" : "DVB-S2", iod.lnb_type, iod.input);
+	    fe.freq, fe.pol ? "h":"v", fe.sr,
+	    fe.delsys == SYS_DVBS ? "DVB-S" : "DVB-S2", lnb.type, fe.input);
     fprintf(stderr,"Tuning ");
-    if (tune(&iod, 0) < 0) exit(1);
-
+    int re;
+    if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
+    fprintf(stderr,"re: %d\n",re);
     while (!lock && t < MAXTRY){
 	t++;
 	fprintf(stderr,".");
-	lock = read_status(iod.fe_fd);
+	lock = read_status(dev.fd_fe);
 	sleep(1);
     }
     fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
     if (out){
 	uint8_t *buf=(uint8_t *)malloc(BUFFSIZE);
 	
-	if (iod.filename){
-	    fprintf(stderr,"writing to %s\n",iod.filename);
-	    fd = open(iod.filename, O_WRONLY | O_CREAT | O_TRUNC,
+	if (filename){
+	    fprintf(stderr,"writing to %s\n", filename);
+	    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC,
 		      00644);
 	} else {
 	    fprintf(stderr,"writing to stdout\n");
 	    fd = fileno(stdout); 
 	}
 	while(1){
-	    int re = read(iod.fdin,buf,BUFFSIZE);
+	    int re = read(dev.fd_dvr,buf,BUFFSIZE);
 	    re = write(fd,buf,re);
 	}
 

@@ -23,40 +23,42 @@
 
 
 typedef struct io_data_{
+    char *filename;
+
     int fe_fd;
     int fd_dmx;
     int fdin;
     int fd_out;
 
-    int fe_num;
-    int adapter;
-
-    char *filename;
-
+    uint32_t fft_length;
     int full;
     int smooth;
     uint32_t fstart;
     uint32_t fstop;
     uint32_t frange;
-    uint32_t fft_length;
     uint32_t window;
     int step;
 
+    int fe_num;
+    int adapter;
+
     int delay;
     int input;
-    int lnb_type;
+    uint32_t lnb;
+
+    enum fe_delivery_system delsys;
     uint32_t freq;
     uint32_t pol;
     uint32_t hi;
-    uint32_t lnb;
+    uint32_t fft_sr;
+    uint32_t id;
+
+    int lnb_type;
     uint32_t lofs;
     uint32_t lof1;
     uint32_t lof2;
     uint32_t scif_slot;
     uint32_t scif_freq;
-    uint32_t fft_sr;
-    uint32_t id;
-    enum fe_delivery_system delsys;
 } io_data;
 
 

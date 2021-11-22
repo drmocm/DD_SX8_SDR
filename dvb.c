@@ -18,13 +18,51 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <getopt.h>
 #include "dvb.h"
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+void dvb_init_dev(dvb_devices *dev)
+{
+    dev->adapter = 0;    
+    dev->num = 0;    
+    dev->fd_fe = -1;
+    dev->fd_dvr = -1;
+    dev->fd_dmx = -1;
+    dev->fd_dvr = -1;
+    dev->fd_mod = -1;
+}
 
+void dvb_init_fe(dvb_fe *fe)
+{
+    fe->id = DVB_UNDEF;
+    fe->freq = DVB_UNDEF;
+    fe->sr = DVB_UNDEF;
+    fe->pol = DVB_UNDEF;
+    fe->hi = 0;
+    fe->input = 0;
+}
 
-/******************************************************************************/
+void dvb_init_lnb(dvb_lnb *lnb)
+{
+    lnb->delay = 0;
+    lnb->type = UNIVERSAL;
+    lnb->num = 0;
+    lnb->lofs = 11700000;
+    lnb->lof1 =  9750000;
+    lnb->lof2 = 10600000;
+    lnb->scif_slot = 0;
+    lnb->scif_freq = 1210;
+}
+
+void dvb_init(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    dvb_init_dev(dev);
+    dvb_init_fe(fe);
+    dvb_init_lnb(lnb);
+}
 
 static int set_property(int fd, uint32_t cmd, uint32_t data)
 {
@@ -85,12 +123,26 @@ int set_fe_input(int fd, uint32_t fr,
 	c.props = p;
 	ret = ioctl(fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		fprintf(stderr, "FE_SET_PROPERTY fe returned %d\n", ret);
 		return -1;
 	}
-	set_property(fd, DTV_STREAM_ID, id);
-	set_property(fd, DTV_INPUT, input);
-	set_property(fd, DTV_TUNE, 0);
+	ret = set_property(fd, DTV_STREAM_ID, id);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY id returned %d\n", ret);
+		return -1;
+	}
+	ret = set_property(fd, DTV_INPUT, input);
+		if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY input returned %d\n", ret);
+		return -1;
+	}
+
+	ret = set_property(fd, DTV_TUNE, 0);
+	if (ret < 0) {
+	        fprintf(stderr, "FE_SET_PROPERTY tune returned %d\n", ret);
+	        return -1;
+	}
+
 	return 0;
 }
 
@@ -300,6 +352,226 @@ int tune_sat(int fd, int type, uint32_t freq,
 	return re;
 }
 
+int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    return tune_sat(dev->fd_fe, lnb->type, fe->freq, fe->sr, fe->delsys,
+		    fe->input, fe->id, fe->pol, fe->hi, lnb->num, lnb->lofs,
+		    lnb->lof1, lnb->lof2, lnb->scif_slot, lnb->scif_freq);
+}
+
+void dvb_print_tuning_options()
+{
+    fprintf(stderr,
+	    "\n TUNING OPTIONS:\n"
+	    " -d delsys    : the delivery system\n"
+	    " -a adapter   : the number n of the DVB adapter, i.e. \n"
+	    "                /dev/dvb/adapter[n] (default=0)\n"
+	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
+	    " -f frequency : center frequency in kHz\n"
+	    " -i input     : the physical input of the SX8 (default=0)\n"
+	    " -I id        : set id (do not use if you don't know)\n"
+	    " -l ls l1 l2  : set lofs lof1 lof2 \n"
+	    "              : (default 11700000 9750000 10600000)\n"
+ 	    " -L n         : diseqc switch to LNB/SAT number n (default 0)\n"
+	    " -p pol       : polarisation 0=vertical 1=horizontal\n"
+	    "              : (must be set for any diseqc command to be send)\n"
+	    " -s rate      : the symbol rate in Symbols/s\n"
+	    " -u           : use hi band of LNB\n"
+	    " -D           : use 1s delay to wait for LNB power up\n"
+	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
+	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)\n"
+	);
+}
+
+int dvb_parse_args(int argc, char **argv,
+		   dvb_devices *dev, dvb_fe *fe, dvb_lnb *ln)
+{
+    enum fe_delivery_system delsys = SYS_DVBS2;
+    int adapter = 0;
+    int input = 0;
+    int fe_num = 0;
+    uint32_t freq = 0;
+    uint32_t sr = DVB_UNDEF;
+    uint32_t id = DVB_UNDEF;
+    int delay = 0;
+    uint32_t pol = DVB_UNDEF;
+    uint32_t hi = 0;
+    uint32_t lnb = 0;
+    int lnb_type = UNIVERSAL;
+    uint32_t lofs = 0;
+    uint32_t lof1 = 0;
+    uint32_t lof2 = 0;
+    uint32_t scif_slot = 0;
+    uint32_t scif_freq = 1210;
+    char *nexts= NULL;
+    opterr = 0;
+    optind = 1;
+    char **myargv;
+
+    myargv = malloc(argc*sizeof(char*));
+    memcpy(myargv, argv, argc*sizeof(char*));
+    
+    while (1) {
+	int option_index = 0;
+	int c;
+	static struct option long_options[] = {
+	    {"adapter", required_argument, 0, 'a'},
+	    {"delay", no_argument, 0, 'D'},
+	    {"delsys", required_argument, 0, 'd'},
+	    {"frequency", required_argument, 0, 'f'},
+	    {"lofs", required_argument, 0, 'l'},
+	    {"unicable", required_argument, 0, 'U'},
+	    {"slot", required_argument, 0, 'j'},
+	    {"input", required_argument, 0, 'i'},
+	    {"id", required_argument, 0, 'I'},
+	    {"frontend", required_argument, 0, 'e'},
+	    {"lnb", required_argument, 0, 'L'},
+	    {"polarisation", required_argument, 0, 'p'},
+	    {"symbol_rate", required_argument, 0, 's'},
+	    {"band", no_argument, 0, 'u'},
+	    {0, 0, 0, 0}
+	};
+
+	c = getopt_long(argc, myargv, 
+			"a:d:Df:I:i:j:e:L:p:s:ul:U:S:",
+			long_options, &option_index);
+	if (c==-1)
+	    break;
+	switch (c) {
+	case 'a':
+	    adapter = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'd':
+	    if (!strcmp(optarg, "C"))
+		delsys = SYS_DVBC_ANNEX_A;
+	    if (!strcmp(optarg, "DVBC"))
+		delsys = SYS_DVBC_ANNEX_A;
+	    if (!strcmp(optarg, "S"))
+		delsys = SYS_DVBS;
+	    if (!strcmp(optarg, "DVBS"))
+		delsys = SYS_DVBS;
+	    if (!strcmp(optarg, "S2"))
+		delsys = SYS_DVBS2;
+	    if (!strcmp(optarg, "DVBS2"))
+		delsys = SYS_DVBS2;
+	    if (!strcmp(optarg, "T"))
+		delsys = SYS_DVBT;
+	    if (!strcmp(optarg, "DVBT"))
+		delsys = SYS_DVBT;
+	    if (!strcmp(optarg, "T2"))
+		delsys = SYS_DVBT2;
+	    if (!strcmp(optarg, "DVBT2"))
+		delsys = SYS_DVBT2;
+	    if (!strcmp(optarg, "J83B"))
+		delsys = SYS_DVBC_ANNEX_B;
+	    if (!strcmp(optarg, "ISDBC"))
+		delsys = SYS_ISDBC;
+	    if (!strcmp(optarg, "ISDBT"))
+		delsys = SYS_ISDBT;
+	    if (!strcmp(optarg, "ISDBS"))
+		delsys = SYS_ISDBS;
+	    break;
+
+	case 'D':
+	    delay = 1000000;
+	    break;
+	    
+	case 'e':
+	    fe_num = strtoul(optarg, NULL, 0);
+	    break;
+	    
+	case 'f':
+	    freq = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'l':
+	    lofs = strtoul(optarg, &nexts, 0);
+	    if (nexts){
+		nexts++;
+		lof1 = strtoul(nexts, &nexts, 0);
+	    } if (nexts) {
+		nexts++;
+		lof2 = strtoul(nexts, NULL, 0);
+	    } else {
+		fprintf(stderr, "Error Missing data in -l (--lofs)");
+		return -1;
+	    } 
+	    break;
+	    
+	case 'U':
+	    lnb_type = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'j':
+	    nexts = NULL;
+	    scif_slot = strtoul(optarg, &nexts, 0);
+	    scif_slot = scif_slot-1;
+	    nexts++;
+	    scif_freq = strtoul(nexts, NULL, 0);
+	    scif_freq = scif_freq;
+	    break;
+	    
+	case 'i':
+	    input = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'I':
+	    id = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'L':
+	    lnb = strtoul(optarg, NULL,0);	    
+	    break;
+	    
+	case'p':
+	    if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
+	    {
+		pol = 1;
+	    } else if (!strcmp(optarg, "v") || !strcmp(optarg, "V"))
+	    {
+		pol = 0;
+	    } else {
+		pol =  strtoul(optarg, NULL, 0);
+	    }
+	    break;
+	    
+	case 's':
+	    sr = strtoul(optarg, NULL, 0);
+	    break;
+
+	case 'u':
+	    if (pol == 2) pol = 0;
+	    hi  = 1;
+	    break;
+
+	default:
+	    break;
+	    
+	}
+    }
+
+    fe->delsys = delsys;
+    fe->input = input;
+    fe->freq = freq;
+    fe->sr = sr;
+    fe->pol = pol;
+    fe->hi = hi;
+    fe->id = id;
+    ln->num = lnb;
+    ln->delay = delay;
+    ln->type = lnb_type;
+    ln->lofs = lofs;
+    ln->lof1 = lof1;
+    ln->lof2 = lof2;
+    ln->scif_slot = scif_slot;
+    ln->scif_freq = scif_freq;
+    dev->adapter = adapter;
+    dev->num = fe_num;
+    
+    return 0;
+}
+
 
 int read_status(int fd)
 {
@@ -329,3 +601,19 @@ int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
   return 0;
 }
 
+void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    
+    if ( (dev->fd_fe = open_fe(dev->adapter, dev->num)) < 0){
+	exit(1);
+    }
+
+    if (fe->pol != DVB_UNDEF) power_on_delay(dev->fd_fe, lnb->delay);
+
+    if ( (dev->fd_dmx = open_dmx(dev->adapter, dev->num)) < 0){
+	exit(1);
+    }
+    if ( (dev->fd_dvr=open_dvr(dev->adapter, dev->num)) < 0){
+	exit(1);
+    }
+}
