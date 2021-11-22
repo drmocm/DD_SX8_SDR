@@ -277,7 +277,7 @@ int parse_args_spectrum(int argc, char **argv, specdata *spec)
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, 
+	c = getopt_long(argc, myargv, 
 			"kl:n:q",
 			long_options, &option_index);
 	if (c==-1)
