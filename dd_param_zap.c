@@ -100,7 +100,6 @@ int main(int argc, char **argv){
     fprintf(stderr,"Tuning ");
     int re;
     if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
-    fprintf(stderr,"re: %d\n",re);
     while (!lock && t < MAXTRY){
 	t++;
 	fprintf(stderr,".");

@@ -342,10 +342,10 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		break; 
 		
 	    case BLINDSCAN_CSV:
-		init_blindscan(&blind, fullspec, fullfreq, k+spec->width);
+		init_blindscan(&blind, fullspec, fullfreq, k);
 		do_blindscan(&blind, iod->smooth);
-		write_csv (iod->fd_out, k, iod->fft_sr/spec->width/1000,
-			   iod->fstart, fullspec, 0, 0, min);
+//		write_csv (iod->fd_out, k, iod->fft_sr/spec->width/1000,
+//			   iod->fstart, fullspec, 0, 0, min);
 		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks);
 		break;
 		
@@ -359,7 +359,7 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		for (int p=0; p < blind.numpeaks; p++){ 
 		    peak *pk = blind.peaks;
 		    display_peak(&g, pk[p].freq, pk[p].width, pk[p].height,
-				 255, 0, 0, 1 );
+				 255, 0, 0, 0);
 		}
 /*
 		graph_range(&g, fullfreq, blind.spec, blind.speclen);
