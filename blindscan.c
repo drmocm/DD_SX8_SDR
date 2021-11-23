@@ -250,23 +250,30 @@ int find_peak(double *dspec, int length, int pos, peak *p)
     return 0;
 }
 
-void write_peaks(int fd, peak *pk, int l)
+void write_peaks(int fd, peak *pk, int l, double lof, int pol)
 {
     FILE* fp = fdopen(fd, "w");
 
     fprintf(fp, "#number of peaks %d\n", l);
-    fprintf(fp,"#start, stop, freq, width, height, upslope, downslope\n");
-    for (int p=0; p < l; p++){ 
-	fprintf(fp,
-		"%d, %d, %.2f, %.2f, %f, %f, %f \n",
-		pk[p].start,
-		pk[p].stop,
-		pk[p].freq,
-		pk[p].width,
-		pk[p].height,
-		pk[p].slopestart,
-		pk[p].slopestop
-	    );
+    if (pol == 2) fprintf(fp,"#freq, width, height\n");
+    else fprintf(fp,"#freq, freq+lof, pol, width\n");
+    for (int p=0; p < l; p++){
+	if (pol != 2){
+	    fprintf(fp,
+		    "%.2f, %.2f, %s, %.2f\n",
+		    pk[p].freq,
+		    pk[p].freq+lof/1000,
+		    pol ? "H":"V",
+		    pk[p].width
+		);
+	} else {
+	    fprintf(fp,
+		    "%.2f, %.2f, %f\n",
+		    pk[p].freq,
+		    pk[p].width,
+		    pk[p].height
+		);
+	}
     }
 }
 

@@ -123,7 +123,6 @@ int parse_args(int argc, char **argv, specdata *spec, io_data *iod)
     if (parse_args_io_tune(argc, argv, iod)< 0) return -1;
     if (parse_args_spectrum( argc, argv, spec)<0)
 	return -1;
-    
     optind = 1;
     while (1) {
 	int option_index = 0;
@@ -346,7 +345,11 @@ void spectrum_output( int mode, io_data *iod, specdata *spec)
 		do_blindscan(&blind, iod->smooth);
 //		write_csv (iod->fd_out, k, iod->fft_sr/spec->width/1000,
 //			   iod->fstart, fullspec, 0, 0, min);
-		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks);
+		double lof = iod->lof1;
+		if (iod->hi) lof = iod->lof2;
+
+		write_peaks(iod->fd_out, blind.peaks, blind.numpeaks,
+			    lof, iod->pol);
 		break;
 		
 	    case BLINDSCAN:

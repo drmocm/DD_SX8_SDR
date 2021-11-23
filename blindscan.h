@@ -37,7 +37,7 @@ typedef struct blindscan_ {
 
 void init_blindscan (blindscan *b, double *spec, double *freq, int speclen);
 int do_blindscan(blindscan *b, int smooth);
-void write_peaks(int fd, peak *pk, int l);
+void write_peaks(int fd, peak *pk, int l, double lof, int pol);
 
     
 #endif /* _blindscan_H_*/

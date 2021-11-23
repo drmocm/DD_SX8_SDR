@@ -19,7 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 int tune(io_data *iod, int quick)
 {
-    if (iod->pol != 2 && !quick){
+
+    if (iod->lnb_type != UNIVERSAL) quick = 0;
+    if (iod->pol == 2) quick = 1;
+    if ( !quick ){
 	tune_sat(iod->fe_fd, iod->lnb_type, iod->freq, 
 		 iod->fft_sr, iod->delsys, iod->input,
 		 iod->id, iod->pol, iod->hi,
@@ -122,7 +125,6 @@ void set_io_tune(io_data *iod, enum fe_delivery_system delsys,
     if (lof2) iod->lof2 = lof2;
     if (scif_slot) iod->scif_slot = scif_slot;
     if (scif_freq) iod->scif_freq = scif_freq;
-    
 }
 
 void set_io(io_data *iod, uint32_t length, int full, uint32_t fstart,
