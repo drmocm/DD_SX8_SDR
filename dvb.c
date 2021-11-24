@@ -19,6 +19,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #include "dvb.h"
 
+#define UTF8_CC_START 0xc2
+#define SB_CC_RESERVED_80 0x80
+#define SB_CC_RESERVED_81 0x81
+#define SB_CC_RESERVED_82 0x82
+#define SB_CC_RESERVED_83 0x83
+#define SB_CC_RESERVED_84 0x84
+#define SB_CC_RESERVED_85 0x85
+#define CHARACTER_EMPHASIS_ON 0x86
+#define CHARACTER_EMPHASIS_OFF 0x87
+#define SB_CC_RESERVED_88 0x88
+#define SB_CC_RESERVED_89 0x89
+#define CHARACTER_CR_LF 0x8a
+#define SB_CC_USER_8B 0x8b
+#define SB_CC_USER_9F 0x9f
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 void dvb_init_dev(dvb_devices *dev)
@@ -679,4 +694,86 @@ uint32_t getbcd(uint8_t *p, int l)
         if (l & 1)
                 val = val * 10 + (p[i] >> 4);
         return val;
+}
+
+
+static void en300468_parse_string_to_utf8(char *dest, uint8_t *src,
+				   const unsigned int len)
+{
+    int utf8 = (src[0] == 0x15) ? 1 : 0;
+    int skip = (src[0] < 0x20) ? 1 : 0;
+    if( src[0] == 0x10 ) skip += 2;
+    uint16_t utf8_cc;
+    int dest_pos = 0;
+    int emphasis = 0;
+    int i;
+    
+    for (i = skip; i < len; i++) {
+	switch(*(src + i)) {
+	case SB_CC_RESERVED_80 ... SB_CC_RESERVED_85:
+	case SB_CC_RESERVED_88 ... SB_CC_RESERVED_89:
+	case SB_CC_USER_8B ... SB_CC_USER_9F:
+	case CHARACTER_CR_LF:
+	    dest[dest_pos++] = '\n';
+	    continue;
+	case CHARACTER_EMPHASIS_ON:
+	    emphasis = 1;
+	    continue;
+	case CHARACTER_EMPHASIS_OFF:
+	    emphasis = 0;
+	    continue;
+	case UTF8_CC_START:
+	    if (utf8 == 1) {
+		utf8_cc = *(src + i) << 8;
+		utf8_cc += *(src + i + 1);
+		
+		switch(utf8_cc) {
+		case ((UTF8_CC_START << 8) | CHARACTER_EMPHASIS_ON):
+		    emphasis = 1;
+		    i++;
+		    continue;
+		case ((UTF8_CC_START << 8) | CHARACTER_EMPHASIS_OFF):
+		    emphasis = 0;
+		    i++;
+		    continue;
+		default:
+		    break;
+		}
+	    }
+	default: {
+	    if (*(src + i) < 128)
+		dest[dest_pos++] = *(src + i);
+	    else {
+		dest[dest_pos++] = 0xc2 + (*(src + i) > 0xbf);
+		dest[dest_pos++] = (*(src + i) & 0x3f) | 0x80;
+	    }
+	    break;
+	}
+	}
+    }
+    dest[dest_pos] = '\0';
+}
+
+void dvb2txt(char *in)
+{
+    uint8_t len;
+    char *out, *buf;
+	
+    len = strlen(in);
+//    my_err(0,"%s len = %d",in, len);
+    if (!len) return;
+    buf = (char *) malloc(sizeof(char)*(len+1));
+
+    if (!buf) {
+	fprintf(stderr,"Error allocating memory\n");
+	    exit(1);
+    }
+    memset(buf,0,len+1);
+    out = buf;
+    en300468_parse_string_to_utf8(out, (uint8_t *)in, len);
+    
+    int outlen = strlen(buf);
+    memcpy(in,buf,sizeof(char)*outlen);
+    in[outlen] = 0;
+    free(buf);
 }

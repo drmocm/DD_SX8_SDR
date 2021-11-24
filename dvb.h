@@ -90,6 +90,7 @@ int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 			    uint32_t ext, uint32_t ext_mask,
 			    uint32_t ext_nmask);
 uint32_t getbcd(uint8_t *p, int l);
+void dvb2txt(char *in);
 
 #endif
 

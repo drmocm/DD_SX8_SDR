@@ -195,6 +195,8 @@ set all the parameters by hand, i.e.
 	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
 
 	OTHERS:
+	-N           : get NIT
+	-S           : get SDT
 	-o filename  : output filename (default stdout)
 	-h           : this help message
 

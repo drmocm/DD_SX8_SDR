@@ -27,7 +27,7 @@ uint8_t parse_nit(uint8_t *buf)
 {
     int slen, tsp, c, nlen,nc;
     int ntune = 0;
-    uint16_t pid, pnr, nid;
+    uint16_t nid;
     uint16_t ndl, tsll, tdl=0, dl=0;
     uint16_t tsid, onid;
     char *network_name =NULL;
@@ -46,28 +46,33 @@ uint8_t parse_nit(uint8_t *buf)
     nc = 10;
     while ( nc < 10+ndl){
 	nlen = (int) buf[nc+1];
-	fprintf(stderr,"tag 0x%01x\n",buf[nc]);
+//	fprintf(stderr,"tag 0x%01x\n",buf[nc]);
 	switch (buf[nc]){
 	case 0x40:// network_name_descriptor
-	    fprintf(stderr,"name %s\n",&buf[nc+2]);
+	    network_name = (char *)&buf[nc+2];
 	    break;
 	}
 	nc += 2+nlen;
     }
     tsp = ndl + 10;
     tsll =  (((buf[tsp]&0x0F) << 8) | buf[tsp+1]);
-    fprintf(stderr, "NIT(%02x): len %u nid %u snr %02x lsnr %02x "
-	    "ndl %02x  tsll %02x\n",
-	    buf[0], slen, nid, buf[6], buf[7], ndl, tsll);
+//    fprintf(stderr, "NIT(%02x): len %u nid %u snr %02x lsnr %02x "
+//	    "ndl %02x  tsll %02x\n",
+//     buf[0], slen, nid, buf[6], buf[7], ndl, tsll);
+    printf("NIT (0x%02x): %s nid 0x%02x (%d/%d) \n",
+	   buf[0], network_name ? network_name: " ",nid, buf[6], buf[7]);
 
     for (c = tsp + 2; c < slen; c += tdl) {
 	uint16_t tsid, onid;
 	tsid = (buf[c] << 8) | buf[c+1];
 	onid = (buf[c+2] << 8) | buf[c+3];
 	tdl =  ((buf[c+4]&0x0f) << 8) | buf[c+5];
-	fprintf(stderr, "tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
+//	fprintf(stderr, "tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
 	c += 6;
 	ntune++;
+	//fprintf(stderr, "tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
+	printf("TRANSPONDER: tsid=0x%02x onid=0x%02x", tsid, onid);
+
 	switch (buf[c]){
 	    
 	case 0x43: // satellite
@@ -76,15 +81,15 @@ uint8_t parse_nit(uint8_t *buf)
 	    uint8_t pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
 	    uint8_t delsys = ((buf[c + 8] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
 	    uint8_t fec = buf[c + 12] & 0x0f;
-	    fprintf(stderr," freq = %u  pol = %u  sr = %u  fec = %u delsys=%d\n"
-		    , freq, pol, srate, fec, delsys);
+	    printf(" freq=%u  pol=%u  sr=%u  fec=%u delsys=%d\n"
+		  , freq, pol, srate, fec, delsys);
 	    break;
 	    
 	case 0x44: // cable
 	    freq =  getbcd(buf + c + 2, 8) / 10000;
 	    srate = getbcd(buf + c + 9, 7) / 10;
 	    delsys = SYS_DVBC_ANNEX_A;
-	    fprintf(stderr," freq = %u  sr = %u  delsys=%d\n",
+	    printf(" freq = %u  sr = %u  delsys=%d\n",
 		   freq, srate, delsys);
 	    break;
 	    
@@ -102,11 +107,76 @@ uint8_t parse_nit(uint8_t *buf)
     return buf[7];
 }
 
+
+uint8_t parse_sdt(uint8_t *buf)
+{
+    int slen=0;
+    int ntune = 0;
+    int c=0;
+    uint16_t tsid, onid;
+    
+    slen = (((buf[1]&0x0F) << 8) | buf[2])-3;
+    tsid = (buf[3] << 8) | buf[4];
+    onid = (buf[8] << 8) | buf[9];
+    printf("SDT(0x%02x): tsid 0x%02x onid 0x%02x (%d/%d)\n",
+	   buf[0], tsid, onid, buf[6], buf[7]);
+    c = 11;
+    while ( c < slen-4 ){
+	int cc = 0;
+	char *name = NULL;
+	uint8_t sid = (buf[c] << 8) | buf[c+1];
+	uint16_t tdl =  ((buf[c+3]&0x0f) << 8) | buf[c+4];
+	printf ("SERVICE: sid 0x%04x ",sid);
+	cc = 5;
+	while (cc < tdl){
+	    uint8_t tag = buf[c+cc];
+	    uint8_t dl = buf[c+1+cc];
+	    switch (tag){
+	    case 0x48: //service descriptor
+		char *prov=NULL;
+		char *name=NULL;
+		printf("type 0x%02x ", buf[c+cc+2]);
+
+		cc += 3;
+		int l = buf[c+cc];
+		cc++;
+		if (l){
+		    prov = malloc(sizeof(char)*l+1);
+		    memcpy(prov,buf+c+cc,l);
+		    prov[l] = 0x00;
+		    dvb2txt(prov);
+		    printf("provider %s ", prov);
+		}
+		cc += l;
+		int ll = buf[c+cc];
+		cc++;
+		if (ll){
+		    name = malloc(sizeof(char)*ll+1);
+		    memcpy(name,buf+c+cc,ll);
+		    name[ll] = 0x00;
+		    dvb2txt(name);
+		    printf("name %s ", name);
+		}
+		cc += ll;
+		break;
+		
+	    default:
+		break;
+	    }
+	}
+	printf("\n");
+	c+=tdl+5;
+    }
+    return buf[7];
+}
+
 void print_help()
 {
     dvb_print_tuning_options();
     fprintf(stderr,
 	    "\n OTHERS:\n"
+	    " -N           : get NIT\n"
+	    " -S           : get SDT\n"
 	    " -o filename  : output filename\n"
 	    " -h           : this help message\n\n"
 	);
@@ -126,12 +196,13 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	static struct option long_options[] = {
 	    {"fileout", required_argument , 0, 'o'},
 	    {"nit", required_argument , 0, 'N'},
+	    {"sdt", required_argument , 0, 'S'},
 	    {"stdout", no_argument , 0, 'O'},
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:ON", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:ONS", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -143,6 +214,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 
 	case 'N':
 	    out = 2;
+	    break;
+
+	case 'S':
+	    out = 3;
 	    break;
 
 	case 'O':
@@ -171,6 +246,7 @@ int main(int argc, char **argv){
     int out = 0;
     int fd = 0;
     char *filename = NULL;
+    uint8_t sec_buf[4096];
     
     dvb_init(&dev, &fe, &lnb);
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
@@ -237,7 +313,30 @@ int main(int argc, char **argv){
 		}
 	    }
 	    break;
-	    
+
+	case 3:
+	    close(dev.fd_dmx);
+	    if ((fdmx = dvb_open_dmx_section_filter(&dev,0x11 , 0x42,
+						    0,0x000000FF,0)) < 0)
+		exit(1); 
+
+	    re = 0;
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    int nsdt = parse_sdt(sec_buf);
+	    close(fdmx);
+	    if (nsdt){
+		for (int i=1; i < nsdt+1; i++){
+		if ((fdmx = dvb_open_dmx_section_filter(&dev,0x11 , 0x42,
+							(uint32_t)i,
+							0x000000ff,0)) < 0)
+		    exit(1); 
+		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+		nsdt = parse_sdt(sec_buf);
+		close(fdmx);
+		}
+	    }
+	    break;
+
 	default:
 	    break;
 	}
