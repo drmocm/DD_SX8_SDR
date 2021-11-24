@@ -133,7 +133,6 @@ void set_io(io_data *iod, uint32_t length, int full, uint32_t fstart,
     iod->fft_length = length;
     iod->full = full;
     iod->smooth = smooth;
-    iod->window = (iod->fft_sr/2/1000);
     if (fstart < MIN_FREQ || fstart > MAX_FREQ ||
 	fstop < MIN_FREQ || fstop > MAX_FREQ){
 	fprintf(stderr,"Frequencies out of range (%d %d ) using default: %d -  %d\n",

@@ -1,7 +1,4 @@
 /*
-ddsx8-spec is an **example** program written in C to show how to use 
-the SDR mode of the DigitalDevices MAX SX8 to get IQ data.
-
 Copyright (C) 2021  Marcus Metzler
 
 This program is free software: you can redistribute it and/or modify
@@ -66,41 +63,41 @@ void dvb_init(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 
 static int set_property(int fd, uint32_t cmd, uint32_t data)
 {
-	struct dtv_property p;
-	struct dtv_properties c;
-	int ret;
-
-	p.cmd = cmd;
-	c.num = 1;
-	c.props = &p;
-	p.u.data = data;
-	ret = ioctl(fd, FE_SET_PROPERTY, &c);
-	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY returned %d %s\n", ret,
-			strerror(errno));
-		return -1;
-	}
-	return 0;
+    struct dtv_property p;
+    struct dtv_properties c;
+    int ret;
+    
+    p.cmd = cmd;
+    c.num = 1;
+    c.props = &p;
+    p.u.data = data;
+    ret = ioctl(fd, FE_SET_PROPERTY, &c);
+    if (ret < 0) {
+	fprintf(stderr, "FE_SET_PROPERTY returned %d %s\n", ret,
+		strerror(errno));
+	return -1;
+    }
+    return 0;
 }
 
 
 static int get_property(int fd, uint32_t cmd, uint32_t *data)
 {
-	struct dtv_property p;
-	struct dtv_properties c;
-	int ret;
-
-	p.cmd = cmd;
-	c.num = 1;
-	c.props = &p;
-	ret = ioctl(fd, FE_GET_PROPERTY, &c);
-	if (ret < 0) {
-		fprintf(stderr, "FE_GET_PROPERTY returned %d %s\n", ret
-			,strerror(errno));
-		return -1;
-	}
-	*data = p.u.data;
-	return 0;
+    struct dtv_property p;
+    struct dtv_properties c;
+    int ret;
+    
+    p.cmd = cmd;
+    c.num = 1;
+    c.props = &p;
+    ret = ioctl(fd, FE_GET_PROPERTY, &c);
+    if (ret < 0) {
+	fprintf(stderr, "FE_GET_PROPERTY returned %d %s\n", ret
+		,strerror(errno));
+	return -1;
+    }
+    *data = p.u.data;
+    return 0;
 }
 
 
@@ -108,65 +105,116 @@ int set_fe_input(int fd, uint32_t fr,
 		 uint32_t sr, fe_delivery_system_t ds,
 		 uint32_t input, uint32_t id)
 {
-	struct dtv_property p[] = {
-		{ .cmd = DTV_CLEAR },
-		{ .cmd = DTV_DELIVERY_SYSTEM, .u.data = ds },
-		{ .cmd = DTV_FREQUENCY, .u.data = fr },
-		{ .cmd = DTV_INVERSION, .u.data = INVERSION_AUTO },
-		{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
-		{ .cmd = DTV_INNER_FEC, .u.data = FEC_AUTO },
-	};		
-	struct dtv_properties c;
-	int ret;
-
-	c.num = ARRAY_SIZE(p);
-	c.props = p;
-	ret = ioctl(fd, FE_SET_PROPERTY, &c);
-	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY fe returned %d\n", ret);
-		return -1;
-	}
-	ret = set_property(fd, DTV_STREAM_ID, id);
-	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY id returned %d\n", ret);
-		return -1;
-	}
-	ret = set_property(fd, DTV_INPUT, input);
-		if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY input returned %d\n", ret);
-		return -1;
-	}
-
-	ret = set_property(fd, DTV_TUNE, 0);
-	if (ret < 0) {
-	        fprintf(stderr, "FE_SET_PROPERTY tune returned %d\n", ret);
-	        return -1;
-	}
-
-	return 0;
+    struct dtv_property p[] = {
+	{ .cmd = DTV_CLEAR },
+	{ .cmd = DTV_DELIVERY_SYSTEM, .u.data = ds },
+	{ .cmd = DTV_FREQUENCY, .u.data = fr },
+	{ .cmd = DTV_INVERSION, .u.data = INVERSION_AUTO },
+	{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
+	{ .cmd = DTV_INNER_FEC, .u.data = FEC_AUTO },
+    };		
+    struct dtv_properties c;
+    int ret;
+    
+    c.num = ARRAY_SIZE(p);
+    c.props = p;
+    ret = ioctl(fd, FE_SET_PROPERTY, &c);
+    if (ret < 0) {
+	fprintf(stderr, "FE_SET_PROPERTY fe returned %d\n", ret);
+	return -1;
+    }
+    ret = set_property(fd, DTV_STREAM_ID, id);
+    if (ret < 0) {
+	fprintf(stderr, "FE_SET_PROPERTY id returned %d\n", ret);
+	return -1;
+    }
+    ret = set_property(fd, DTV_INPUT, input);
+    if (ret < 0) {
+	fprintf(stderr, "FE_SET_PROPERTY input returned %d\n", ret);
+	return -1;
+    }
+    
+    ret = set_property(fd, DTV_TUNE, 0);
+    if (ret < 0) {
+	fprintf(stderr, "FE_SET_PROPERTY tune returned %d\n", ret);
+	return -1;
+    }
+    
+    return 0;
 }
 
 
 int open_dmx(int adapter, int num)
 {
-	char fname[80];
-	struct dmx_pes_filter_params pesFilterParams;
-	int fd = -1;
+    char fname[80];
+    struct dmx_pes_filter_params pesFilterParams;
+    int fd = -1;
 	
-	sprintf(fname, "/dev/dvb/adapter%u/demux%u", adapter, num); 
+    sprintf(fname, "/dev/dvb/adapter%u/demux%u", adapter, num); 
+    
+    fd = open(fname, O_RDWR);
+    if (fd < 0) return -1;
+    
+    pesFilterParams.input = DMX_IN_FRONTEND; 
+    pesFilterParams.output = DMX_OUT_TS_TAP; 
+    pesFilterParams.pes_type = DMX_PES_OTHER; 
+    pesFilterParams.flags = DMX_IMMEDIATE_START;
+    pesFilterParams.pid = 0x2000;
+    
+    if (ioctl(fd, DMX_SET_PES_FILTER, &pesFilterParams) < 0)
+	return -1;
+    return fd;
+}
 
-	fd = open(fname, O_RDWR);
-	if (fd < 0) return -1;
+int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
+			    uint32_t ext, uint32_t ext_mask,
+			    uint32_t ext_nmask)    
+{
+    char fname[80];
+    int fd;
+    struct dmx_sct_filter_params sctfilter;
 
-	pesFilterParams.input = DMX_IN_FRONTEND; 
-	pesFilterParams.output = DMX_OUT_TS_TAP; 
-	pesFilterParams.pes_type = DMX_PES_OTHER; 
-	pesFilterParams.flags = DMX_IMMEDIATE_START;
-  	pesFilterParams.pid = 0x2000;
+    sprintf(fname, "/dev/dvb/adapter%u/demux%u", adapter, num); 
+    
+    fd = open(fname, O_RDWR);
+    if (fd < 0) return -1;
 
-	if (ioctl(fd, DMX_SET_PES_FILTER, &pesFilterParams) < 0)
-		return -1;
-	return fd;
+    memset(&sctfilter, 0, sizeof(struct dmx_sct_filter_params));
+    
+    sctfilter.pid = pid;
+    sctfilter.filter.filter[0] = tid;
+    sctfilter.filter.mask[0]   = 0xff;
+    sctfilter.filter.mode[0]   = 0x00;
+    // automatically set the mask for ext if none is given
+    if (ext && !ext_mask && !ext_nmask) ext_mask = ext;
+    for (int i=1; i < 5; i++) {
+	sctfilter.filter.filter[i] = (uint8_t)(ext >> (8*(4-i))) & 0xff;
+	sctfilter.filter.mask[i] = (uint8_t)(ext_mask >> (8*(4-i))) & 0xff;
+	sctfilter.filter.mode[i] = (uint8_t)(ext_nmask >> (8*(4-i))) & 0xff;
+    }
+    
+    sctfilter.flags = DMX_IMMEDIATE_START |DMX_CHECK_CRC;
+    
+    if (ioctl(fd, DMX_SET_FILTER, &sctfilter) < 0) {
+	perror ("ioctl DMX_SET_FILTER failed");
+	return -1;
+    }
+    return fd;
+}
+
+int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
+			    uint32_t ext, uint32_t ext_mask,
+			    uint32_t ext_nmask)
+{
+
+    return  open_dmx_section_filter(dev->adapter, dev->num, pid, tid, ext,
+				    ext_mask, ext_nmask);
+
+}
+
+void stop_dmx( int fd )
+{
+    ioctl (fd, DMX_STOP, 0);
 }
 
 int open_fe(int adapter, int num)
@@ -616,4 +664,19 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     if ( (dev->fd_dvr=open_dvr(dev->adapter, dev->num)) < 0){
 	exit(1);
     }
+}
+
+
+uint32_t getbcd(uint8_t *p, int l)
+{
+        int i;
+        uint32_t val = 0, t;
+
+        for (i = 0; i < l / 2; i++) {
+                t = (p[i] >> 4) * 10 + (p[i] & 0x0f);
+                val = val * 100 + t;
+        }
+        if (l & 1)
+                val = val * 10 + (p[i] >> 4);
+        return val;
 }

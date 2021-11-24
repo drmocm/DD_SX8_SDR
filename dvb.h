@@ -68,6 +68,12 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t pol, uint32_t hi,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq);
+
+void stop_dmx( int fd );
+int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
+			    uint32_t ext, uint32_t ext_mask,
+			    uint32_t ext_nmask);
+
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 void dvb_init_dev(dvb_devices *dev);
 void dvb_init_fe(dvb_fe *fe);
@@ -80,6 +86,10 @@ void power_on_delay(int fd, int delay);
 int read_status(int fd);
 int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats);
 void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
+			    uint32_t ext, uint32_t ext_mask,
+			    uint32_t ext_nmask);
+uint32_t getbcd(uint8_t *p, int l);
 
 #endif
 
