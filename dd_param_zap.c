@@ -22,6 +22,131 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define MAXTRY 5
 #define BUFFSIZE (1024*188)
+#define MAXDESC 100
+
+#define MAXSECT 4096
+#define MAXSDT  1024
+#define MAXNIT  1024
+#define MAXEIT  4096
+#define MAXBAT  1024
+#define MAXPAT  1024
+#define MAXPMT  1024
+#define MAXCAT  1024
+#define MAXTDT  8
+#define MAXTOT  32
+
+typedef struct descriptor_t {
+    uint8_t tag;
+    uint8_t len;
+    uint8_t *data;
+} descriptor;
+
+typedef struct section_t {
+    uint8_t    table_id;
+    uint8_t    section_syntax_indicator;                
+    uint16_t   section_length;
+    uint16_t   id;
+    uint8_t    version_number;
+    uint8_t    current_next_indicator;
+    uint8_t    section_number;
+    uint8_t    last_section_number;
+    uint8_t    data[MAXSECT];
+} section;
+
+typedef struct NIT {
+    section    *nit;
+    uint8_t    network_descriptor_length;
+    int        ndesc_num;
+    descriptor *network_descriptors[MAXDESC];
+    uint16_t   transport_stream_loop_length;
+    int        desc_num;
+    descriptor *transport_descripotrs[MAXDESC];
+} NIT;
+
+typedef struct SDT {
+    section    *sdt;
+    uint16_t   original_network_id;
+    int        desc_num;
+    descriptor *service_descripotrs[MAXDESC];
+} SDT;
+
+descriptor *dvb_get_descriptor(uint8_t *buf)
+{
+    descriptor *desc = NULL;
+    if (!(desc = malloc(sizeof(descriptor)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+	return NULL;	
+    }
+    desc->tag = buf[0];
+    desc->len = buf[1];
+    desc->data= buf+3;
+    return desc;
+}
+
+section *dvb_get_section(uint8_t *buf) 
+{
+    section *sec = NULL;
+    if (!(sec = malloc(sizeof(section)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+	return NULL;	
+    }
+    memset(sec->data,0,MAXNIT);
+    
+    sec->section_length = (((buf[1]&0x0F) << 8) | buf[2]);
+    memcpy(sec->data, buf, sec->section_length+3); 
+
+    sec->table_id = buf[0];
+    sec->section_syntax_indicator = buf[1] & 0x01;
+    sec->id = (buf[3] << 8) | buf[4];
+    sec->current_next_indicator = buf[5]&0x01;
+    sec->version_number = (buf[5]&0x3e) >> 1;
+    sec->section_number = buf[6];
+    sec->last_section_number = buf[7];
+
+    return sec;
+}
+
+SDT *dvb_get_sdt(uint8_t *buf)
+{
+    SDT *sdt = NULL;
+    section *sec = dvb_get_section(buf);
+
+    if (!(sdt = malloc(sizeof(NIT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
+	return NULL;
+    }
+    sdt->sdt = sec;
+    return sdt;
+}
+
+NIT  *dvb_get_nit(uint8_t *buf)
+{
+    NIT *nit = NULL;
+    section *sec = dvb_get_section(buf);
+
+    if (!(nit = malloc(sizeof(NIT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_nit\n");
+	return NULL;
+    }
+    nit->nit = sec;
+
+    if (sec->table_id != 0x40 && sec->table_id != 0x41){
+	free(sec);
+	fprintf(stderr,"Error in dvb_get_nit, not a NIT section\n");
+	return NULL;
+    }
+    nit->network_descriptor_length = (((buf[8]&0x0F) << 8) | buf[9]);
+
+    int nc = 10;
+    while ( nc < 10+nit->network_descriptor_length){
+
+    }
+    
+    
+    return nit;
+
+}
+
 
 uint8_t parse_nit(uint8_t *buf)
 {
@@ -46,10 +171,13 @@ uint8_t parse_nit(uint8_t *buf)
     nc = 10;
     while ( nc < 10+ndl){
 	nlen = (int) buf[nc+1];
-//	fprintf(stderr,"tag 0x%01x\n",buf[nc]);
 	switch (buf[nc]){
 	case 0x40:// network_name_descriptor
 	    network_name = (char *)&buf[nc+2];
+	    break;
+
+	default:
+	    fprintf(stderr,"tag 0x%01x\n",buf[nc]);
 	    break;
 	}
 	nc += 2+nlen;
@@ -101,6 +229,10 @@ uint8_t parse_nit(uint8_t *buf)
 	case 0xfa: // isdbt
 	    freq = (buf[c+5]|(buf[c+4] << 8))*7000000;
 	    delsys = SYS_ISDBT;
+	    break;
+
+	default:
+	    fprintf(stderr,"tag 0x%01x\n",buf[c]);
 	    break;
 	}
     }
@@ -158,13 +290,16 @@ uint8_t parse_sdt(uint8_t *buf)
 		    printf("name %s ", name);
 		}
 		cc += ll;
+		printf("\n");
 		break;
 		
 	    default:
+		fprintf(stderr,"   tag 0x%01x\n",tag);
 		break;
 	    }
+	    printf("\n");
+
 	}
-	printf("\n");
 	c+=tdl+5;
     }
     return buf[7];
