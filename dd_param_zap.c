@@ -22,8 +22,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define MAXTRY 5
 #define BUFFSIZE (1024*188)
-#define MAXDESC 100
 
+#define MAXDESC 1000
+#define MTRANS  200
 #define MAXSECT 4096
 #define MAXSDT  1024
 #define MAXNIT  1024
@@ -53,17 +54,26 @@ typedef struct section_t {
     uint8_t    data[MAXSECT];
 } section;
 
-typedef struct NIT {
-    section    *nit;
-    uint8_t    network_descriptor_length;
-    int        ndesc_num;
-    descriptor *network_descriptors[MAXDESC];
-    uint16_t   transport_stream_loop_length;
+typedef struct nit_transport_t {
+    uint16_t   transport_stream_id;
+    uint16_t   original_network_id;
+    uint16_t   transport_descriptors_length;
     int        desc_num;
     descriptor *transport_descripotrs[MAXDESC];
+} nit_transport;
+
+typedef struct NIT_t {
+    section       *nit;
+    uint8_t       network_descriptor_length;
+    int           ndesc_num;
+    descriptor    *network_descriptors[MAXDESC];
+    uint16_t      transport_stream_loop_length;
+    int           trans_num;
+    nit_transport *transport[MTRANS];
 } NIT;
 
-typedef struct SDT {
+
+typedef struct SDT_t {
     section    *sdt;
     uint16_t   original_network_id;
     int        desc_num;
@@ -79,8 +89,35 @@ descriptor *dvb_get_descriptor(uint8_t *buf)
     }
     desc->tag = buf[0];
     desc->len = buf[1];
-    desc->data= buf+3;
+    desc->data= buf+2;
+    fprintf(stderr,"tag 0x%02x\n",desc->tag);
     return desc;
+}
+
+nit_transport *dvb_get_nit_transport(uint8_t *buf)
+{
+    nit_transport *trans = NULL;
+    if (!(trans = malloc(sizeof(nit_transport)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_nit_transport\n");
+	return NULL;	
+    }
+    trans->transport_stream_id = (buf[0] << 8) | buf[1];
+    trans->original_network_id = (buf[2] << 8) | buf[3];
+    trans->transport_descriptors_length =  ((buf[4]&0x0f) << 8) | buf[5];
+
+    trans->desc_num = 0;
+    buf += 6;
+    int nc = 0;
+    int dc = 0;
+    while ( nc < trans->transport_descriptors_length){
+	descriptor *desc = dvb_get_descriptor(buf+nc);
+	trans->transport_descripotrs[dc] = desc;
+	nc += desc->len+2;
+	dc++;
+    }
+    trans->desc_num = dc;
+
+    return trans;
 }
 
 section *dvb_get_section(uint8_t *buf) 
@@ -90,19 +127,20 @@ section *dvb_get_section(uint8_t *buf)
 	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
 	return NULL;	
     }
-    memset(sec->data,0,MAXNIT);
+    memset(sec,0,sizeof(section));
     
     sec->section_length = (((buf[1]&0x0F) << 8) | buf[2]);
     memcpy(sec->data, buf, sec->section_length+3); 
 
     sec->table_id = buf[0];
     sec->section_syntax_indicator = buf[1] & 0x01;
-    sec->id = (buf[3] << 8) | buf[4];
-    sec->current_next_indicator = buf[5]&0x01;
-    sec->version_number = (buf[5]&0x3e) >> 1;
-    sec->section_number = buf[6];
-    sec->last_section_number = buf[7];
-
+    if (sec->section_syntax_indicator){
+	sec->id = (buf[3] << 8) | buf[4];
+	sec->current_next_indicator = buf[5]&0x01;
+	sec->version_number = (buf[5]&0x3e) >> 1;
+	sec->section_number = buf[6];
+	sec->last_section_number = buf[7];
+    }
     return sec;
 }
 
@@ -137,11 +175,29 @@ NIT  *dvb_get_nit(uint8_t *buf)
     }
     nit->network_descriptor_length = (((buf[8]&0x0F) << 8) | buf[9]);
 
-    int nc = 10;
-    while ( nc < 10+nit->network_descriptor_length){
-
+    buf += 10;
+    int nc = 0;
+    int dc = 0;
+    while ( nc < nit->network_descriptor_length){
+	descriptor *desc = dvb_get_descriptor(buf+nc);
+	nit->network_descriptors[dc] = desc;
+	nc += desc->len+2;
+	dc++;
     }
-    
+    nit->ndesc_num = dc;
+    buf += nit->network_descriptor_length;
+
+    nit->transport_stream_loop_length = (((buf[0]&0x0F) << 8) | buf[1]);
+    buf += 2;
+    nc = 0;
+    dc = 0;
+    while ( nc < nit->transport_stream_loop_length){
+	nit_transport *trans = dvb_get_nit_transport(buf+nc);
+	nit->transport[dc] = trans;
+	nc += trans->transport_descriptors_length+6; 
+	dc++;
+    }
+    nit->trans_num = dc;
     
     return nit;
 
@@ -177,7 +233,7 @@ uint8_t parse_nit(uint8_t *buf)
 	    break;
 
 	default:
-	    fprintf(stderr,"tag 0x%01x\n",buf[nc]);
+//	    fprintf(stderr,"tag 0x%01x\n",buf[nc]);
 	    break;
 	}
 	nc += 2+nlen;
@@ -232,7 +288,7 @@ uint8_t parse_nit(uint8_t *buf)
 	    break;
 
 	default:
-	    fprintf(stderr,"tag 0x%01x\n",buf[c]);
+//	    fprintf(stderr,"tag 0x%01x\n",buf[c]);
 	    break;
 	}
     }
@@ -294,7 +350,7 @@ uint8_t parse_sdt(uint8_t *buf)
 		break;
 		
 	    default:
-		fprintf(stderr,"   tag 0x%01x\n",tag);
+//		fprintf(stderr,"   tag 0x%01x\n",tag);
 		break;
 	    }
 	    printf("\n");
@@ -435,6 +491,7 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    int nnit = parse_nit(sec_buf);
+	    NIT  *nit = dvb_get_nit(sec_buf);
 	    close(fdmx);
 	    if (nnit){
 		for (int i=1; i < nnit+1; i++){
