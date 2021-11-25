@@ -795,7 +795,7 @@ descriptor *dvb_get_descriptor(uint8_t *buf)
     desc->tag = buf[0];
     desc->len = buf[1];
     desc->data= buf+2;
-    //   fprintf(stderr,"tag 0x%02x\n",desc->tag);
+//    dvb_print_descriptor(fileno(stderr), desc);
     return desc;
 }
 
@@ -866,6 +866,7 @@ SDT *dvb_get_sdt(uint8_t *buf)
     SDT *sdt = NULL;
     section *sec = dvb_get_section(buf);
 
+    buf = sec->data;
     if (!(sdt = malloc(sizeof(NIT)))){
 	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
 	return NULL;
@@ -911,6 +912,7 @@ NIT  *dvb_get_nit(uint8_t *buf)
     NIT *nit = NULL;
     section *sec = dvb_get_section(buf);
 
+    buf = sec->data;
     if (!(nit = malloc(sizeof(NIT)))){
 	fprintf(stderr,"Error allocating memory in dvb_get_nit\n");
 	return NULL;
@@ -946,4 +948,180 @@ NIT  *dvb_get_nit(uint8_t *buf)
 
 }
 
+void dvb_print_transport(int fd, nit_transport *trans)
+{
+    FILE* fp = fdopen(fd, "w");
+    fprintf(fp,"  transport:\n"
+	    "    transport stream id 0x%02x origina network id 0x%02x\n",
+	    trans->transport_stream_id, trans->original_network_id);
+    if (trans->desc_num){
+	fprintf(fp,"    descriptors:\n");
+	for (int n=0 ; n < trans->desc_num; n++){
+	    dvb_print_descriptor(fd, trans->descriptors[n], "      ");
+	}
+    }
+}
+
+void dvb_print_nit(int fd, NIT *nit)
+{
+    FILE* fp = fdopen(fd, "w");
+    fprintf(fp,"NIT (0x%02x): (%d/%d) \n  network id 0x%04x\n",
+	    nit->nit->table_id, nit->nit->section_number+1,
+	    nit->nit->last_section_number+1, nit->nit->id);
+    if (nit->ndesc_num){
+	fprintf(fp,"  network descriptors:\n");
+
+	for (int n=0 ; n < nit->ndesc_num; n++){
+	    dvb_print_descriptor(fd, nit->network_descriptors[n]," ");
+	}
+    }
+    if (nit->trans_num){
+	fprintf(fp,"  transports:\n");
+	for (int n=0 ; n < nit->trans_num; n++){
+	    dvb_print_transport(fd, nit->transports[n]);
+	}
+    }
+    fprintf(fp,"\n");
+}
+
+void dvb_print_sdt(int fd, SDT *sdt)
+{
+    FILE* fp = fdopen(fd, "w");
+    fprintf(fp,"SDT (0x%02x): (%d/%d)\n  original network id 0x%04x ",
+	    sdt->sdt->table_id, sdt->sdt->id, sdt->sdt->section_number,
+	    sdt->sdt->last_section_number);
+}
+
+void dvb_print_descriptor(int fd, descriptor *desc, char *s)
+{
+    FILE* fp = fdopen(fd, "w");
+    uint8_t *buf = desc->data;
+    
+    fprintf(fp,"%sDescriptor tag: 0x%02x \n",s,desc->tag);
+    switch(desc->tag){
+    case 0x40:// network_name_descriptor
+    {
+	fprintf(fp,"%s  Network name descriptor: \n",s);
+	fprintf(fp,"%s  name %s \n",s,(char *)&buf[0]);
+	break;
+    }
+    
+    case 0x43: // satellite
+    {
+	uint32_t freq;
+	uint16_t orbit;
+	uint32_t srate;
+	uint8_t pol;
+	uint8_t delsys;
+	uint8_t mod;
+	uint8_t fec;
+	uint8_t east;
+	uint8_t roll;
+	const char *P[] = {"H", "V", "L", "R"};
+	const char *M[] = {"Auto", "QPSK", "8PSK", "16QAM"};
+	const double roff[] ={0.25, 0.35, 0.20, 0};
+	
+	fprintf(fp,"%s  Satellite delivery system descriptor: \n",s);
+	freq = getbcd(buf, 8) *10;
+	orbit = getbcd(buf+4, 4) *10;
+	srate = getbcd(buf + 7, 7) / 10;
+	east = ((buf[6] & 0x80) >> 7);
+	pol =  ((buf[6] & 0x60) >> 5); 
+	roll = ((buf[6] & 0x18) >> 3);
+	delsys = ((buf[6] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
+	mod = buf[6] & 0x03;
+	fec = buf[10] & 0x0f;
+	fprintf(fp,
+		"%s  frequency %d  orbital_position %d west_east_flag %s\n"
+		"%s  polarization %s  modulation_system %s",s,
+		freq, orbit, east ? "E":"W", s, P[pol],
+		delsys ? "DVB-S2":"DVB-S");
+	if (delsys) fprintf(fp," roll off %f\n", roff[roll]);
+	fprintf(fp,
+		"%s  modulation_type %s symbol_rate %d FEC_inner %d\n",s, 
+		M[mod], srate, fec);
+	break;
+    }
+    
+    case 0x44: // cable
+    {
+	uint32_t freq;
+	uint32_t srate;
+	uint8_t pol;
+	uint8_t delsys;
+	uint8_t fec;
+
+	fprintf(fp,"%s  Cable delivery system descriptor\n",s);
+
+	freq =  getbcd(buf + 2, 8) / 10000;
+	srate = getbcd(buf + 9, 7) / 10;
+	delsys = SYS_DVBC_ANNEX_A;
+	fprintf(fp,"    Satellite delivery system descriptor: \n");
+	printf(" freq = %u  sr = %u  delsys=%d\n",
+	       freq, srate, delsys);
+	break;
+    }	    
+
+    case 0x48: //service descriptor
+    {    
+	int c = 0;
+	char *prov=NULL;
+	char *name=NULL;
+	fprintf(fp,"%s  Service descriptor:\n",s,buf[c]);
+	fprintf(fp,"%s    service type 0x%02x ",s, desc->tag);
+	c++;
+	int l = buf[c];
+	c++;
+	if (l){
+	    prov = malloc(sizeof(char)*l+1);
+	    memcpy(prov,buf+c,l);
+	    prov[l+1] = 0x00;
+	    dvb2txt(prov);
+	    fprintf(fp,"provider %s ", prov);
+	}
+	c += l;
+	    l = buf[c];
+	    c++;
+	    if (l){
+		name = malloc(sizeof(char)*l+1);
+		memcpy(name,buf+c,l);
+		name[l+1] = 0x00;
+		dvb2txt(name);
+		fprintf(fp,"name %s ", name);
+	    }
+	    fprintf(fp,"\n");
+	    break;
+    }	    
+
+    case 0x5a: // terrestrial
+    {
+	uint32_t freq;
+	uint8_t delsys;
+	freq = (buf[5]|(buf[4] << 8)|(buf[3] << 16)|(buf[0] << 24))*10;
+	delsys = SYS_DVBT;
+	break;
+    }
+
+    case 0x5f:
+    {
+	fprintf(fp,"%s  Private data specifier descriptor: \n",s);
+	fprintf(fp,"%s    private_data_specifier 0x%02x%02x%02x%02x\n",s,
+		buf[0],buf[1],buf[2],buf[3]);
+	break;
+    }
+    
+    case 0xfa: // isdbt
+    {
+	uint32_t freq;
+	uint8_t delsys;
+	freq = (buf[5]|(buf[4] << 8))*7000000;
+	delsys = SYS_ISDBT;
+	break;
+    }
+
+    default:
+	break;
+	
+    }
+}
 

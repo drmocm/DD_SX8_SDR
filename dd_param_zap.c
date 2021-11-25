@@ -314,8 +314,9 @@ int main(int argc, char **argv){
 
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-	    int nnit = parse_nit(sec_buf);
-//	    NIT  *nit = dvb_get_nit(sec_buf);
+	    NIT  *nit = dvb_get_nit(sec_buf);
+	    int nnit = nit->nit->last_section_number;//parse_nit(sec_buf);
+	    dvb_print_nit(fileno(stdout), nit);
 	    close(fdmx);
 	    if (nnit){
 		for (int i=1; i < nnit+1; i++){
@@ -324,7 +325,9 @@ int main(int argc, char **argv){
 							0x000000ff,0)) < 0)
 		    exit(1); 
 		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-		nnit = parse_nit(sec_buf);
+		//nnit = parse_nit(sec_buf);
+		NIT  *nit2 = dvb_get_nit(sec_buf);
+		dvb_print_nit(fileno(stdout), nit2);
 		close(fdmx);
 		}
 	    }
