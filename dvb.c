@@ -777,3 +777,170 @@ void dvb2txt(char *in)
     in[outlen] = 0;
     free(buf);
 }
+
+
+descriptor *dvb_get_descriptor(uint8_t *buf)
+{
+    descriptor *desc = NULL;
+    if (!(desc = malloc(sizeof(descriptor)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+	return NULL;	
+    }
+    desc->tag = buf[0];
+    desc->len = buf[1];
+    desc->data= buf+2;
+//    fprintf(stderr,"tag 0x%02x\n",desc->tag);
+    return desc;
+}
+
+sdt_service *dvb_get_sdt_service(uint8_t *buf)
+{
+    sdt_service *serv = NULL;
+    if (!(serv = malloc(sizeof(sdt_service)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_sdt_service\n");
+	return NULL;	
+    }
+    serv->service_id = (buf[0] << 8) | buf[1];
+    serv->EIT_schedule_flag = buf[2]&0x02 ;
+    serv->EIT_present_following_flag = buf[2]&0x01 ;
+    serv->running_status = (buf[4]&0xe0)>>9;
+    serv->free_CA_mode = (buf[4]&0x10)>>8;
+    serv->descriptors_loop_length =  ((buf[3]&0x0f) << 8) | buf[4];
+    serv->desc_num = 0;
+    buf += 5;
+    int nc = 0;
+    int dc = 0;
+    while ( nc < serv->descriptors_loop_length){
+	descriptor *desc = dvb_get_descriptor(buf+nc);
+	serv->descriptors[dc] = desc;
+	nc += desc->len+2;
+	dc++;
+    }
+    serv->desc_num = dc;
+
+    return serv;
+}
+
+nit_transport *dvb_get_nit_transport(uint8_t *buf)
+{
+    nit_transport *trans = NULL;
+    if (!(trans = malloc(sizeof(nit_transport)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_nit_transport\n");
+	return NULL;	
+    }
+    trans->transport_stream_id = (buf[0] << 8) | buf[1];
+    trans->original_network_id = (buf[2] << 8) | buf[3];
+    trans->transport_descriptors_length =  ((buf[4]&0x0f) << 8) | buf[5];
+
+    trans->desc_num = 0;
+    buf += 6;
+    int nc = 0;
+    int dc = 0;
+    while ( nc < trans->transport_descriptors_length){
+	descriptor *desc = dvb_get_descriptor(buf+nc);
+	trans->descriptors[dc] = desc;
+	nc += desc->len+2;
+	dc++;
+    }
+    trans->desc_num = dc;
+
+    return trans;
+}
+
+section *dvb_get_section(uint8_t *buf) 
+{
+    section *sec = NULL;
+    if (!(sec = malloc(sizeof(section)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+	return NULL;	
+    }
+    memset(sec,0,sizeof(section));
+    
+    sec->section_length = (((buf[1]&0x0F) << 8) | buf[2]);
+    memcpy(sec->data, buf, sec->section_length+3); 
+
+    sec->table_id = buf[0];
+    sec->section_syntax_indicator = buf[1] & 0x01;
+    if (sec->section_syntax_indicator){
+	sec->id = (buf[3] << 8) | buf[4];
+	sec->current_next_indicator = buf[5]&0x01;
+	sec->version_number = (buf[5]&0x3e) >> 1;
+	sec->section_number = buf[6];
+	sec->last_section_number = buf[7];
+    }
+    return sec;
+}
+
+SDT *dvb_get_sdt(uint8_t *buf)
+{
+    SDT *sdt = NULL;
+    section *sec = dvb_get_section(buf);
+
+    if (!(sdt = malloc(sizeof(NIT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
+	return NULL;
+    }
+    sdt->sdt = sec;
+    sdt->original_network_id = (buf[8] << 8) | buf[9];
+    buf += 11;
+
+    int dc = 0;
+    int c = 0;
+    while ( c < sdt->sdt->section_length-12 ){ // section_length +3-4-11
+	sdt_service *serv = dvb_get_sdt_service(buf+c);
+	sdt->services[dc] = serv;
+	c += serv->descriptors_loop_length+5; 
+	dc++;
+    }
+    sdt->service_num = dc;
+    
+    return sdt;
+}
+
+NIT  *dvb_get_nit(uint8_t *buf)
+{
+    NIT *nit = NULL;
+    section *sec = dvb_get_section(buf);
+
+    if (!(nit = malloc(sizeof(NIT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_nit\n");
+	return NULL;
+    }
+    nit->nit = sec;
+
+    if (sec->table_id != 0x40 && sec->table_id != 0x41){
+	free(sec);
+	fprintf(stderr,"Error in dvb_get_nit, not a NIT section\n");
+	return NULL;
+    }
+    nit->network_descriptor_length = (((buf[8]&0x0F) << 8) | buf[9]);
+
+    buf += 10;
+    int nc = 0;
+    int dc = 0;
+    while ( nc < nit->network_descriptor_length){
+	descriptor *desc = dvb_get_descriptor(buf+nc);
+	nit->network_descriptors[dc] = desc;
+	nc += desc->len+2;
+	dc++;
+    }
+    nit->ndesc_num = dc;
+    buf += nit->network_descriptor_length;
+
+    nit->transport_stream_loop_length = (((buf[0]&0x0F) << 8) | buf[1]);
+    buf += 2;
+    nc = 0;
+    dc = 0;
+    while ( nc < nit->transport_stream_loop_length){
+	nit_transport *trans = dvb_get_nit_transport(buf+nc);
+	nit->transports[dc] = trans;
+	nc += trans->transport_descriptors_length+6; 
+	dc++;
+    }
+    nit->trans_num = dc;
+    
+    return nit;
+
+}
+
+

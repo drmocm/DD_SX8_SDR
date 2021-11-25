@@ -20,189 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #include "dvb.h"
 
-#define MAXTRY 5
-#define BUFFSIZE (1024*188)
-
-#define MAXDESC 1000
-#define MTRANS  200
-#define MAXSECT 4096
-#define MAXSDT  1024
-#define MAXNIT  1024
-#define MAXEIT  4096
-#define MAXBAT  1024
-#define MAXPAT  1024
-#define MAXPMT  1024
-#define MAXCAT  1024
-#define MAXTDT  8
-#define MAXTOT  32
-
-typedef struct descriptor_t {
-    uint8_t tag;
-    uint8_t len;
-    uint8_t *data;
-} descriptor;
-
-typedef struct section_t {
-    uint8_t    table_id;
-    uint8_t    section_syntax_indicator;                
-    uint16_t   section_length;
-    uint16_t   id;
-    uint8_t    version_number;
-    uint8_t    current_next_indicator;
-    uint8_t    section_number;
-    uint8_t    last_section_number;
-    uint8_t    data[MAXSECT];
-} section;
-
-typedef struct nit_transport_t {
-    uint16_t   transport_stream_id;
-    uint16_t   original_network_id;
-    uint16_t   transport_descriptors_length;
-    int        desc_num;
-    descriptor *transport_descripotrs[MAXDESC];
-} nit_transport;
-
-typedef struct NIT_t {
-    section       *nit;
-    uint8_t       network_descriptor_length;
-    int           ndesc_num;
-    descriptor    *network_descriptors[MAXDESC];
-    uint16_t      transport_stream_loop_length;
-    int           trans_num;
-    nit_transport *transport[MTRANS];
-} NIT;
-
-
-typedef struct SDT_t {
-    section    *sdt;
-    uint16_t   original_network_id;
-    int        desc_num;
-    descriptor *service_descripotrs[MAXDESC];
-} SDT;
-
-descriptor *dvb_get_descriptor(uint8_t *buf)
-{
-    descriptor *desc = NULL;
-    if (!(desc = malloc(sizeof(descriptor)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
-	return NULL;	
-    }
-    desc->tag = buf[0];
-    desc->len = buf[1];
-    desc->data= buf+2;
-    fprintf(stderr,"tag 0x%02x\n",desc->tag);
-    return desc;
-}
-
-nit_transport *dvb_get_nit_transport(uint8_t *buf)
-{
-    nit_transport *trans = NULL;
-    if (!(trans = malloc(sizeof(nit_transport)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_nit_transport\n");
-	return NULL;	
-    }
-    trans->transport_stream_id = (buf[0] << 8) | buf[1];
-    trans->original_network_id = (buf[2] << 8) | buf[3];
-    trans->transport_descriptors_length =  ((buf[4]&0x0f) << 8) | buf[5];
-
-    trans->desc_num = 0;
-    buf += 6;
-    int nc = 0;
-    int dc = 0;
-    while ( nc < trans->transport_descriptors_length){
-	descriptor *desc = dvb_get_descriptor(buf+nc);
-	trans->transport_descripotrs[dc] = desc;
-	nc += desc->len+2;
-	dc++;
-    }
-    trans->desc_num = dc;
-
-    return trans;
-}
-
-section *dvb_get_section(uint8_t *buf) 
-{
-    section *sec = NULL;
-    if (!(sec = malloc(sizeof(section)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
-	return NULL;	
-    }
-    memset(sec,0,sizeof(section));
-    
-    sec->section_length = (((buf[1]&0x0F) << 8) | buf[2]);
-    memcpy(sec->data, buf, sec->section_length+3); 
-
-    sec->table_id = buf[0];
-    sec->section_syntax_indicator = buf[1] & 0x01;
-    if (sec->section_syntax_indicator){
-	sec->id = (buf[3] << 8) | buf[4];
-	sec->current_next_indicator = buf[5]&0x01;
-	sec->version_number = (buf[5]&0x3e) >> 1;
-	sec->section_number = buf[6];
-	sec->last_section_number = buf[7];
-    }
-    return sec;
-}
-
-SDT *dvb_get_sdt(uint8_t *buf)
-{
-    SDT *sdt = NULL;
-    section *sec = dvb_get_section(buf);
-
-    if (!(sdt = malloc(sizeof(NIT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
-	return NULL;
-    }
-    sdt->sdt = sec;
-    return sdt;
-}
-
-NIT  *dvb_get_nit(uint8_t *buf)
-{
-    NIT *nit = NULL;
-    section *sec = dvb_get_section(buf);
-
-    if (!(nit = malloc(sizeof(NIT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_nit\n");
-	return NULL;
-    }
-    nit->nit = sec;
-
-    if (sec->table_id != 0x40 && sec->table_id != 0x41){
-	free(sec);
-	fprintf(stderr,"Error in dvb_get_nit, not a NIT section\n");
-	return NULL;
-    }
-    nit->network_descriptor_length = (((buf[8]&0x0F) << 8) | buf[9]);
-
-    buf += 10;
-    int nc = 0;
-    int dc = 0;
-    while ( nc < nit->network_descriptor_length){
-	descriptor *desc = dvb_get_descriptor(buf+nc);
-	nit->network_descriptors[dc] = desc;
-	nc += desc->len+2;
-	dc++;
-    }
-    nit->ndesc_num = dc;
-    buf += nit->network_descriptor_length;
-
-    nit->transport_stream_loop_length = (((buf[0]&0x0F) << 8) | buf[1]);
-    buf += 2;
-    nc = 0;
-    dc = 0;
-    while ( nc < nit->transport_stream_loop_length){
-	nit_transport *trans = dvb_get_nit_transport(buf+nc);
-	nit->transport[dc] = trans;
-	nc += trans->transport_descriptors_length+6; 
-	dc++;
-    }
-    nit->trans_num = dc;
-    
-    return nit;
-
-}
-
 
 uint8_t parse_nit(uint8_t *buf)
 {
@@ -312,7 +129,7 @@ uint8_t parse_sdt(uint8_t *buf)
     while ( c < slen-4 ){
 	int cc = 0;
 	char *name = NULL;
-	uint8_t sid = (buf[c] << 8) | buf[c+1];
+	uint16_t sid = (buf[c] << 8) | buf[c+1];
 	uint16_t tdl =  ((buf[c+3]&0x0f) << 8) | buf[c+4];
 	printf ("SERVICE: sid 0x%04x ",sid);
 	cc = 5;
@@ -346,11 +163,9 @@ uint8_t parse_sdt(uint8_t *buf)
 		    printf("name %s ", name);
 		}
 		cc += ll;
-		printf("\n");
 		break;
 		
 	    default:
-//		fprintf(stderr,"   tag 0x%01x\n",tag);
 		break;
 	    }
 	    printf("\n");
@@ -491,7 +306,6 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    int nnit = parse_nit(sec_buf);
-	    NIT  *nit = dvb_get_nit(sec_buf);
 	    close(fdmx);
 	    if (nnit){
 		for (int i=1; i < nnit+1; i++){
@@ -515,6 +329,7 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    int nsdt = parse_sdt(sec_buf);
+	    SDT  *sdt = dvb_get_sdt(sec_buf);
 	    close(fdmx);
 	    if (nsdt){
 		for (int i=1; i < nsdt+1; i++){
