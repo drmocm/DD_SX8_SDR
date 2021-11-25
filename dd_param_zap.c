@@ -80,11 +80,11 @@ uint8_t parse_nit(uint8_t *buf)
 	switch (buf[c]){
 	    
 	case 0x43: // satellite
-	    uint32_t freq = getbcd(buf + c + 2, 8) *10;
-	    uint32_t srate = getbcd(buf + c + 9, 7) / 10;
-	    uint8_t pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
-	    uint8_t delsys = ((buf[c + 8] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
-	    uint8_t fec = buf[c + 12] & 0x0f;
+	    freq = getbcd(buf + c + 2, 8) *10;
+	    srate = getbcd(buf + c + 9, 7) / 10;
+	    pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
+	    delsys = ((buf[c + 8] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
+	    fec = buf[c + 12] & 0x0f;
 	    printf(" freq=%u  pol=%u  sr=%u  fec=%u delsys=%d\n"
 		  , freq, pol, srate, fec, delsys);
 	    break;

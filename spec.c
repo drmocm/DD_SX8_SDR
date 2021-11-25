@@ -107,9 +107,6 @@ int read_spec_data(int fdin, int8_t *bufx, int8_t *bufy, int size)
     return c;
 }
 
-
-
-
 int spec_read_fft_data(int fdin, fftw_complex *in, int numspec)
 {
     int c;
