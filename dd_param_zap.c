@@ -287,6 +287,7 @@ int main(int argc, char **argv){
 	switch (out) {
 	    
 	case 1:
+	{
 	    uint8_t *buf=(uint8_t *)malloc(BUFFSIZE);
 	
 	    if (filename){
@@ -302,7 +303,7 @@ int main(int argc, char **argv){
 		re = write(fd,buf,re);
 	    }
 	    break;
-
+	}
 	case 2:
 	    close(dev.fd_dmx);
 	    int fdmx;
