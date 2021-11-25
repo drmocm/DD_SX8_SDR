@@ -20,6 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #include "dvb.h"
 
+#define MAXTRY 5
+#define BUFFSIZE (1024*188)
+
+
 
 uint8_t parse_nit(uint8_t *buf)
 {
@@ -306,6 +310,7 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    int nnit = parse_nit(sec_buf);
+//	    NIT  *nit = dvb_get_nit(sec_buf);
 	    close(fdmx);
 	    if (nnit){
 		for (int i=1; i < nnit+1; i++){
@@ -329,7 +334,7 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    int nsdt = parse_sdt(sec_buf);
-	    SDT  *sdt = dvb_get_sdt(sec_buf);
+//	    SDT  *sdt = dvb_get_sdt(sec_buf);
 	    close(fdmx);
 	    if (nsdt){
 		for (int i=1; i < nsdt+1; i++){

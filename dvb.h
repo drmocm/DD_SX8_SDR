@@ -55,9 +55,8 @@ typedef struct dvb_lnb_t{
     uint32_t scif_freq;
 } dvb_lnb;
 
-#define MAXTRY 5
-#define BUFFSIZE (1024*188)
-
+#define MAXSTREAM 100
+#define MAXSERV 100
 #define MAXDESC 100
 #define MTRANS  200
 #define MAXSECT 4096
@@ -88,6 +87,30 @@ typedef struct section_t {
     uint8_t    last_section_number;
     uint8_t    data[MAXSECT];
 } section;
+
+typedef struct PAT_t {
+    section *pat;
+    uint16_t program_number[MAXSERV];
+    uint16_t pid[MAXSERV];
+} PAT;
+
+typedef struct pmt_stream_t {
+    uint8_t  stream_type;
+    uint16_t elementary_PID;
+    uint16_t ES_info_length;
+    int        desc_num;
+    descriptor *descriptors[MAXDESC];
+} pmt_stream;
+
+typedef struct PMT_t {
+    section    *pat;
+    uint16_t   PCR_PID;
+    uint16_t   program_info_length;
+    int        desc_num;
+    descriptor *descriptors[MAXDESC];
+    int        stream_num;
+    pmt_stream *stream[MAXSTREAM];
+} PMT;
 
 typedef struct nit_transport_t {
     uint16_t   transport_stream_id;
@@ -122,7 +145,7 @@ typedef struct SDT_t {
     section    *sdt;
     uint16_t   original_network_id;
     int        service_num;
-    sdt_service *services[MAXDESC];
+    sdt_service *services[MAXSERV];
 } SDT;
 
 int set_fe_input(int fd, uint32_t fr,
