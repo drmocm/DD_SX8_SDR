@@ -642,8 +642,14 @@ int read_status(int fd)
     int st=0;
     
     ioctl(fd, FE_READ_STATUS, &stat);
-    if (stat==0x1f) return 1;
-    else return 0;
+    switch((int)stat){
+    case 0x1f:
+	return 1;
+    case FE_TIMEDOUT:
+	return 2;
+    default:
+	return 0;
+    }
 }
 
 int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)

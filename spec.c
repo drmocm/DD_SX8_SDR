@@ -144,12 +144,12 @@ int spec_read_fft_data(int fdin, fftw_complex *in, int numspec)
     return 0;
 }
 
-
 int spec_fft(int fdin, specdata *spec, double *pow, int num)
 {
     double alpha = spec->alpha;
     int maxrun= spec->maxrun;
     double *window = NULL;
+    fftw_plan p;
     
     double max = 0;
     double min = 0;
@@ -158,12 +158,21 @@ int spec_fft(int fdin, specdata *spec, double *pow, int num)
 	window = KaiserWindow(num, alpha);
     }
     fftw_complex *in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * num);
+    fftw_complex *out = in;
+    p = fftw_plan_dft_1d(num, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
     int count = 0;
     for (int i = 0; count < maxrun; i++){
 	if ( spec_read_fft_data(fdin,in,num) < 0) return -1;
-	do_fft(in, window, num);
+	if (window){
+	    for (int i = 0; i < num; i += 1)
+	    {
+		in[i] = window[i] * in[i];
+	    }
+	}
+	fftw_execute(p); /* repeat as needed */
 	count += fft_power_log(in, pow, num);
     }
+    fftw_destroy_plan(p);
     
     fftw_free(in);
     free(window);

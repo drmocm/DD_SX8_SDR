@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #include "dvb.h"
 
-#define MAXTRY 5
 #define BUFFSIZE (1024*188)
 
 
@@ -271,11 +270,15 @@ int main(int argc, char **argv){
     int re;
     if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
 
-    while (!lock && t < MAXTRY){
+    while (!lock){
 	t++;
 	fprintf(stderr,".");
 	lock = read_status(dev.fd_fe);
 	sleep(1);
+    }
+    if (lock == 2) {
+	fprintf(stderr," tuning timed out\n");
+	exit(2);
     }
     fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
 
