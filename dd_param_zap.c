@@ -141,6 +141,7 @@ uint8_t parse_sdt(uint8_t *buf)
 	    uint8_t dl = buf[c+1+cc];
 	    switch (tag){
 	    case 0x48: //service descriptor
+	    {
 		char *prov=NULL;
 		char *name=NULL;
 		printf("type 0x%02x ", buf[c+cc+2]);
@@ -167,7 +168,7 @@ uint8_t parse_sdt(uint8_t *buf)
 		}
 		cc += ll;
 		break;
-		
+	    }	
 	    default:
 		break;
 	    }
