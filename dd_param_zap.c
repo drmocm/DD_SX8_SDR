@@ -315,8 +315,10 @@ int main(int argc, char **argv){
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
 	    NIT  *nit = dvb_get_nit(sec_buf);
-	    int nnit = nit->nit->last_section_number;//parse_nit(sec_buf);
+	    int nnit = nit->nit->last_section_number;
 	    dvb_print_nit(fileno(stdout), nit);
+	    dvb_delete_nit(nit);
+
 	    close(fdmx);
 	    if (nnit){
 		for (int i=1; i < nnit+1; i++){
@@ -325,9 +327,9 @@ int main(int argc, char **argv){
 							0x000000ff,0)) < 0)
 		    exit(1); 
 		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-		//nnit = parse_nit(sec_buf);
-		NIT  *nit2 = dvb_get_nit(sec_buf);
-		dvb_print_nit(fileno(stdout), nit2);
+		nit = dvb_get_nit(sec_buf);
+		dvb_print_nit(fileno(stdout), nit);
+		dvb_delete_nit(nit);
 		close(fdmx);
 		}
 	    }
@@ -341,8 +343,10 @@ int main(int argc, char **argv){
 
 	    re = 0;
 	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-	    int nsdt = parse_sdt(sec_buf);
-//	    SDT  *sdt = dvb_get_sdt(sec_buf);
+	    SDT  *sdt = dvb_get_sdt(sec_buf);
+	    int nsdt = sdt->sdt->last_section_number;
+	    dvb_print_sdt(fileno(stdout), sdt);
+	    dvb_delete_sdt(sdt);
 	    close(fdmx);
 	    if (nsdt){
 		for (int i=1; i < nsdt+1; i++){
@@ -351,7 +355,9 @@ int main(int argc, char **argv){
 							0x000000ff,0)) < 0)
 		    exit(1); 
 		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-		nsdt = parse_sdt(sec_buf);
+		sdt = dvb_get_sdt(sec_buf);
+		dvb_print_sdt(fileno(stdout), sdt);
+		dvb_delete_sdt(sdt);
 		close(fdmx);
 		}
 	    }

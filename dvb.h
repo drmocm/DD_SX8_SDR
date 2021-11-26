@@ -189,9 +189,13 @@ section *dvb_get_section(uint8_t *buf);
 nit_transport *dvb_get_nit_transport(uint8_t *buf);
 sdt_service *dvb_get_sdt_service(uint8_t *buf);
 descriptor *dvb_get_descriptor(uint8_t *buf);
-void dvb_print_descriptor(int fd, descriptor *desc, char *s);
+void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s);
 void dvb_print_nit(int fd, NIT *nit);
 void dvb_print_sdt(int fd, SDT *sdt);
+void dvb_delete_sdt(SDT *sdt);
+void dvb_delete_nit(NIT *nit);
+void dvb_print_data(FILE *fp, uint8_t *b, int length, int step,
+		    char *s, char *s2);
 
 #endif
 
