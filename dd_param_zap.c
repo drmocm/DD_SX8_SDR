@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <getopt.h>
 #include "dvb.h"
+#include "dvb_service.h"
 
 #define BUFFSIZE (1024*188)
 
@@ -257,19 +258,26 @@ int main(int argc, char **argv){
     int fd = 0;
     char *filename = NULL;
     uint8_t sec_buf[4096];
+    int re=0;
     
     dvb_init(&dev, &fe, &lnb);
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
     dvb_open(&dev, &fe, &lnb);
-    fprintf(stderr,
-	    "Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
-	    "               lnb_type: %d input: %d\n",
-	    fe.freq, fe.pol ? "h":"v", fe.sr,
-	    fe.delsys == SYS_DVBS ? "DVB-S" : "DVB-S2", lnb.type, fe.input);
-    fprintf(stderr,"Tuning ");
-    int re;
-    if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
+    switch (fe.delsys){
+    case SYS_DVBS:
+    case SYS_DVBS2:	
+	fprintf(stderr,
+		"Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
+		"               lnb_type: %d input: %d\n",
+		fe.freq, fe.pol ? "h":"v", fe.sr,
+		fe.delsys == SYS_DVBS ? "DVB-S" : "DVB-S2", lnb.type, fe.input);
+	fprintf(stderr,"Tuning ");
+	if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
+	break;
+
+    }
+
 
     while (!lock){
 	t++;
