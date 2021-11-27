@@ -325,9 +325,11 @@ void dvb_print_transport(FILE *fp, nit_transport *trans)
 	    "    transport_stream_id 0x%04x original_network_id 0x%04x\n",
 	    trans->transport_stream_id, trans->original_network_id);
     if (trans->desc_num){
+	uint32_t priv_id = 0;
 	fprintf(fp,"    descriptors:\n");
 	for (int n=0 ; n < trans->desc_num; n++){
-	    dvb_print_descriptor(fp, trans->descriptors[n], "      ");
+	    priv_id = dvb_print_descriptor(fp, trans->descriptors[n],
+					   "      ", priv_id);
 	}
     }
 }
@@ -339,10 +341,11 @@ void dvb_print_nit(int fd, NIT *nit)
 	    nit->nit->table_id, nit->nit->section_number+1,
 	    nit->nit->last_section_number+1, nit->nit->id);
     if (nit->ndesc_num){
+	uint32_t priv_id = 0;
 	fprintf(fp,"  network descriptors:\n");
-
 	for (int n=0 ; n < nit->ndesc_num; n++){
-	    dvb_print_descriptor(fp, nit->network_descriptors[n],"    ");
+	    priv_id = dvb_print_descriptor(fp, nit->network_descriptors[n],
+					   "    ", priv_id);
 	}
     }
     if (nit->trans_num){
@@ -369,9 +372,11 @@ void dvb_print_service(FILE *fp, sdt_service *serv)
 	    serv->EIT_present_following_flag, R[serv->running_status],
 	    serv->free_CA_mode);
     if (serv->desc_num){
+	uint32_t priv_id = 0;
 	fprintf(fp,"    descriptors:\n");
 	for (int n=0 ; n < serv->desc_num; n++){
-	    dvb_print_descriptor(fp, serv->descriptors[n], "      ");
+	    priv_id = dvb_print_descriptor(fp, serv->descriptors[n], "      ",
+					   priv_id);
 	}
     }
 }
@@ -681,12 +686,14 @@ static const char *service_type(uint8_t type)
 }
 
 
-void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
+uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
+			      uint32_t priv_id)
 {
     uint8_t *buf = desc->data;
     int c = 0;
     char *name=NULL;
     uint16_t id;
+
     
     fprintf(fp,"%sDescriptor tag: 0x%02x \n",s,desc->tag);
     switch(desc->tag){
@@ -743,8 +750,8 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 
     case 0x5f:
 	fprintf(fp,"%s  Private data specifier descriptor: \n",s);
-	fprintf(fp,"%s    private_data_specifier: 4 bytes\n",s);
-	dvb_print_data(fp, buf, 4, 8,  s, "    ");
+	priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
+	fprintf(fp,"%s    private_data_specifier 0x%08x\n",s,priv_id);
 	break;
 
     case 0x7f:
@@ -760,12 +767,37 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 
     case 0xfb ... 0xfe:
     case 0x80 ... 0xf9: // user defined
-	fprintf(fp,"%s  User defined descriptor:\n",s);
-	fprintf(fp,"%s    length: %d %s\n",s, desc->len,
-		desc->len>1 ? "bytes":"byte");
-	dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
+	switch (priv_id){
+	case NORDIG:
+	    switch (desc->tag){
+	    case 0x83:
+	    case 0x87:
+		fprintf(fp,"%s  NorDig Logical channel descriptor: \n",s);
+		for (int n = 0; n < desc->len; n+=3){
+		    id = (buf[n] << 8) | buf[n+1];
+		    uint16_t lcn = ((buf[n+2]&0x3f) << 8) | buf[n+3];
+		    fprintf(fp,
+			    "%s    service_id 0x%04x logical channel number %d\n",
+			    s, id, lcn);
+		}
+		break;
+	    default:
+		fprintf(fp,"%s  NorDig defined: \n",s);
+		fprintf(fp,"%s    length: %d %s\n",s, desc->len,
+			desc->len>1 ? "bytes":"byte");
+		dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
+		break;
+	    }
+	    break;
+
+	default:
+	    fprintf(fp,"%s  User defined descriptor:\n",s);
+	    fprintf(fp,"%s    length: %d %s\n",s, desc->len,
+		    desc->len>1 ? "bytes":"byte");
+	    dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
+	    break;
+	}
 	break;
-	
     default:
 	fprintf(fp,"%s  UNHANDLED descriptor: \n",s);
 	fprintf(fp,"%s    length: %d %s\n",s, desc->len,
@@ -774,5 +806,6 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 	break;
 	
     }
+    return priv_id;
 }
 
