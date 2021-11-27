@@ -580,12 +580,114 @@ void dvb_print_linkage_descriptor(FILE *fp, descriptor *desc, char *s)
     }
 }
 
+static const char *service_type(uint8_t type)
+{
+    const char *t = "unknown";
+
+    switch (type) {
+
+    case 0x00:
+    case 0x20 ... 0x7F:
+    case 0x12 ... 0x15:
+    case 0xFF:
+	t = "reserved";
+	break;
+    case 0x01:
+	t = "digital television service";
+	break;
+    case 0x02:
+	t = "digital radio sound service";
+	break;
+    case 0x03:
+	t = "Teletext service";
+	break;
+    case 0x04:
+	t = "NVOD reference service";
+	break;
+    case 0x05:
+	t = "NVOD time-shifted service";
+	break;
+    case 0x06:
+	t = "mosaic service";
+	break;
+    case 0x07:
+	t = "PAL coded signal";
+	break;
+    case 0x08:
+	t = "SECAM coded signal";
+	break;
+    case 0x09:
+	t = "D/D2-MAC";
+	break;
+    case 0x0A:
+	t = "FM Radio";
+	break;
+    case 0x0B:
+	t = "NTSC coded signal";
+	break;
+    case 0x0C:
+	t = "data broadcast service";
+	break;
+    case 0x0D:
+	t = "reserved for Common Interface usage";
+	break;
+    case 0x0E:
+	t = "RCS Map (see EN 301 790)";
+	break;
+    case 0x0F:
+	t = "RCS FLS (see EN 301 790)";
+	break;
+    case 0x10:
+	t = "DVB MHP service";
+	break;
+    case 0x11:
+	t = "MPEG-2 HD digital television service";
+	break;
+    case 0x16:
+	    t = "H.264/AVC SD digital television service";
+	break;
+    case 0x17:
+	    t = "H.264/AVC SD NVOD time-shifted service";
+	break;
+    case 0x18:
+	    t = "H.264/AVC SD NVOD reference service";
+	break;
+    case 0x19:
+	    t = "H.264/AVC HD digital television service";
+	break;
+    case 0x1A:
+	    t = "H.264/AVC HD NVOD time-shifted service";
+	break;
+    case 0x1B:
+	    t = "H.264/AVC HD NVOD reference service";
+	break;
+    case 0x1C:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD digital television service ";
+	break;
+    case 0x1D:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD time-shifted service";
+	break;
+    case 0x1E:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD reference service";
+	break;
+    case 0x1F:
+	    t = "HEVC digital television service";
+	break;
+    case 0x80 ... 0xFE:
+	t = "user defined";
+	break;
+    }
+    return t;
+}
+
+
 void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 {
     uint8_t *buf = desc->data;
     int c = 0;
     char *name=NULL;
-
+    uint16_t id;
+    
     fprintf(fp,"%sDescriptor tag: 0x%02x \n",s,desc->tag);
     switch(desc->tag){
     case 0x40:// network_name_descriptor
@@ -595,7 +697,14 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 	    free(name);
 	}
 	break;
-    
+    case 0x41: //service list
+	fprintf(fp,"%s  Service list descriptor:\n",s);
+	for (int n = 0; n < desc->len; n+=3){
+	    id = (buf[n] << 8) | buf[n+1];
+	    fprintf(fp,"%s    service_id 0x%04x service_type %s\n",s, id,
+		    service_type(buf[n+2]));
+	}
+	break;
     case 0x43: // satellite
 	dvb_print_delsys_descriptor(fp, desc, s);
 	break;
@@ -605,20 +714,20 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 	break;
 
     case 0x48: //service descriptor
-	fprintf(fp,"%s  Service descriptor:\n",s);
-	fprintf(fp,"%s    service type 0x%02x ",s, desc->tag);
+	fprintf(fp,"%s  Service descriptor:\n",s,desc->tag);
+	fprintf(fp,"%s    service_type %s\n",s,service_type(buf[0])); 
 	c++;
 	int l = buf[c];
 	c++;
 	if ((name = dvb_get_name(buf+c,l))){
-	    fprintf(fp,"provider %s ", name);
+	    fprintf(fp,"%s    provider %s",s, name);
 	    free(name);
 	}
 	c += l;
 	l = buf[c];
 	c++;
 	if ((name = dvb_get_name(buf+c,l))){
-	    fprintf(fp,"name %s ", name);
+	    fprintf(fp," name %s ", name);
 	    free(name);
 	}
 	fprintf(fp,"\n");
@@ -637,14 +746,31 @@ void dvb_print_descriptor(FILE *fp, descriptor *desc, char *s)
 	fprintf(fp,"%s    private_data_specifier: 4 bytes\n",s);
 	dvb_print_data(fp, buf, 4, 8,  s, "    ");
 	break;
-    
+
+    case 0x7f:
+	fprintf(fp,"%s  Extension descriptor: \n",s);
+	fprintf(fp,"%s    length: %d %s\n",s, desc->len,
+		desc->len>1 ? "bytes":"byte");
+	dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
+	break;
+	    
     case 0xfa: // isdbt
 	dvb_print_delsys_descriptor(fp, desc, s);
 	break;
 
-    case 0x80: // user defined
+    case 0xfb ... 0xfe:
+    case 0x80 ... 0xf9: // user defined
+	fprintf(fp,"%s  User defined descriptor:\n",s);
+	fprintf(fp,"%s    length: %d %s\n",s, desc->len,
+		desc->len>1 ? "bytes":"byte");
+	dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
+	break;
 	
     default:
+	fprintf(fp,"%s  UNHANDLED descriptor: \n",s);
+	fprintf(fp,"%s    length: %d %s\n",s, desc->len,
+		desc->len>1 ? "bytes":"byte");
+	dvb_print_data(fp, desc->data, desc->len, 8, s, "  ");
 	break;
 	
     }
