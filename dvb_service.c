@@ -352,6 +352,7 @@ void dvb_print_nit(int fd, NIT *nit)
 	}
     }
     fprintf(fp,"\n");
+    fflush(fp);
 }
 
 void dvb_print_service(FILE *fp, sdt_service *serv)
@@ -387,6 +388,7 @@ void dvb_print_sdt(int fd, SDT *sdt)
 	    dvb_print_service(fp, sdt->services[n]);
 	}
     }
+    fflush(fp);
 }
 
 void dvb_print_delsys_descriptor(FILE *fp, descriptor *desc, char *s)
