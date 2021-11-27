@@ -76,7 +76,7 @@ typedef struct nit_transport_t {
 
 typedef struct NIT_t {
     section       *nit;
-    uint8_t       network_descriptor_length;
+    uint16_t       network_descriptor_length;
     int           ndesc_num;
     descriptor    *network_descriptors[MAXDESC];
     uint16_t      transport_stream_loop_length;

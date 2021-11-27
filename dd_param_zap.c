@@ -247,7 +247,7 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
     return out;
 }	
 
-
+#define MAXTRY 10
 int main(int argc, char **argv){
     dvb_devices dev;
     dvb_lnb lnb;
@@ -299,8 +299,7 @@ int main(int argc, char **argv){
 	break;
     }
 
-
-    while (!lock){
+    while (!lock && t < MAXTRY ){
 	t++;
 	fprintf(stderr,".");
 	lock = read_status(dev.fd_fe);
