@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <linux/dvb/frontend.h>
 
-
 #define MAXSTREAM 100
 #define MAXSERV 100
 #define MAXDESC 100

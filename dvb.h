@@ -41,6 +41,9 @@ typedef struct dvb_fe_t{
     uint32_t freq;
     uint32_t pol;
     uint32_t hi;
+    uint32_t bandw;
+    uint32_t mod;
+    enum fe_code_rate fec;
     uint32_t sr;
     uint32_t id;
     int input;
@@ -70,12 +73,15 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t pol, uint32_t hi,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq);
+int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
+	   enum fe_code_rate fec, uint32_t mod);
 void stop_dmx( int fd );
 int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
 			    uint32_t ext, uint32_t ext_mask,
 			    uint32_t ext_nmask);
 
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+int dvb_tune_c(dvb_devices *dev, dvb_fe *fe);
 void dvb_init_dev(dvb_devices *dev);
 void dvb_init_fe(dvb_fe *fe);
 void dvb_init_lnb(dvb_lnb *lnb);
@@ -88,8 +94,8 @@ int read_status(int fd);
 int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats);
 void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
-			    uint32_t ext, uint32_t ext_mask,
-			    uint32_t ext_nmask);
+				uint32_t ext, uint32_t ext_mask,
+				uint32_t ext_nmask);
 
 #endif
 

@@ -406,6 +406,42 @@ int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		    lnb->lof1, lnb->lof2, lnb->scif_slot, lnb->scif_freq);
 }
 
+
+int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
+	   enum fe_code_rate fec, uint32_t mod)
+{
+    struct dtv_property p[] = {
+	{ .cmd = DTV_CLEAR },
+	{ .cmd = DTV_FREQUENCY, .u.data = freq * 1000},
+	{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (bandw != DVB_UNDEF) ?
+	  bandw : 8000000 },
+	{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
+	{ .cmd = DTV_INNER_FEC, .u.data = (fec != DVB_UNDEF) ?
+	  fec : FEC_AUTO },
+	{ .cmd = DTV_MODULATION,
+	  .u.data = (mod != DVB_UNDEF) ? mod : QAM_AUTO },
+	{ .cmd = DTV_TUNE },
+    };              
+    struct dtv_properties c;
+        int ret;
+        fprintf(stderr, "tune_c()\n");
+        set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
+
+        c.num = ARRAY_SIZE(p);
+        c.props = p;
+        ret = ioctl(fd, FE_SET_PROPERTY, &c);
+        if (ret < 0) {
+                fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+                return -1;
+        }
+        return 0;
+}
+
+int dvb_tune_c(dvb_devices *dev, dvb_fe *fe)
+{
+    return tune_c(dev->fd_fe, fe->freq, fe->bandw, fe->sr, fe->fec, fe->mod);
+}
+
 void dvb_print_tuning_options()
 {
     fprintf(stderr,
@@ -440,6 +476,9 @@ int dvb_parse_args(int argc, char **argv,
     uint32_t freq = 0;
     uint32_t sr = DVB_UNDEF;
     uint32_t id = DVB_UNDEF;
+    uint32_t bandw = DVB_UNDEF;
+    uint32_t mod = DVB_UNDEF;
+    enum fe_code_rate fec = DVB_UNDEF;
     int delay = 0;
     uint32_t pol = DVB_UNDEF;
     uint32_t hi = 0;
@@ -602,6 +641,9 @@ int dvb_parse_args(int argc, char **argv,
     fe->input = input;
     fe->freq = freq;
     fe->sr = sr;
+    fe->bandw = bandw;
+    fe->mod = mod;
+    fe->fec = fec;
     fe->pol = pol;
     fe->hi = hi;
     fe->id = id;

@@ -264,7 +264,16 @@ int main(int argc, char **argv){
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
     dvb_open(&dev, &fe, &lnb);
+
     switch (fe.delsys){
+    case SYS_DVBC_ANNEX_A:
+	fprintf(stderr,
+		"Trying to tune freq: %dsr: %d delsys: DVB-C \n",
+		fe.freq, fe.sr);
+	fprintf(stderr,"Tuning ");
+	if ((re=dvb_tune_c( &dev, &fe)) < 0) exit(1);
+	break;
+	
     case SYS_DVBS:
     case SYS_DVBS2:	
 	fprintf(stderr,
@@ -276,6 +285,18 @@ int main(int argc, char **argv){
 	if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
 	break;
 
+
+    case SYS_DVBT:
+    case SYS_DVBT2:
+    case SYS_DVBC_ANNEX_B:
+    case SYS_ISDBC:
+    case SYS_ISDBT:
+    case SYS_ISDBS:
+    case SYS_UNDEFINED:
+    default:
+	fprintf(stderr,"Delivery System not yet implemented\n");
+	exit(1);
+	break;
     }
 
 
