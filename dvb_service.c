@@ -337,8 +337,10 @@ void dvb_print_transport(FILE *fp, nit_transport *trans)
 void dvb_print_nit(int fd, NIT *nit)
 {
     FILE* fp = fdopen(fd, "w");
-    fprintf(fp,"NIT (0x%02x): (%d/%d) \n  network_id 0x%04x\n",
-	    nit->nit->table_id, nit->nit->section_number+1,
+    fprintf(fp,"NIT (0x%02x): %s network (%d/%d) \n  network_id 0x%04x\n",
+	    nit->nit->table_id, 
+	    (nit->nit->table_id == 0x41) ? "other":"actual", 
+	    nit->nit->section_number+1,
 	    nit->nit->last_section_number+1, nit->nit->id);
     if (nit->ndesc_num){
 	uint32_t priv_id = 0;

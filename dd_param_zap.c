@@ -23,164 +23,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define BUFFSIZE (1024*188)
 
-
-
-uint8_t parse_nit(uint8_t *buf)
-{
-    int slen, tsp, c, nlen,nc;
-    int ntune = 0;
-    uint16_t nid;
-    uint16_t ndl, tsll, tdl=0, dl=0;
-    uint16_t tsid, onid;
-    char *network_name =NULL;
-    uint32_t freq;
-    uint32_t srate;
-    uint8_t pol;
-    uint8_t delsys;
-    uint8_t fec;
-    
-    slen = (((buf[1]&0x0F) << 8) | buf[2]) +3;
-    if (buf[1] & 0x80)
-	slen -= 4;
-
-    nid = (buf[3] << 8) | buf[4];
-    ndl = (((buf[8]&0x0F) << 8) | buf[9]);
-    nc = 10;
-    while ( nc < 10+ndl){
-	nlen = (int) buf[nc+1];
-	switch (buf[nc]){
-	case 0x40:// network_name_descriptor
-	    network_name = (char *)&buf[nc+2];
-	    break;
-
-	default:
-//	    fprintf(stderr,"tag 0x%01x\n",buf[nc]);
-	    break;
-	}
-	nc += 2+nlen;
-    }
-    tsp = ndl + 10;
-    tsll =  (((buf[tsp]&0x0F) << 8) | buf[tsp+1]);
-//    fprintf(stderr, "NIT(%02x): len %u nid %u snr %02x lsnr %02x "
-//	    "ndl %02x  tsll %02x\n",
-//     buf[0], slen, nid, buf[6], buf[7], ndl, tsll);
-    printf("NIT (0x%02x): %s nid 0x%02x (%d/%d) \n",
-	   buf[0], network_name ? network_name: " ",nid, buf[6], buf[7]);
-
-    for (c = tsp + 2; c < slen; c += tdl) {
-	uint16_t tsid, onid;
-	tsid = (buf[c] << 8) | buf[c+1];
-	onid = (buf[c+2] << 8) | buf[c+3];
-	tdl =  ((buf[c+4]&0x0f) << 8) | buf[c+5];
-//	fprintf(stderr, "tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
-	c += 6;
-	ntune++;
-	//fprintf(stderr, "tsid %02x onid %02x tdl %02x\n", tsid, onid, tdl);
-	printf("TRANSPONDER: tsid=0x%02x onid=0x%02x", tsid, onid);
-
-	switch (buf[c]){
-	    
-	case 0x43: // satellite
-	    freq = getbcd(buf + c + 2, 8) *10;
-	    srate = getbcd(buf + c + 9, 7) / 10;
-	    pol = 1 ^ ((buf[c + 8] & 0x60) >> 5); // H V L R
-	    delsys = ((buf[c + 8] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
-	    fec = buf[c + 12] & 0x0f;
-	    printf(" freq=%u  pol=%u  sr=%u  fec=%u delsys=%d\n"
-		  , freq, pol, srate, fec, delsys);
-	    break;
-	    
-	case 0x44: // cable
-	    freq =  getbcd(buf + c + 2, 8) / 10000;
-	    srate = getbcd(buf + c + 9, 7) / 10;
-	    delsys = SYS_DVBC_ANNEX_A;
-	    printf(" freq = %u  sr = %u  delsys=%d\n",
-		   freq, srate, delsys);
-	    break;
-	    
-	case 0x5a: // terrestrial
-	    freq = (buf[c+5]|(buf[c+4] << 8)|(buf[c+3] << 16)|(buf[c+2] << 24))*10;
-	    delsys = SYS_DVBT;
-	    break;
-	    
-	case 0xfa: // isdbt
-	    freq = (buf[c+5]|(buf[c+4] << 8))*7000000;
-	    delsys = SYS_ISDBT;
-	    break;
-
-	default:
-//	    fprintf(stderr,"tag 0x%01x\n",buf[c]);
-	    break;
-	}
-    }
-    return buf[7];
-}
-
-
-uint8_t parse_sdt(uint8_t *buf)
-{
-    int slen=0;
-    int ntune = 0;
-    int c=0;
-    uint16_t tsid, onid;
-    
-    slen = (((buf[1]&0x0F) << 8) | buf[2])-3;
-    tsid = (buf[3] << 8) | buf[4];
-    onid = (buf[8] << 8) | buf[9];
-    printf("SDT(0x%02x): tsid 0x%02x onid 0x%02x (%d/%d)\n",
-	   buf[0], tsid, onid, buf[6], buf[7]);
-    c = 11;
-    while ( c < slen-4 ){
-	int cc = 0;
-	char *name = NULL;
-	uint16_t sid = (buf[c] << 8) | buf[c+1];
-	uint16_t tdl =  ((buf[c+3]&0x0f) << 8) | buf[c+4];
-	printf ("SERVICE: sid 0x%04x ",sid);
-	cc = 5;
-	while (cc < tdl){
-	    uint8_t tag = buf[c+cc];
-	    uint8_t dl = buf[c+1+cc];
-	    switch (tag){
-	    case 0x48: //service descriptor
-	    {
-		char *prov=NULL;
-		char *name=NULL;
-		printf("type 0x%02x ", buf[c+cc+2]);
-
-		cc += 3;
-		int l = buf[c+cc];
-		cc++;
-		if (l){
-		    prov = malloc(sizeof(char)*l+1);
-		    memcpy(prov,buf+c+cc,l);
-		    prov[l] = 0x00;
-		    dvb2txt(prov);
-		    printf("provider %s ", prov);
-		}
-		cc += l;
-		int ll = buf[c+cc];
-		cc++;
-		if (ll){
-		    name = malloc(sizeof(char)*ll+1);
-		    memcpy(name,buf+c+cc,ll);
-		    name[ll] = 0x00;
-		    dvb2txt(name);
-		    printf("name %s ", name);
-		}
-		cc += ll;
-		break;
-	    }	
-	    default:
-		break;
-	    }
-	    printf("\n");
-
-	}
-	c+=tdl+5;
-    }
-    return buf[7];
-}
-
 void print_help()
 {
     dvb_print_tuning_options();
@@ -246,6 +88,72 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 
     return out;
 }	
+
+void search_nit(dvb_devices *dev, uint8_t table_id)
+{
+    int fdmx;
+    uint8_t sec_buf[4096];
+    int re = 0;
+
+    close(dev->fd_dmx);
+    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , table_id,
+					    0,0x000000FF,0)) < 0)
+	exit(1); 
+    
+    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+    NIT  *nit = dvb_get_nit(sec_buf);
+    int nnit = nit->nit->last_section_number;
+    dvb_print_nit(fileno(stdout), nit);
+    dvb_delete_nit(nit);
+    
+    close(fdmx);
+    if (nnit){
+	for (int i=1; i < nnit+1; i++){
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , 0x40,
+						    (uint32_t)i,
+						    0x000000ff,0)) < 0)
+		exit(1); 
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    nit = dvb_get_nit(sec_buf);
+	    dvb_print_nit(fileno(stdout), nit);
+	    dvb_delete_nit(nit);
+	    close(fdmx);
+	}
+    }
+}
+
+void search_sdt(dvb_devices *dev)
+{
+    int fdmx;
+    uint8_t sec_buf[4096];
+    int re = 0;
+
+    close(dev->fd_dmx);
+    if ((fdmx = dvb_open_dmx_section_filter(dev,0x11 , 0x42,
+					    0,0x000000FF,0)) < 0)
+	exit(1); 
+    
+    re = 0;
+    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+    SDT  *sdt = dvb_get_sdt(sec_buf);
+    int nsdt = sdt->sdt->last_section_number;
+    dvb_print_sdt(fileno(stdout), sdt);
+    dvb_delete_sdt(sdt);
+    close(fdmx);
+    if (nsdt){
+	for (int i=1; i < nsdt+1; i++){
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x11 , 0x42,
+						    (uint32_t)i,
+						    0x000000ff,0)) < 0)
+		exit(1); 
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    sdt = dvb_get_sdt(sec_buf);
+	    dvb_print_sdt(fileno(stdout), sdt);
+	    dvb_delete_sdt(sdt);
+	    close(fdmx);
+	}
+    }
+}
 
 #define MAXTRY 10
 int main(int argc, char **argv){
@@ -333,62 +241,12 @@ int main(int argc, char **argv){
 	    break;
 	}
 	case 2:
-	    close(dev.fd_dmx);
-	    int fdmx;
-	    uint8_t sec_buf[4096];
-	    if ((fdmx = dvb_open_dmx_section_filter(&dev,0x10 , 0x40,
-						    0,0x000000FF,0)) < 0)
-		exit(1); 
-
-	    re = 0;
-	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-	    NIT  *nit = dvb_get_nit(sec_buf);
-	    int nnit = nit->nit->last_section_number;
-	    dvb_print_nit(fileno(stdout), nit);
-	    dvb_delete_nit(nit);
-
-	    close(fdmx);
-	    if (nnit){
-		for (int i=1; i < nnit+1; i++){
-		if ((fdmx = dvb_open_dmx_section_filter(&dev,0x10 , 0x40,
-							(uint32_t)i,
-							0x000000ff,0)) < 0)
-		    exit(1); 
-		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-		nit = dvb_get_nit(sec_buf);
-		dvb_print_nit(fileno(stdout), nit);
-		dvb_delete_nit(nit);
-		close(fdmx);
-		}
-	    }
+	    search_nit(&dev,0x40);
+	    search_nit(&dev,0x41);
 	    break;
 
 	case 3:
-	    close(dev.fd_dmx);
-	    if ((fdmx = dvb_open_dmx_section_filter(&dev,0x11 , 0x42,
-						    0,0x000000FF,0)) < 0)
-		exit(1); 
-
-	    re = 0;
-	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-	    SDT  *sdt = dvb_get_sdt(sec_buf);
-	    int nsdt = sdt->sdt->last_section_number;
-	    dvb_print_sdt(fileno(stdout), sdt);
-	    dvb_delete_sdt(sdt);
-	    close(fdmx);
-	    if (nsdt){
-		for (int i=1; i < nsdt+1; i++){
-		if ((fdmx = dvb_open_dmx_section_filter(&dev,0x11 , 0x42,
-							(uint32_t)i,
-							0x000000ff,0)) < 0)
-		    exit(1); 
-		while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
-		sdt = dvb_get_sdt(sec_buf);
-		dvb_print_sdt(fileno(stdout), sdt);
-		dvb_delete_sdt(sdt);
-		close(fdmx);
-		}
-	    }
+	    search_sdt(&dev);
 	    break;
 
 	default:
