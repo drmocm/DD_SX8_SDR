@@ -519,7 +519,7 @@ int dvb_parse_args(int argc, char **argv,
 	};
 
 	c = getopt_long(argc, myargv, 
-			"a:d:Df:I:i:j:e:L:p:s:ul:U:S:",
+			"a:d:Df:I:i:j:e:L:p:s:ul:U:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;

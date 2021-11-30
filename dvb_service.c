@@ -602,7 +602,7 @@ const char *stream_type(uint8_t type)
 
 void dvb_print_stream(FILE *fp, pmt_stream *stream)
 {
-    fprintf(fp,"  stream: elementary_PID 0x%04x stream_type \n",
+    fprintf(fp,"  stream: elementary_PID 0x%04x stream_type %s \n",
 	    stream->elementary_PID, stream_type(stream->stream_type));
     if (stream->desc_num){
 	uint32_t priv_id = 0;

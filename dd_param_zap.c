@@ -31,6 +31,7 @@ void print_help()
 	    " -N           : get NIT\n"
 	    " -S           : get SDT\n"
 	    " -P           : get PAT and PMTs\n"
+	    " -F           : do full NIT scan\n"
 	    " -o filename  : output filename\n"
 	    " -h           : this help message\n\n"
 	);
@@ -52,12 +53,13 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    {"nit", required_argument , 0, 'N'},
 	    {"sdt", required_argument , 0, 'S'},
 	    {"pat", required_argument , 0, 'P'},
+	    {"full_scan", required_argument , 0, 'F'},
 	    {"stdout", no_argument , 0, 'O'},
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:ONSP", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:ONSPF", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -77,6 +79,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 
 	case 'P':
 	    out = 4;
+	    break;
+
+	case 'F':
+	    out = 5;
 	    break;
 
 	case 'O':
