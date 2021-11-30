@@ -170,7 +170,7 @@ section *dvb_get_section(uint8_t *buf)
     sec->section_length = (((buf[1]&0x0F) << 8) | buf[2]);
     memcpy(sec->data, buf, sec->section_length+3); 
     sec->table_id = buf[0];
-    sec->section_syntax_indicator = buf[1] & 0x01;
+    sec->section_syntax_indicator = (buf[1]>>4) & 0x01;
     if (sec->section_syntax_indicator){
 	sec->id = (buf[3] << 8) | buf[4];
 	sec->current_next_indicator = buf[5]&0x01;
@@ -179,6 +179,98 @@ section *dvb_get_section(uint8_t *buf)
 	sec->last_section_number = buf[7];
     }
     return sec;
+}
+
+void dvb_delete_pat(PAT *pat)
+{
+    dvb_delete_section(pat->pat);
+    free(pat);
+}
+
+PAT *dvb_get_pat(uint8_t *buf)
+{
+    PAT *pat = NULL;
+    section *sec = dvb_get_section(buf);
+
+    buf = sec->data;
+    if (!(pat = malloc(sizeof(PAT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_pat\n");
+	return NULL;
+    }
+    pat->pat = sec;
+    pat->nprog = (sec->section_length -8)/4;
+    buf += 8;
+    
+    for(int n=0; n < pat->nprog; n++){
+	pat->program_number[n] = (buf[n*4] << 8) | buf[n*4+1];
+	pat->pid[n] = ((buf[n*4+2]&0x1f) << 8) | buf[n*4+3];
+    }
+    return pat;
+}
+
+static void dvb_delete_pmt_stream(pmt_stream *stream)
+{
+    dvb_delete_descriptor_loop(stream->descriptors, stream->desc_num);
+    free(stream);
+}
+
+static pmt_stream *dvb_get_pmt_stream(uint8_t *buf)
+{
+    pmt_stream *stream = NULL;
+    if (!(stream = malloc(sizeof(pmt_stream)))) {
+    	fprintf(stderr,"Error allocating memory in dvb_get_pmt_stream\n");
+	return NULL;	
+    }
+    stream->stream_type = buf[0];
+    stream->elementary_PID = ((buf[1]&0x1f) << 8) | buf[2];
+    stream->ES_info_length = ((buf[3]&0x0f) << 8) | buf[4];
+
+    stream->desc_num = 0;
+    buf += 5;
+    stream->desc_num = dvb_get_descriptor_loop(buf, stream->descriptors,
+					       stream->ES_info_length);
+
+    return stream;
+}
+
+void dvb_delete_pmt(PMT *pmt)
+{
+    for (int n=0; n < pmt->stream_num; n++){
+	dvb_delete_pmt_stream(pmt->stream[n]);
+    }
+	
+    dvb_delete_section(pmt->pmt);
+    free(pmt);
+}
+
+PMT *dvb_get_pmt(uint8_t *buf)
+{
+    PMT *pmt = NULL;
+    section *sec = dvb_get_section(buf);
+    int c = 0;
+
+    buf = sec->data;
+    if (!(pmt = malloc(sizeof(PMT)))){
+	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
+	return NULL;
+    }
+    pmt->pmt = sec;
+    pmt->PCR_PID = ((buf[8]&0x1f) << 8) | buf[9];
+    pmt->program_info_length = ((buf[10]&0x0f) << 8) | buf[11];
+    c = 12;
+    pmt->desc_num = dvb_get_descriptor_loop(buf+c, pmt->descriptors,
+					    pmt->program_info_length);
+    c += pmt->program_info_length;
+
+    int n = 0;
+    int length = pmt->pmt->section_length -7;
+    while (c < length){
+	pmt->stream[n] =  dvb_get_pmt_stream(buf+c);
+	c += pmt->stream[n]->ES_info_length+5;
+	n++;
+    }
+    pmt->stream_num = n;
+    return pmt;
 }
 
 static void dvb_delete_sdt_service(sdt_service *serv)
@@ -222,7 +314,7 @@ SDT *dvb_get_sdt(uint8_t *buf)
     section *sec = dvb_get_section(buf);
 
     buf = sec->data;
-    if (!(sdt = malloc(sizeof(NIT)))){
+    if (!(sdt = malloc(sizeof(SDT)))){
 	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
 	return NULL;
     }
@@ -317,6 +409,232 @@ NIT  *dvb_get_nit(uint8_t *buf)
     
     return nit;
 
+}
+
+void dvb_print_section(int fd, section *sec)
+{
+    FILE* fp = fdopen(fd, "w");
+    int c=9;
+    
+    fprintf(fp,"section: table_id 0x%02x  syntax %d\n",
+	    sec->table_id, sec->section_syntax_indicator);
+    if (sec->section_syntax_indicator){
+	fprintf(fp,"          id 0x%04x version_number 0x%02x\n" 
+		"          section number: 0x%02x\n"
+		"          last_section_number: 0x%02x\n",
+		sec->id, sec->version_number, sec->section_number,
+		sec->last_section_number);
+	c+=5;
+    }
+    fprintf(fp,"        data (%d bytes):\n", sec->section_length+3);
+    dvb_print_data(fp, sec->data,sec->section_length, 8,"          ", "");
+    fprintf(fp,"\n");
+    fflush(fp);
+}
+
+void dvb_print_pat(int fd, PAT *pat)
+{
+    FILE* fp = fdopen(fd, "w");
+
+    fprintf(fp,"PAT (0x%02x): transport_stream_id 0x%04x\n",
+	    pat->pat->table_id, pat->pat->id);
+    fprintf(fp,"  programs: \n");
+    for(int n=0; n < pat->nprog; n++){
+	fprintf(fp,"    program_number 0x%04x %s 0x%04x\n",
+		pat->program_number[n],
+		pat->program_number[n] ? "program_map_PID" : "network_PID",
+		pat->pid[n]);
+    }
+    fprintf(fp,"\n");
+    fflush(fp);
+}
+
+const char *stream_type(uint8_t type)
+{
+    const char *t = "unknown";
+
+    switch (type) {
+    case 0x01:
+	t = "video MPEG1";
+	break;
+    case 0x02:
+	t = "video MPEG2";
+	break;
+    case 0x03:
+	t = "audio MPEG1";
+	break;
+    case 0x04:
+	t = "audio MPEG2";
+	break;
+    case 0x05:
+	t = "MPEG-2 private data";
+	break;
+    case 0x06:
+	t = "MPEG-2 packetized data (subtitles)";
+	break;
+    case 0x07:
+	t = "MHEG";
+	break;
+    case 0x08:
+	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC";
+	break;
+    case 0x09:
+	t = "ITU-T Rec. H.222.1";
+	break;
+    case 0x0A:
+	t = "DSM-CC ISO/IEC 13818-6 type A (Multi-protocol Encapsulation)";
+	break;
+    case 0x0B:
+	t = "DSM-CC ISO/IEC 13818-6 type B (U-N messages)";
+	break;
+    case 0x0C:
+	t = "DSM-CC ISO/IEC 13818-6 type C (Stream Descriptors)";
+	break;
+    case 0x0D:
+	t = "DSM-CC ISO/IEC 13818-6 type D (Sections – any type)";
+	break;
+    case 0x0E:
+	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary";
+	break;
+    case 0x0F:
+	t = "audio AAC";
+	break;
+    case 0x10:
+	t = "video MPEG2";
+	break;
+    case 0x11:
+	t = "audio LATM";
+	break;
+    case 0x12:
+	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets";
+	break;
+    case 0:
+	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections.";
+	break;
+    case 0x14:
+	t = "ISO/IEC 13818-6 Synchronized Download Protocol";
+	break;
+    case 0x15:
+	t = "Metadata in PES packets";
+	break;
+    case 0x16:
+	t = "Metadata in metadata_sections";
+	break;
+    case 0x17:
+	t = "Metadata 13818-6 Data Carousel";
+	break;
+    case 0x18:
+	t = "Metadata 13818-6 Object Carousel";
+	break;
+    case 0x19:
+	t = "Metadata 13818-6 Synchronized Download Protocol";
+	break;
+    case 0x1A:
+	t = "IPMP (13818-11, MPEG-2 IPMP)";
+	break;
+    case 0x1B:
+	t = "video H264 ISO/IEC 14496-10";
+	break;
+    case 0x1C:
+	t = "audio ISO/IEC 14496-3 (DST, ALS and SLS)";
+	break;
+    case 0x1D:
+	t = "text ISO/IEC 14496-17";
+	break;
+    case 0x1E:
+	t = "video ISO/IEC 23002-3 Aux.";
+	break;
+    case 0x1F:
+	t = "video ISO/IEC 14496-10 sub";
+	break;
+    case 0x20:
+	t = "video MVC sub-bitstream";
+	break;
+    case 0x21:
+	t = "video J2K";
+	break;
+    case 0x22:
+	t = "video H.262 for 3D services";
+	break;
+    case 0x23:
+	t = "video H.264 for 3D services";
+	break;
+    case 0x24:
+	t = "video H.265 or HEVC temporal sub-bitstream";
+	break;
+    case 0x25:
+	t = "video H.265 temporal subset";
+	break;
+    case 0x26:
+	t = "video MVCD in AVC";
+	break;
+    case 0x42:
+	t = "video CAVS";
+	break;
+    case 0x7F:
+	t = "IPMP";
+	break;
+    case 0x81:
+	t = "audio AC-3 (ATSC)";
+	break;
+    case 0x82:
+	t = "audio DTS";
+	break;
+    case 0x83:
+	t = "audio TRUEHD";
+	break;
+    case 0x86:
+	t = "SCTE-35";
+	break;
+    case 0x87:
+	t = "audio E-AC-3 (ATSC)";
+	break;
+    case 0xEA:
+	t = "video VC1";
+	break;
+    case 0xD1:
+	t = "video DIRAC";
+	break;
+    }
+    return t;
+}
+
+
+void dvb_print_stream(FILE *fp, pmt_stream *stream)
+{
+    fprintf(fp,"  stream: elementary_PID 0x%04x stream_type \n",
+	    stream->elementary_PID, stream_type(stream->stream_type));
+    if (stream->desc_num){
+	uint32_t priv_id = 0;
+	fprintf(fp,"  descriptors:\n");
+	for (int n=0 ; n < stream->desc_num; n++){
+	    priv_id = dvb_print_descriptor(fp, stream->descriptors[n],
+					   "    ", priv_id);
+	}
+    }
+}
+
+void dvb_print_pmt(int fd, PMT *pmt)
+{
+    FILE* fp = fdopen(fd, "w");
+    fprintf(fp,"PMT (0x%02x):  program_number 0x%04x  PCR_PID 0x%04x \n",
+	    pmt->pmt->table_id, pmt->pmt->id, pmt->PCR_PID);
+    if (pmt->desc_num) {
+	fprintf(fp,"  program_info:\n");
+	for (int n=0; n < pmt->desc_num; n++){
+	    uint32_t priv_id = 0;
+	    priv_id = dvb_print_descriptor(fp, pmt->descriptors[n],
+					   "    ", priv_id);
+	}
+    }
+    if (pmt->stream_num) {
+	fprintf(fp,"    descriptors:\n");
+	for (int n=0; n < pmt->stream_num; n++){
+	    dvb_print_stream(fp, pmt->stream[n]);
+	}
+    }
+    fprintf(fp,"\n");
+    fflush(fp);
 }
 
 void dvb_print_transport(FILE *fp, nit_transport *trans)

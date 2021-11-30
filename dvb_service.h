@@ -46,6 +46,7 @@ typedef struct section_t {
 
 typedef struct PAT_t {
     section *pat;
+    int nprog;
     uint16_t program_number[MAXSERV];
     uint16_t pid[MAXSERV];
 } PAT;
@@ -59,7 +60,7 @@ typedef struct pmt_stream_t {
 } pmt_stream;
 
 typedef struct PMT_t {
-    section    *pat;
+    section    *pmt;
     uint16_t   PCR_PID;
     uint16_t   program_info_length;
     int        desc_num;
@@ -106,6 +107,9 @@ typedef struct SDT_t {
 
 uint32_t getbcd(uint8_t *p, int l);
 void dvb2txt(char *in);
+PAT *dvb_get_pat(uint8_t *buf);
+void dvb_print_pmt(int fd, PMT *pmt);
+PMT *dvb_get_pmt(uint8_t *buf);
 NIT  *dvb_get_nit(uint8_t *buf);
 SDT *dvb_get_sdt(uint8_t *buf);
 section *dvb_get_section(uint8_t *buf);
@@ -115,8 +119,12 @@ descriptor *dvb_get_descriptor(uint8_t *buf);
 uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
 			      uint32_t priv_id);
 
+void dvb_print_section(int fd, section *sec);
+void dvb_print_pat(int fd, PAT *pat);
 void dvb_print_nit(int fd, NIT *nit);
 void dvb_print_sdt(int fd, SDT *sdt);
+void dvb_delete_pat(PAT *pat);
+void dvb_delete_pmt(PMT *pmt);
 void dvb_delete_sdt(SDT *sdt);
 void dvb_delete_nit(NIT *nit);
 void dvb_print_data(FILE *fp, uint8_t *b, int length, int step,

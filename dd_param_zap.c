@@ -30,6 +30,7 @@ void print_help()
 	    "\n OTHERS:\n"
 	    " -N           : get NIT\n"
 	    " -S           : get SDT\n"
+	    " -P           : get PAT and PMTs\n"
 	    " -o filename  : output filename\n"
 	    " -h           : this help message\n\n"
 	);
@@ -50,12 +51,13 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    {"fileout", required_argument , 0, 'o'},
 	    {"nit", required_argument , 0, 'N'},
 	    {"sdt", required_argument , 0, 'S'},
+	    {"pat", required_argument , 0, 'P'},
 	    {"stdout", no_argument , 0, 'O'},
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:ONS", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:ONSP", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -71,6 +73,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 
 	case 'S':
 	    out = 3;
+	    break;
+
+	case 'P':
+	    out = 4;
 	    break;
 
 	case 'O':
@@ -95,6 +101,7 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
     uint8_t sec_buf[4096];
     int re = 0;
 
+    fprintf(stderr,"Searching NIT\n");
     close(dev->fd_dmx);
     if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , table_id,
 					    0,0x000000FF,0)) < 0)
@@ -128,6 +135,7 @@ void search_sdt(dvb_devices *dev)
     uint8_t sec_buf[4096];
     int re = 0;
 
+    fprintf(stderr,"Searching SDT\n");
     close(dev->fd_dmx);
     if ((fdmx = dvb_open_dmx_section_filter(dev,0x11 , 0x42,
 					    0,0x000000FF,0)) < 0)
@@ -151,6 +159,70 @@ void search_sdt(dvb_devices *dev)
 	    dvb_print_sdt(fileno(stdout), sdt);
 	    dvb_delete_sdt(sdt);
 	    close(fdmx);
+	}
+    }
+}
+
+
+void search_pat(dvb_devices *dev)
+{
+    int fdmx;
+    uint8_t sec_buf[4096];
+    int re = 0;
+    PAT *pat[10];
+
+    fprintf(stderr,"Searching PAT\n");
+    close(dev->fd_dmx);
+    if ((fdmx = dvb_open_dmx_section_filter(dev, 0x00 , 0x00, 0,0,0)) < 0)
+	exit(1); 
+    
+    re = 0;
+    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+    pat[0] = dvb_get_pat(sec_buf);
+    int npat = pat[0]->pat->last_section_number;
+    dvb_print_pat(fileno(stdout), pat[0]);
+    close(fdmx);
+    if (npat){
+	for (int i=1; i < npat+1; i++){
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x00 , 0x00,
+						    (uint32_t)i,
+						    0x000000ff,0)) < 0)
+		exit(1); 
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    pat[i] = dvb_get_pat(sec_buf);
+	    dvb_print_pat(fileno(stdout), pat[i]);
+	    close(fdmx);
+	}
+    }
+
+    for (int n=0; n < npat+1; n++){
+	for (int i=0; i < pat[n]->nprog; i++){
+	    uint16_t pid = pat[n]->pid[i];
+	    fprintf(stderr,"Searching PMT 0x%02x\n",pid);
+	    if ((fdmx = dvb_open_dmx_section_filter(dev, pid , 0x02, 0, 0, 0))
+		< 0)
+		exit(1); 
+	
+	    re = 0;
+	    while ( (re = read(fdmx, sec_buf, 1024)) <= 0) sleep(1);
+	    PMT  *pmt = dvb_get_pmt(sec_buf);
+	    int npmt = pmt->pmt->last_section_number;
+	    dvb_print_pmt(fileno(stdout), pmt);
+	    dvb_delete_pmt(pmt);
+	    close(fdmx);
+	    if (npmt){
+		for (int i=1; i < npmt+1; i++){
+		    if ((fdmx = dvb_open_dmx_section_filter(dev,pid , 0x02,
+							    (uint32_t)i,
+							    0x000000ff,0)) < 0)
+			exit(1); 
+		    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+		    pmt = dvb_get_pmt(sec_buf);
+		    dvb_print_pmt(fileno(stdout), pmt);
+		    dvb_delete_pmt(pmt);
+		    close(fdmx);
+		}
+	    }
 	}
     }
 }
@@ -247,6 +319,10 @@ int main(int argc, char **argv){
 
 	case 3:
 	    search_sdt(&dev);
+	    break;
+
+	case 4:
+	    search_pat(&dev);
 	    break;
 
 	default:
