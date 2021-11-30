@@ -198,7 +198,9 @@ void search_pat(dvb_devices *dev)
     for (int n=0; n < npat+1; n++){
 	for (int i=0; i < pat[n]->nprog; i++){
 	    uint16_t pid = pat[n]->pid[i];
-	    fprintf(stderr,"Searching PMT 0x%02x\n",pid);
+	    if (!pat[n]->program_number[i]) continue;
+	    fprintf(stderr,"Searching PMT 0x%02x for program 0x%04x\n",
+		    pid,pat[n]->program_number[i]);
 	    if ((fdmx = dvb_open_dmx_section_filter(dev, pid , 0x02, 0, 0, 0))
 		< 0)
 		exit(1); 
