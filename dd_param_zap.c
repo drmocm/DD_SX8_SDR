@@ -101,6 +101,40 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
     return out;
 }	
 
+/*
+int get_all_nit(dvb_sevices dev NIT **nits, int max)
+{
+    int nnit = 0;
+    close(dev->fd_dmx);
+    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , table_id,
+					    0,0x000000FF,0)) < 0)
+	exit(1); 
+    
+    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+    nit[0] = dvb_get_nit(sec_buf);
+    nnit = nit->nit->last_section_number;
+    if (nnit){
+	for (int i=1; i < nnit+1; i++){
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , 0x40,
+						    (uint32_t)i,
+						    0x000000ff,0)) < 0)
+		exit(1); 
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    nit = dvb_get_nit(sec_buf);
+
+}
+
+void search_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    NIT *nits[20];
+    fprintf(stderr,"Full NIT search\n");
+
+    
+
+
+}
+*/
+
 void search_nit(dvb_devices *dev, uint8_t table_id)
 {
     int fdmx;
@@ -122,7 +156,7 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
     close(fdmx);
     if (nnit){
 	for (int i=1; i < nnit+1; i++){
-	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , 0x40,
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,0x10 , table_id,
 						    (uint32_t)i,
 						    0x000000ff,0)) < 0)
 		exit(1); 
