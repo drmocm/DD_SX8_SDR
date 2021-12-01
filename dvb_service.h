@@ -107,6 +107,36 @@ typedef struct SDT_t {
     sdt_service *services[MAXSERV];
 } SDT;
 
+struct satellite_t;
+struct tranponder_t;
+
+typedef struct service_t{
+    struct satellite_t *sat;
+    struct tranponder_t *trans;
+    SDT *sdt_service;
+    PMT *pmt;
+} service;
+
+typedef struct tranponder_t{
+    struct satellite_t *sat;
+    dvb_fe fe;
+    NIT *nit_transport;
+    PAT *pat;
+    int nserv;
+    service *serv;
+} transponder;
+
+typedef struct satellite_t{
+    dvb_devices dev;
+    dvb_lnb lnb;
+    NIT *nit;
+    SDT *sdt;
+    transponder *trans;
+} satellite;
+    
+    
+
+
 uint32_t getbcd(uint8_t *p, int l);
 void dvb2txt(char *in);
 

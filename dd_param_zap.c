@@ -110,6 +110,7 @@ void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     nits = get_all_nits(dev, 0x40);
 
     
+    
 }
 
 void search_nit(dvb_devices *dev, uint8_t table_id)
