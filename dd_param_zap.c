@@ -99,18 +99,127 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
     }
 
     return out;
-}	
+}
 
+#define MAXTRY 10
+int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    int re = 0;
+    int t= 0;
+    int lock = 0;
+    switch (fe->delsys){
+    case SYS_DVBC_ANNEX_A:
+	fprintf(stderr,
+		"Trying to tune freq: %dsr: %d delsys: DVB-C \n",
+		fe->freq, fe->sr);
+	fprintf(stderr,"Tuning ");
+	if ((re=dvb_tune_c( dev, fe)) < 0) exit(1);
+	break;
+	
+    case SYS_DVBS:
+    case SYS_DVBS2:	
+	fprintf(stderr,
+		"Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
+		"               lnb_type: %d input: %d\n",
+		fe->freq, fe->pol ? "h":"v", fe->sr,
+		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
+		lnb->type, fe->input);
+	fprintf(stderr,"Tuning ");
+	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) exit(1);
+	break;
+
+
+    case SYS_DVBT:
+    case SYS_DVBT2:
+    case SYS_DVBC_ANNEX_B:
+    case SYS_ISDBC:
+    case SYS_ISDBT:
+    case SYS_ISDBS:
+    case SYS_UNDEFINED:
+    default:
+	fprintf(stderr,"Delivery System not yet implemented\n");
+	exit(1);
+	break;
+    }
+
+    while (!lock && t < MAXTRY ){
+	t++;
+	fprintf(stderr,".");
+	lock = read_status(dev->fd_fe);
+	sleep(1);
+    }
+    if (lock == 2) {
+	fprintf(stderr," tuning timed out\n");
+	exit(2);
+    }
+    fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
+    return lock;
+}
+
+descriptor *find_descriptor(descriptor **desc, int length, uint8_t tag)
+{
+    descriptor *d = NULL;;
+
+    for (int i=0;i< length; i++){
+	if (desc[i]->tag == tag){
+	    d = desc[i];
+	    return d;
+	}
+    }
+
+    return NULL;
+}
+
+nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
+{
+    int n = nits[0]->nit->last_section_number+1;
+    nit_transport *trans = NULL;
+    fprintf(stderr,"searching transport tsid 0x%04x\n",tsid);
+    for(int i = 0; i < n; i++){
+	for (int j = 0; j < nits[i]->trans_num; j++){
+	    trans = nits[i]->transports[j];
+	    if (trans->transport_stream_id == tsid)
+		return trans; 
+	}
+    }
+    return NULL;
+}
 
 void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
-    NIT **nits =NULL;
+    NIT **nits = NULL;
+    nit_transport *trans;
+    descriptor *desc = NULL;
+    int n = 0;
+    uint16_t tsid = 0;
+    
     fprintf(stderr,"Full NIT search\n");
 
     nits = get_all_nits(dev, 0x40);
+    n = nits[0]->nit->last_section_number+1;
 
-    
-    
+    for (int i=0; i<n; i++){
+	desc = find_descriptor( nits[i]->network_descriptors,
+				 nits[i]->network_descriptor_length,
+				 0x4a);
+	if (desc && desc->tag == 0X4a){
+	    if (desc->data[6] == 0x04){
+		fprintf(stderr,"found transport with complete NIT/BAT\n");
+		tsid = (desc->data[0] << 8) | desc->data[1];
+		break;
+	    }
+	}
+    }
+
+    if (tsid){
+	if ((trans = find_nit_transport(nits,tsid))){
+		if (set_frontend_with_transport(fe, trans)) {
+		    fprintf(stderr,"Could not set frontend\n");
+		    exit(1);
+		}
+		int lock = tune(dev, fe, lnb);
+	}
+    }
 }
 
 void search_nit(dvb_devices *dev, uint8_t table_id)
@@ -134,7 +243,7 @@ void search_sdt(dvb_devices *dev)
     SDT **sdts = NULL;
     int n = 0;
     
-    fprintf(stderr,"Searching NIT\n");
+    fprintf(stderr,"Searching SDT\n");
     sdts = get_all_sdts(dev);
     n = sdts[0]->sdt->last_section_number+1;
     for (int i=0; i < n; i++)
@@ -176,7 +285,6 @@ void search_pat(dvb_devices *dev)
     }
 }
 
-#define MAXTRY 10
 int main(int argc, char **argv){
     dvb_devices dev;
     dvb_lnb lnb;
@@ -193,52 +301,7 @@ int main(int argc, char **argv){
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
     dvb_open(&dev, &fe, &lnb);
-
-    switch (fe.delsys){
-    case SYS_DVBC_ANNEX_A:
-	fprintf(stderr,
-		"Trying to tune freq: %dsr: %d delsys: DVB-C \n",
-		fe.freq, fe.sr);
-	fprintf(stderr,"Tuning ");
-	if ((re=dvb_tune_c( &dev, &fe)) < 0) exit(1);
-	break;
-	
-    case SYS_DVBS:
-    case SYS_DVBS2:	
-	fprintf(stderr,
-		"Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
-		"               lnb_type: %d input: %d\n",
-		fe.freq, fe.pol ? "h":"v", fe.sr,
-		fe.delsys == SYS_DVBS ? "DVB-S" : "DVB-S2", lnb.type, fe.input);
-	fprintf(stderr,"Tuning ");
-	if ((re=dvb_tune_sat( &dev, &fe, &lnb)) < 0) exit(1);
-	break;
-
-
-    case SYS_DVBT:
-    case SYS_DVBT2:
-    case SYS_DVBC_ANNEX_B:
-    case SYS_ISDBC:
-    case SYS_ISDBT:
-    case SYS_ISDBS:
-    case SYS_UNDEFINED:
-    default:
-	fprintf(stderr,"Delivery System not yet implemented\n");
-	exit(1);
-	break;
-    }
-
-    while (!lock && t < MAXTRY ){
-	t++;
-	fprintf(stderr,".");
-	lock = read_status(dev.fd_fe);
-	sleep(1);
-    }
-    if (lock == 2) {
-	fprintf(stderr," tuning timed out\n");
-	exit(2);
-    }
-    fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
+    lock = tune(&dev, &fe, &lnb);
 
     if (out && lock){
 	switch (out) {
@@ -274,6 +337,8 @@ int main(int argc, char **argv){
 	    search_pat(&dev);
 	    break;
 
+	case 5:
+	    full_nit_search(&dev, &fe, &lnb);
 	default:
 	    break;
 	}
