@@ -181,18 +181,64 @@ section *dvb_get_section(uint8_t *buf)
     return sec;
 }
 
+section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
+{
+    uint8_t sec_buf[4096];
+    int fdmx;
+    int nsec = 0;
+    int re = 0;
+    section *sec1;
+    section **sec;
+    
+    close(dev->fd_dmx);
+    if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
+					    0,0x000000FF,0)) < 0)
+	exit(1); 
+    
+    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+    sec1 = dvb_get_section(sec_buf);
+    if (!sec1->section_syntax_indicator) nsec = 0;
+    else nsec = sec1->last_section_number;
+    
+    if (! (sec = (section **)malloc((nsec+1)*sizeof(section *)))){
+	fprintf(stderr,"Error not enough memory in get_all_sections");
+	return NULL;
+    }
+    memset(sec,0,(nsec+1)*sizeof(section *));
+    sec[0] = sec1;
+    if (nsec){
+	for (int i=1; i < nsec+1; i++){
+	    if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
+						    (uint32_t)i,
+						    0x000000ff,0)) < 0)
+		exit(1); 
+	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    sec[i] = dvb_get_section(sec_buf);
+	}
+    }
+    return sec;
+}
+
 void dvb_delete_pat(PAT *pat)
 {
     dvb_delete_section(pat->pat);
     free(pat);
 }
 
-PAT *dvb_get_pat(uint8_t *buf)
+PAT *dvb_get_pat(uint8_t *buf, section *sec)
 {
     PAT *pat = NULL;
-    section *sec = dvb_get_section(buf);
 
+    if (buf && !sec){
+	sec = dvb_get_section(buf);
+	buf = sec->data;
+    } else if (sec && buf) {
+	fprintf(stderr,
+		"ERROR dvb_get_pat, one function arguments must be NULL\n");
+	return NULL;
+    }
     buf = sec->data;
+
     if (!(pat = malloc(sizeof(PAT)))){
 	fprintf(stderr,"Error allocating memory in dvb_get_pat\n");
 	return NULL;
@@ -243,12 +289,19 @@ void dvb_delete_pmt(PMT *pmt)
     free(pmt);
 }
 
-PMT *dvb_get_pmt(uint8_t *buf)
+PMT *dvb_get_pmt(uint8_t *buf, section *sec)
 {
     PMT *pmt = NULL;
-    section *sec = dvb_get_section(buf);
     int c = 0;
 
+    if (buf && !sec){
+	sec = dvb_get_section(buf);
+	buf = sec->data;
+    } else if (sec && buf) {
+	fprintf(stderr,
+		"ERROR dvb_get_pmt, one function arguments must be NULL\n");
+	return NULL;
+    }
     buf = sec->data;
     if (!(pmt = malloc(sizeof(PMT)))){
 	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
@@ -308,10 +361,18 @@ void dvb_delete_sdt(SDT *sdt)
     free(sdt);
 }
 
-SDT *dvb_get_sdt(uint8_t *buf)
+SDT *dvb_get_sdt(uint8_t *buf, section *sec)
 {
     SDT *sdt = NULL;
-    section *sec = dvb_get_section(buf);
+
+    if (buf && !sec){
+	sec = dvb_get_section(buf);
+	buf = sec->data;
+    } else if (sec && buf) {
+	fprintf(stderr,
+		"ERROR dvb_get_sdt, one function arguments must be NULL\n");
+	return NULL;
+    }
 
     buf = sec->data;
     if (!(sdt = malloc(sizeof(SDT)))){
@@ -370,10 +431,18 @@ void dvb_delete_nit(NIT *nit)
 }
 
 
-NIT  *dvb_get_nit(uint8_t *buf)
+NIT  *dvb_get_nit(uint8_t *buf, section *sec)
 {
     NIT *nit = NULL;
-    section *sec = dvb_get_section(buf);
+
+    if (buf && !sec){
+	sec = dvb_get_section(buf);
+	buf = sec->data;
+    } else if (sec && buf) {
+	fprintf(stderr,
+		"ERROR dvb_get_sdt, one function arguments must be NULL\n");
+	return NULL;
+    }
 
     buf = sec->data;
     if (!(nit = malloc(sizeof(NIT)))){
@@ -409,6 +478,90 @@ NIT  *dvb_get_nit(uint8_t *buf)
     
     return nit;
 
+}
+
+PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid)
+{
+    int n = 0;
+    int re = 0;
+    section **sec=NULL;
+    PMT **pmts;
+    
+    sec =  get_all_sections(dev, pid, 0x02);
+    n = sec[0]->last_section_number+1;
+    if (n){
+	if (!(pmts = (PMT **)malloc(n*sizeof(PMT*)))){
+	    fprintf(stderr,"Could not allocate NIT");
+	    return 0;
+	}
+	for (int i=0; i < n; i++){
+	    pmts[i] = dvb_get_pmt(NULL,sec[i]);
+	}
+    }
+    return pmts;
+}
+
+PAT  **get_all_pats(dvb_devices *dev)
+{
+    int n = 0;
+    int re = 0;
+    section **sec=NULL;
+    PAT **pats;
+    
+    sec =  get_all_sections(dev, 0x00, 0x00);
+    n = sec[0]->last_section_number+1;
+    if (n){
+	if (!(pats = (PAT **)malloc(n*sizeof(PAT*)))){
+	    fprintf(stderr,"Could not allocate NIT");
+	    return 0;
+	}
+	for (int i=0; i < n; i++){
+	    pats[i] = dvb_get_pat(NULL,sec[i]);
+	}
+    }
+    return pats;
+}
+
+NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id)
+{
+    int nnit = 0;
+    int re = 0;
+    section **sec=NULL;
+    NIT **nits;
+    
+    sec =  get_all_sections(dev, 0x10, table_id);
+    nnit = sec[0]->last_section_number+1;
+    if (nnit){
+	if (!(nits = (NIT **)malloc(nnit*sizeof(NIT*)))){
+	    fprintf(stderr,"Could not allocate NIT");
+	    return 0;
+	}
+	for (int i=0; i < nnit; i++){
+	    nits[i] = dvb_get_nit(NULL,sec[i]);
+	}
+    }
+    return nits;
+}
+
+SDT  **get_all_sdts(dvb_devices *dev)
+{
+    int nsdt = 0;
+    int re = 0;
+    section **sec=NULL;
+    SDT **sdts;
+    
+    sec =  get_all_sections(dev, 0x11, 0x42);
+    nsdt = sec[0]->last_section_number+1;
+    if (nsdt){
+	if (!(sdts = (SDT **)malloc(nsdt*sizeof(NIT*)))){
+	    fprintf(stderr,"Could not allocate NIT");
+	    return 0;
+	}
+	for (int i=0; i < nsdt; i++){
+	    sdts[i] = dvb_get_sdt(NULL,sec[i]);
+	}
+    }
+    return sdts;
 }
 
 void dvb_print_section(int fd, section *sec)
@@ -740,7 +893,6 @@ void dvb_print_delsys_descriptor(FILE *fp, descriptor *desc, char *s)
     const char *FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
 	"3/5","4/5","9/10","reserved","no conv. coding"};
 	
-
     switch(desc->tag){
     case 0x43: // satellite
 	fprintf(fp,"%s  Satellite delivery system descriptor: \n",s);
@@ -1129,3 +1281,51 @@ uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
     return priv_id;
 }
 
+descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag)
+{
+    for (int n=0; n < ndesc; n++){
+	if (descs[n]->tag == tag) return descs[n];
+    }
+    return NULL;
+}
+
+int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
+{
+    descriptor  *desc;
+    uint8_t  dtags[] ={0x43,0x44,0x5a,0xfa};
+    uint8_t  *bf;
+
+    for (int i= 0; i < 4 ; i++){
+	if ((desc=dvb_find_descriptor(trans->descriptors,
+				      trans->desc_num, dtags[i])))
+	    break;
+    }
+    if (!desc) return -1;
+    bf = desc->data;
+    switch (desc->tag){
+
+    case 0x43: // satellite
+	fe->freq = getbcd(bf, 8) *10;
+	fe->sr = getbcd(bf + 7, 7)*100;
+	fe->pol =  ((bf[6] & 0x60) >> 5); 
+	fe->delsys = ((bf[6] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
+	break;
+
+    case 0x44: // cable
+	fe->freq = getbcd(bf, 8);
+	fe->delsys = SYS_DVBC_ANNEX_A;
+	fe->sr = getbcd(bf + 7, 7) *100;
+	break;
+
+    case 0x5a: // terrestrial
+	fe->freq = (bf[5]|(bf[4] << 8)|(bf[3] << 16)|(bf[0] << 24))*10;
+	fe->delsys = SYS_DVBT;
+	break;
+
+    case 0xfa: // isdbt
+	fe->freq = (bf[5]|(bf[4] << 8))*7000000;
+	fe->delsys = SYS_ISDBT;
+    }
+    return 0;
+}
+				 

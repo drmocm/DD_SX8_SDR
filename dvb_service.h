@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <linux/dvb/frontend.h>
+#include "dvb.h"
+
 
 #define NORDIG 0x00000029
 
@@ -107,28 +109,40 @@ typedef struct SDT_t {
 
 uint32_t getbcd(uint8_t *p, int l);
 void dvb2txt(char *in);
-PAT *dvb_get_pat(uint8_t *buf);
-void dvb_print_pmt(int fd, PMT *pmt);
-PMT *dvb_get_pmt(uint8_t *buf);
-NIT  *dvb_get_nit(uint8_t *buf);
-SDT *dvb_get_sdt(uint8_t *buf);
-section *dvb_get_section(uint8_t *buf);
-nit_transport *dvb_get_nit_transport(uint8_t *buf);
-sdt_service *dvb_get_sdt_service(uint8_t *buf);
-descriptor *dvb_get_descriptor(uint8_t *buf);
-uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
-			      uint32_t priv_id);
 
-void dvb_print_section(int fd, section *sec);
-void dvb_print_pat(int fd, PAT *pat);
-void dvb_print_nit(int fd, NIT *nit);
-void dvb_print_sdt(int fd, SDT *sdt);
 void dvb_delete_pat(PAT *pat);
 void dvb_delete_pmt(PMT *pmt);
 void dvb_delete_sdt(SDT *sdt);
 void dvb_delete_nit(NIT *nit);
+
+section *dvb_get_section(uint8_t *buf);
+PAT *dvb_get_pat(uint8_t *buf,section * sec);
+PMT *dvb_get_pmt(uint8_t *buf, section *sec);
+NIT  *dvb_get_nit(uint8_t *buf, section *sec);
+SDT *dvb_get_sdt(uint8_t *buf, section *sec);
+
+section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id);
+PAT  **get_all_pats(dvb_devices *dev);
+PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid);
+NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id);
+SDT  **get_all_sdts(dvb_devices *dev);
+
+nit_transport *dvb_get_nit_transport(uint8_t *buf);
+sdt_service *dvb_get_sdt_service(uint8_t *buf);
+descriptor *dvb_get_descriptor(uint8_t *buf);
+
 void dvb_print_data(FILE *fp, uint8_t *b, int length, int step,
 		    char *s, char *s2);
+uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
+			      uint32_t priv_id);
+void dvb_print_section(int fd, section *sec);
+void dvb_print_pat(int fd, PAT *pat);
+void dvb_print_pmt(int fd, PMT *pmt);
+void dvb_print_nit(int fd, NIT *nit);
+void dvb_print_sdt(int fd, SDT *sdt);
+
+descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag);
+int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans);
 
 #endif
 
