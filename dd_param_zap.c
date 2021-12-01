@@ -199,18 +199,18 @@ void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     n = nits[0]->nit->last_section_number+1;
 
     for (int i=0; i<n; i++){
-	desc = find_descriptor( nits[i]->network_descriptors,
-				 nits[i]->network_descriptor_length,
-				 0x4a);
-	if (desc && desc->tag == 0X4a){
-	    if (desc->data[6] == 0x04){
-		fprintf(stderr,"found transport with complete NIT/BAT\n");
-		tsid = (desc->data[0] << 8) | desc->data[1];
-		break;
+	for (int j=0; j < nits[i]->ndesc_num; j++){
+	    desc = nits[i]->network_descriptors[j];
+	    if (desc && desc->tag == 0X4a){
+		fprintf(stderr,"tag 0x%02x  link 0x%02x\n",desc->tag, desc->data[6]);
+		if (desc->data[6] == 0x04){
+		    fprintf(stderr,"found transport with complete NIT/BAT\n");
+		    tsid = (desc->data[0] << 8) | desc->data[1];
+		    break;
+		}
 	    }
 	}
     }
-
     if (tsid){
 	if ((trans = find_nit_transport(nits,tsid))){
 		if (set_frontend_with_transport(fe, trans)) {

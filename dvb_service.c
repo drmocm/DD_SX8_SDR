@@ -1307,7 +1307,7 @@ int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
     case 0x43: // satellite
 	fe->freq = getbcd(bf, 8) *10;
 	fe->sr = getbcd(bf + 7, 7)*100;
-	fe->pol =  ((bf[6] & 0x60) >> 5); 
+	fe->pol =  (((bf[6] & 0x60) >> 5) % 2) ? 0:1; 
 	fe->delsys = ((bf[6] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
 	break;
 
