@@ -31,6 +31,11 @@ void dvb_init_dev(dvb_devices *dev)
     dev->fd_mod = -1;
 }
 
+void dvb_copy_dev(dvb_devices *outdev, dvb_devices *dev)
+{
+    memcpy(outdev, dev, sizeof(dvb_devices));
+}
+
 void dvb_init_fe(dvb_fe *fe)
 {
     fe->id = DVB_UNDEF;
@@ -39,6 +44,11 @@ void dvb_init_fe(dvb_fe *fe)
     fe->pol = DVB_UNDEF;
     fe->hi = 0;
     fe->input = 0;
+}
+
+void dvb_copy_fe(dvb_fe *outfe, dvb_fe *fe)
+{
+    memcpy(outfe, fe, sizeof(dvb_fe));
 }
 
 void dvb_init_lnb(dvb_lnb *lnb)
@@ -51,6 +61,11 @@ void dvb_init_lnb(dvb_lnb *lnb)
     lnb->lof2 = 10600000;
     lnb->scif_slot = 0;
     lnb->scif_freq = 1210;
+}
+
+void dvb_copy_lnb(dvb_lnb *outlnb, dvb_lnb *lnb)
+{
+    memcpy(outlnb, lnb, sizeof(dvb_lnb));
 }
 
 void dvb_init(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
@@ -374,6 +389,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
         set_property(fd, DTV_INPUT, input);
+//	fprintf(stderr, "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d\n", freq, type,pol,hi,lofs,lof1,lof2);
 	
 	if (freq > 3000000) {
 	    if (lofs)
@@ -383,7 +399,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	    else
 		freq -= lof1;
         }
-//	fprintf(stderr, "tune_sat IF=%u scif_type=%d\n", freq, type);
+//	fprintf(stderr, "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
 
 	int re=-1;
         if (type == 1) { 
@@ -484,9 +500,9 @@ int dvb_parse_args(int argc, char **argv,
     uint32_t hi = 0;
     uint32_t lnb = 0;
     int lnb_type = UNIVERSAL;
-    uint32_t lofs = 0;
-    uint32_t lof1 = 0;
-    uint32_t lof2 = 0;
+    uint32_t lofs = 11700000;
+    uint32_t lof1 = 9750000;
+    uint32_t lof2 = 10600000;
     uint32_t scif_slot = 0;
     uint32_t scif_freq = 1210;
     char *nexts= NULL;

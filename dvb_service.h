@@ -114,29 +114,31 @@ typedef struct service_t{
     struct satellite_t *sat;
     struct tranponder_t *trans;
     SDT *sdt_service;
-    PMT *pmt;
+    PMT **pmt;
 } service;
 
-typedef struct tranponder_t{
+typedef struct tranport_t{
     struct satellite_t *sat;
+    int nsdt;
+    SDT **sdt;
     dvb_fe fe;
     NIT *nit_transport;
-    PAT *pat;
+    int npat;
+    PAT **pat;
     int nserv;
     service *serv;
-} transponder;
+} transport;
 
 typedef struct satellite_t{
     dvb_devices dev;
     dvb_lnb lnb;
-    NIT *nit;
-    SDT *sdt;
-    transponder *trans;
+    int nnit;
+    NIT **nit;
+    int ntrans;
+    transport *trans;
 } satellite;
     
     
-
-
 uint32_t getbcd(uint8_t *p, int l);
 void dvb2txt(char *in);
 

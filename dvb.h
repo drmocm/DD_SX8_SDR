@@ -86,6 +86,9 @@ void dvb_init_dev(dvb_devices *dev);
 void dvb_init_fe(dvb_fe *fe);
 void dvb_init_lnb(dvb_lnb *lnb);
 void dvb_init(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+void dvb_copy_fe(dvb_fe *outfe, dvb_fe *fe);
+void dvb_copy_lnb(dvb_lnb *outlnb, dvb_lnb *lnb);
+void dvb_copy_dev(dvb_devices *outdev, dvb_devices *dev);
 void dvb_print_tuning_options();
 int dvb_parse_args(int argc, char **argv, dvb_devices *dev,
 		   dvb_fe *fe, dvb_lnb *ln);

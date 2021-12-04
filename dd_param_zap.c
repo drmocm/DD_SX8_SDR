@@ -113,7 +113,7 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		"Trying to tune freq: %dsr: %d delsys: DVB-C \n",
 		fe->freq, fe->sr);
 	fprintf(stderr,"Tuning ");
-	if ((re=dvb_tune_c( dev, fe)) < 0) exit(1);
+	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
 	break;
 	
     case SYS_DVBS:
@@ -125,7 +125,7 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
 		lnb->type, fe->input);
 	fprintf(stderr,"Tuning ");
-	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) exit(1);
+	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
 	break;
 
 
@@ -138,7 +138,7 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_UNDEFINED:
     default:
 	fprintf(stderr,"Delivery System not yet implemented\n");
-	exit(1);
+	return 0;
 	break;
     }
 
@@ -150,9 +150,9 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
     if (lock == 2) {
 	fprintf(stderr," tuning timed out\n");
-	exit(2);
+    } else {
+	fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
     }
-    fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
     return lock;
 }
 
@@ -178,20 +178,23 @@ nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
     for(int i = 0; i < n; i++){
 	for (int j = 0; j < nits[i]->trans_num; j++){
 	    trans = nits[i]->transports[j];
-	    if (trans->transport_stream_id == tsid)
-		return trans; 
+	    if (trans->transport_stream_id == tsid){
+		fprintf(stderr,"Found transport with complete NIT/BAT\n");
+		return trans;
+	    }
 	}
     }
     return NULL;
 }
 
-void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
     NIT **nits = NULL;
     nit_transport *trans;
     descriptor *desc = NULL;
     int n = 0;
     uint16_t tsid = 0;
+    satellite *sat;
     
     fprintf(stderr,"Full NIT search\n");
 
@@ -202,9 +205,7 @@ void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	for (int j=0; j < nits[i]->ndesc_num; j++){
 	    desc = nits[i]->network_descriptors[j];
 	    if (desc && desc->tag == 0X4a){
-		fprintf(stderr,"tag 0x%02x  link 0x%02x\n",desc->tag, desc->data[6]);
 		if (desc->data[6] == 0x04){
-		    fprintf(stderr,"found transport with complete NIT/BAT\n");
 		    tsid = (desc->data[0] << 8) | desc->data[1];
 		    break;
 		}
@@ -212,14 +213,61 @@ void full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	}
     }
     if (tsid){
+	uint32_t freq = fe->freq;
 	if ((trans = find_nit_transport(nits,tsid))){
-		if (set_frontend_with_transport(fe, trans)) {
-		    fprintf(stderr,"Could not set frontend\n");
-		    exit(1);
-		}
+	    if (set_frontend_with_transport(fe, trans)) {
+		fprintf(stderr,"Could not set frontend\n");
+		exit(1);
+	    }
+	    if (freq != fe->freq){
 		int lock = tune(dev, fe, lnb);
+		if (lock == 1){ 
+		    for (int i=0; i < n; i++){
+			dvb_delete_nit(nits[i]);
+		    }
+		    nits = get_all_nits(dev, 0x40);
+		    n = nits[0]->nit->last_section_number+1;
+		}
+	    }
 	}
     }
+    if(!(sat  = (satellite *) malloc(sizeof(satellite)))){
+	fprintf(stderr,"Not enough memory for satellite\n");
+	return NULL;
+    }
+
+    sat->nit = nits;
+    sat->nnit = nits[0]->nit->last_section_number+1;
+    dvb_copy_dev(&sat->dev, dev);
+    dvb_copy_lnb(&sat->lnb, lnb);
+    sat->ntrans = 0;
+    for  (int i =0; i < sat->nnit; i++){
+	sat->ntrans += sat->nit[i]->trans_num;
+    }
+    sat->trans = (transport *) malloc(sat->ntrans*sizeof(transport));
+    int k= 0;
+    for  (int i =0; i < sat->nnit; i++){
+	for (int j=0; j < sat->nit[i]->trans_num; j++){
+	    if (set_frontend_with_transport(fe,sat->nit[i]->transports[j])){
+		fprintf(stderr,"Could not set frontend\n");
+		exit(1);
+	    }
+	    dvb_copy_fe(&sat->trans[k].fe, fe);
+	    k++;
+	}
+    }
+    for (k = 0; k < sat->ntrans; k++){
+	transport *trans = &sat->trans[k];
+	trans->sat = sat;
+	int lock = tune(dev, &trans->fe, lnb);
+	if (lock == 1){ 
+	    trans->sdt = get_all_sdts(dev);
+	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
+	    trans->pat = get_all_pats(dev);
+	    trans->npat = trans->pat[0]->pat->last_section_number+1;
+	}
+    }
+    return sat;
 }
 
 void search_nit(dvb_devices *dev, uint8_t table_id)
@@ -301,7 +349,7 @@ int main(int argc, char **argv){
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
     dvb_open(&dev, &fe, &lnb);
-    lock = tune(&dev, &fe, &lnb);
+    if ((lock = tune(&dev, &fe, &lnb)) != 1) exit(lock);
 
     if (out && lock){
 	switch (out) {
