@@ -110,7 +110,7 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
 	fprintf(stderr,
-		"Trying to tune freq: %dsr: %d delsys: DVB-C \n",
+		"Trying to tune freq: %d sr: %d delsys: DVB-C \n",
 		fe->freq, fe->sr);
 	fprintf(stderr,"Tuning ");
 	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;

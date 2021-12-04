@@ -921,7 +921,7 @@ void dvb_print_delsys_descriptor(FILE *fp, descriptor *desc, char *s)
     case 0x44: // cable
 	fprintf(fp,"%s  Cable delivery system descriptor\n",s);
 
-	freq =  getbcd(buf, 8);
+	freq =  getbcd(buf, 8)/10;
 	delsys = buf[5] & 0x0f;
 	mod = buf[6];
 	if (mod > 6) mod = 6;
@@ -1312,7 +1312,7 @@ int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
 	break;
 
     case 0x44: // cable
-	fe->freq = getbcd(bf, 8);
+	fe->freq = getbcd(bf, 8)/10;
 	fe->delsys = SYS_DVBC_ANNEX_A;
 	fe->sr = getbcd(bf + 7, 7) *100;
 	break;
