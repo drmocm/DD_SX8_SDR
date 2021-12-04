@@ -110,21 +110,19 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
 	fprintf(stderr,
-		"Trying to tune freq: %d sr: %d delsys: DVB-C \n",
+		"Tuning freq: %d kHz sr: %d delsys: DVB-C  ",
 		fe->freq, fe->sr);
-	fprintf(stderr,"Tuning ");
 	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
 	break;
 	
     case SYS_DVBS:
     case SYS_DVBS2:	
 	fprintf(stderr,
-		"Trying to tune freq: %d pol: %s sr: %d delsys: %s \n"
-		"               lnb_type: %d input: %d\n",
+		"Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
+		"lnb_type: %d input: %d  ",
 		fe->freq, fe->pol ? "h":"v", fe->sr,
 		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
 		lnb->type, fe->input);
-	fprintf(stderr,"Tuning ");
 	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
 	break;
 
@@ -151,7 +149,7 @@ int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     if (lock == 2) {
 	fprintf(stderr," tuning timed out\n");
     } else {
-	fprintf(stderr,"%slock\n\n",lock ? " ": " no ");
+	fprintf(stderr,"%slock\n",lock ? " ": " no ");
     }
     return lock;
 }
@@ -260,6 +258,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	transport *trans = &sat->trans[k];
 	trans->sat = sat;
 	int lock = tune(dev, &trans->fe, lnb);
+	trans->lock = lock;
 	if (lock == 1){ 
 	    trans->sdt = get_all_sdts(dev);
 	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;

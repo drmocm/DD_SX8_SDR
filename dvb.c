@@ -440,7 +440,7 @@ int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
     };              
     struct dtv_properties c;
         int ret;
-        fprintf(stderr, "tune_c()\n");
+//        fprintf(stderr, "tune_c()\n");
         set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
 
         c.num = ARRAY_SIZE(p);

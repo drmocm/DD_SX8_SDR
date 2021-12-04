@@ -119,6 +119,7 @@ typedef struct service_t{
 
 typedef struct tranport_t{
     struct satellite_t *sat;
+    int lock;
     int nsdt;
     SDT **sdt;
     dvb_fe fe;
