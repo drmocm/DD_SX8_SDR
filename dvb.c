@@ -730,3 +730,55 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 }
 
 
+int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    int re = 0;
+    int t= 0;
+    int lock = 0;
+    switch (fe->delsys){
+    case SYS_DVBC_ANNEX_A:
+	fprintf(stderr,
+		"Tuning freq: %d kHz sr: %d delsys: DVB-C  ",
+		fe->freq, fe->sr);
+	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
+	break;
+	
+    case SYS_DVBS:
+    case SYS_DVBS2:	
+	fprintf(stderr,
+		"Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
+		"lnb_type: %d input: %d  ",
+		fe->freq, fe->pol ? "h":"v", fe->sr,
+		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
+		lnb->type, fe->input);
+	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
+	break;
+
+
+    case SYS_DVBT:
+    case SYS_DVBT2:
+    case SYS_DVBC_ANNEX_B:
+    case SYS_ISDBC:
+    case SYS_ISDBT:
+    case SYS_ISDBS:
+    case SYS_UNDEFINED:
+    default:
+	fprintf(stderr,"Delivery System not yet implemented\n");
+	return 0;
+	break;
+    }
+
+    while (!lock && t < MAXTRY ){
+	t++;
+	fprintf(stderr,".");
+	lock = read_status(dev->fd_fe);
+	sleep(1);
+    }
+    if (lock == 2) {
+	fprintf(stderr," tuning timed out\n");
+    } else {
+	fprintf(stderr,"%slock\n",lock ? " ": " no ");
+    }
+    return lock;
+}
+

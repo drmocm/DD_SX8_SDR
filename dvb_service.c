@@ -1329,3 +1329,147 @@ int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
     return 0;
 }
 				 
+static descriptor *find_descriptor(descriptor **desc, int length, uint8_t tag)
+{
+    descriptor *d = NULL;;
+
+    for (int i=0;i< length; i++){
+	if (desc[i]->tag == tag){
+	    d = desc[i];
+	    return d;
+	}
+    }
+
+    return NULL;
+}
+
+static nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
+{
+    int n = nits[0]->nit->last_section_number+1;
+    nit_transport *trans = NULL;
+    fprintf(stderr,"searching transport tsid 0x%04x\n",tsid);
+    for(int i = 0; i < n; i++){
+	for (int j = 0; j < nits[i]->trans_num; j++){
+	    trans = nits[i]->transports[j];
+	    if (trans->transport_stream_id == tsid){
+		fprintf(stderr,"Found transport with complete NIT/BAT\n");
+		return trans;
+	    }
+	}
+    }
+    return NULL;
+}
+
+int get_all_services(transport *trans, dvb_devices *dev)
+{
+    int sdt_snum=0;
+    int pat_snum=0;
+    int snum = 0;
+
+    if (!trans->pat) return -1;
+    if (trans->sdt){
+	for (int n=0; n < trans->nsdt; n++)
+	    sdt_snum += trans->sdt[n]->service_num;
+    }
+    for (int n=0; n < trans->npat; n++)
+	    pat_snum += trans->pat[n]->nprog;
+
+    snum = ((pat_snum >= sdt_snum) ? pat_snum : sdt_snum);
+    trans->nserv = snum;
+    trans->serv = (service *) malloc(snum*sizeof(service));
+    for (int j=0; j < snum; j++) {
+	trans->serv[j].sdt_service = NULL;
+	trans->serv[j].id  = 0;
+	trans->serv[j].pmt  = NULL;
+	trans->serv[j].sat  = trans->sat;
+	trans->serv[j].trans  = trans;
+    }
+    int i=0;
+    if (trans->sdt){
+	for (int n=0; n < trans->nsdt; n++){
+	    for (int j=0; j < trans->sdt[n]->service_num; j++){
+		trans->serv[i].sdt_service = trans->sdt[n]->services[j];
+		trans->serv[i].id  = trans->sdt[n]->services[j]->service_id;
+		i++;
+	    }
+	}
+    } 
+    
+    for (int n=0; n < trans->npat; n++){
+	for (int i=0; i < trans->pat[n]->nprog; i++){
+	    int npmt = 0;
+	    uint16_t pid = trans->pat[n]->pid[i];
+	    if (!trans->pat[n]->program_number[i]) continue;
+	    PMT  **pmt = get_all_pmts(dev, pid);
+	    if (pmt){
+		npmt = pmt[0]->pmt->last_section_number+1;
+		for (int k=0; k < npmt; k++){
+		    int j=0;
+		    while (trans->pat[n]->program_number[i] !=
+			trans->serv[j].id && j < i){
+			j++;
+		    }
+		    trans->serv[j].pmt = pmt;
+		    if (j==i){ // in case there is no SDT entry
+			trans->serv[j].id = trans->pat[n]->program_number[i];
+			i++;
+		    }
+		}
+	    }
+	}
+    }
+
+    return snum;
+}
+
+
+NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    NIT **nits = NULL;
+    int n = 0;
+    nit_transport *trans;
+    descriptor *desc = NULL;
+    uint16_t tsid = 0;
+
+    nits = get_all_nits(dev, 0x40);
+    n = nits[0]->nit->last_section_number+1;
+
+    for (int i=0; i<n; i++){    // look for linkage to full NIT
+	for (int j=0; j < nits[i]->ndesc_num; j++){
+	    desc = nits[i]->network_descriptors[j];
+	    if (desc && desc->tag == 0X4a){
+		if (desc->data[6] == 0x04){
+		    tsid = (desc->data[0] << 8) | desc->data[1];
+		    break;
+		}
+	    }
+	}
+    }
+    
+    if (tsid){
+	uint32_t freq = fe->freq;
+	if ((trans = find_nit_transport(nits,tsid))){
+	    if (set_frontend_with_transport(fe, trans)) {
+		fprintf(stderr,"Could not set frontend\n");
+		exit(1);
+	    }
+	    if (freq != fe->freq){
+		int lock = dvb_tune(dev, fe, lnb);
+		if (lock == 1){ 
+		    for (int i=0; i < n; i++){
+			dvb_delete_nit(nits[i]);
+		    }
+		    nits = get_all_nits(dev, 0x40);
+		    n = nits[0]->nit->last_section_number+1;
+		}
+	    }
+	}
+    }
+    return nits;
+}
+
+
+int tune_transport(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, NIT **nits)
+{
+
+}

@@ -101,196 +101,20 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
     return out;
 }
 
-#define MAXTRY 10
-int tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
-{
-    int re = 0;
-    int t= 0;
-    int lock = 0;
-    switch (fe->delsys){
-    case SYS_DVBC_ANNEX_A:
-	fprintf(stderr,
-		"Tuning freq: %d kHz sr: %d delsys: DVB-C  ",
-		fe->freq, fe->sr);
-	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
-	break;
-	
-    case SYS_DVBS:
-    case SYS_DVBS2:	
-	fprintf(stderr,
-		"Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
-		"lnb_type: %d input: %d  ",
-		fe->freq, fe->pol ? "h":"v", fe->sr,
-		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
-		lnb->type, fe->input);
-	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
-	break;
 
-
-    case SYS_DVBT:
-    case SYS_DVBT2:
-    case SYS_DVBC_ANNEX_B:
-    case SYS_ISDBC:
-    case SYS_ISDBT:
-    case SYS_ISDBS:
-    case SYS_UNDEFINED:
-    default:
-	fprintf(stderr,"Delivery System not yet implemented\n");
-	return 0;
-	break;
-    }
-
-    while (!lock && t < MAXTRY ){
-	t++;
-	fprintf(stderr,".");
-	lock = read_status(dev->fd_fe);
-	sleep(1);
-    }
-    if (lock == 2) {
-	fprintf(stderr," tuning timed out\n");
-    } else {
-	fprintf(stderr,"%slock\n",lock ? " ": " no ");
-    }
-    return lock;
-}
-
-descriptor *find_descriptor(descriptor **desc, int length, uint8_t tag)
-{
-    descriptor *d = NULL;;
-
-    for (int i=0;i< length; i++){
-	if (desc[i]->tag == tag){
-	    d = desc[i];
-	    return d;
-	}
-    }
-
-    return NULL;
-}
-
-nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
-{
-    int n = nits[0]->nit->last_section_number+1;
-    nit_transport *trans = NULL;
-    fprintf(stderr,"searching transport tsid 0x%04x\n",tsid);
-    for(int i = 0; i < n; i++){
-	for (int j = 0; j < nits[i]->trans_num; j++){
-	    trans = nits[i]->transports[j];
-	    if (trans->transport_stream_id == tsid){
-		fprintf(stderr,"Found transport with complete NIT/BAT\n");
-		return trans;
-	    }
-	}
-    }
-    return NULL;
-}
-
-int get_all_services(transport *trans, dvb_devices *dev)
-{
-    int sdt_snum=0;
-    int pat_snum=0;
-    int snum = 0;
-
-    if (!trans->pat) return -1;
-    if (trans->sdt){
-	for (int n=0; n < trans->nsdt; n++)
-	    sdt_snum += trans->sdt[n]->service_num;
-    }
-    for (int n=0; n < trans->npat; n++)
-	    pat_snum += trans->pat[n]->nprog;
-
-    snum = ((pat_snum >= sdt_snum) ? pat_snum : sdt_snum);
-    trans->nserv = snum;
-    trans->serv = (service *) malloc(snum*sizeof(service));
-    for (int j=0; j < snum; j++) {
-	trans->serv[j].sdt_service = NULL;
-	trans->serv[j].id  = 0;
-	trans->serv[j].pmt  = NULL;
-	trans->serv[j].sat  = trans->sat;
-	trans->serv[j].trans  = trans;
-    }
-    int i=0;
-    if (trans->sdt){
-	for (int n=0; n < trans->nsdt; n++){
-	    for (int j=0; j < trans->sdt[n]->service_num; j++){
-		trans->serv[i].sdt_service = trans->sdt[n]->services[j];
-		trans->serv[i].id  = trans->sdt[n]->services[j]->service_id;
-		i++;
-	    }
-	}
-    } 
-    
-    for (int n=0; n < trans->npat; n++){
-	for (int i=0; i < trans->pat[n]->nprog; i++){
-	    int npmt = 0;
-	    uint16_t pid = trans->pat[n]->pid[i];
-	    if (!trans->pat[n]->program_number[i]) continue;
-	    PMT  **pmt = get_all_pmts(dev, pid);
-	    if (pmt){
-		npmt = pmt[0]->pmt->last_section_number+1;
-		for (int k=0; k < npmt; k++){
-		    int j=0;
-		    while (trans->pat[n]->program_number[i] !=
-			trans->serv[j].id && j < i){
-			j++;
-		    }
-		    trans->serv[j].pmt = pmt;
-		    if (j==i){ // in case there is no SDT entry
-			trans->serv[j].id = trans->pat[n]->program_number[i];
-			i++;
-		    }
-		}
-	    }
-	}
-    }
-
-    return snum;
-}
 
 satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
     NIT **nits = NULL;
-    nit_transport *trans;
-    descriptor *desc = NULL;
     int n = 0;
     uint16_t tsid = 0;
     satellite *sat;
     
     fprintf(stderr,"Full NIT search\n");
 
-    nits = get_all_nits(dev, 0x40);
+    nits = get_full_nit(dev, fe, lnb);
     n = nits[0]->nit->last_section_number+1;
 
-    for (int i=0; i<n; i++){
-	for (int j=0; j < nits[i]->ndesc_num; j++){
-	    desc = nits[i]->network_descriptors[j];
-	    if (desc && desc->tag == 0X4a){
-		if (desc->data[6] == 0x04){
-		    tsid = (desc->data[0] << 8) | desc->data[1];
-		    break;
-		}
-	    }
-	}
-    }
-    if (tsid){
-	uint32_t freq = fe->freq;
-	if ((trans = find_nit_transport(nits,tsid))){
-	    if (set_frontend_with_transport(fe, trans)) {
-		fprintf(stderr,"Could not set frontend\n");
-		exit(1);
-	    }
-	    if (freq != fe->freq){
-		int lock = tune(dev, fe, lnb);
-		if (lock == 1){ 
-		    for (int i=0; i < n; i++){
-			dvb_delete_nit(nits[i]);
-		    }
-		    nits = get_all_nits(dev, 0x40);
-		    n = nits[0]->nit->last_section_number+1;
-		}
-	    }
-	}
-    }
     if(!(sat  = (satellite *) malloc(sizeof(satellite)))){
 	fprintf(stderr,"Not enough memory for satellite\n");
 	return NULL;
@@ -304,8 +128,10 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     for  (int i =0; i < sat->nnit; i++){
 	sat->ntrans += sat->nit[i]->trans_num;
     }
+
     sat->trans = (transport *) malloc(sat->ntrans*sizeof(transport));
     int k= 0;
+
     for  (int i =0; i < sat->nnit; i++){
 	for (int j=0; j < sat->nit[i]->trans_num; j++){
 	    if (set_frontend_with_transport(fe,sat->nit[i]->transports[j])){
@@ -317,10 +143,11 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	    k++;
 	}
     }
+    
     for (k = 0; k < sat->ntrans; k++){
 	transport *trans = &sat->trans[k];
 	trans->sat = sat;
-	int lock = tune(dev, &trans->fe, lnb);
+	int lock = dvb_tune(dev, &trans->fe, lnb);
 	trans->lock = lock;
 	if (lock == 1){ 
 	    fprintf(stderr,"  getting SDT\n");
@@ -415,7 +242,7 @@ int main(int argc, char **argv){
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
     dvb_open(&dev, &fe, &lnb);
-    if ((lock = tune(&dev, &fe, &lnb)) != 1) exit(lock);
+    if ((lock = dvb_tune(&dev, &fe, &lnb)) != 1) exit(lock);
 
     if (out && lock){
 	switch (out) {

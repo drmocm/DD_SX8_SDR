@@ -27,6 +27,10 @@
 #define UNICABLE1 1
 #define UNICABLE2 2
 
+#ifndef MAXTRY
+#define MAXTRY 10
+#endif
+
 typedef struct dvb_devices_t{
     int adapter;
     int num;
@@ -100,5 +104,7 @@ int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 				uint32_t ext, uint32_t ext_mask,
 				uint32_t ext_nmask);
 
+int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+    
 #endif
 

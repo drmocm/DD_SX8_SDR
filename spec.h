@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <math.h>
 #include <time.h>
 #include <string.h>
 #include <complex.h>
