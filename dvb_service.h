@@ -108,12 +108,13 @@ typedef struct SDT_t {
 } SDT;
 
 struct satellite_t;
-struct tranponder_t;
+struct transport_t;
 
 typedef struct service_t{
+    uint16_t id;
     struct satellite_t *sat;
-    struct tranponder_t *trans;
-    SDT *sdt_service;
+    struct tranport_t *trans;
+    sdt_service *sdt_service;
     PMT **pmt;
 } service;
 
@@ -123,7 +124,7 @@ typedef struct tranport_t{
     int nsdt;
     SDT **sdt;
     dvb_fe fe;
-    NIT *nit_transport;
+    nit_transport *nit_transport;
     int npat;
     PAT **pat;
     int nserv;

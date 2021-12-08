@@ -185,6 +185,68 @@ nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
     return NULL;
 }
 
+int get_all_services(transport *trans, dvb_devices *dev)
+{
+    int sdt_snum=0;
+    int pat_snum=0;
+    int snum = 0;
+
+    if (!trans->pat) return -1;
+    if (trans->sdt){
+	for (int n=0; n < trans->nsdt; n++)
+	    sdt_snum += trans->sdt[n]->service_num;
+    }
+    for (int n=0; n < trans->npat; n++)
+	    pat_snum += trans->pat[n]->nprog;
+
+    snum = ((pat_snum >= sdt_snum) ? pat_snum : sdt_snum);
+    trans->nserv = snum;
+    trans->serv = (service *) malloc(snum*sizeof(service));
+    for (int j=0; j < snum; j++) {
+	trans->serv[j].sdt_service = NULL;
+	trans->serv[j].id  = 0;
+	trans->serv[j].pmt  = NULL;
+	trans->serv[j].sat  = trans->sat;
+	trans->serv[j].trans  = trans;
+    }
+    int i=0;
+    if (trans->sdt){
+	for (int n=0; n < trans->nsdt; n++){
+	    for (int j=0; j < trans->sdt[n]->service_num; j++){
+		trans->serv[i].sdt_service = trans->sdt[n]->services[j];
+		trans->serv[i].id  = trans->sdt[n]->services[j]->service_id;
+		i++;
+	    }
+	}
+    } 
+    
+    for (int n=0; n < trans->npat; n++){
+	for (int i=0; i < trans->pat[n]->nprog; i++){
+	    int npmt = 0;
+	    uint16_t pid = trans->pat[n]->pid[i];
+	    if (!trans->pat[n]->program_number[i]) continue;
+	    PMT  **pmt = get_all_pmts(dev, pid);
+	    if (pmt){
+		npmt = pmt[0]->pmt->last_section_number+1;
+		for (int k=0; k < npmt; k++){
+		    int j=0;
+		    while (trans->pat[n]->program_number[i] !=
+			trans->serv[j].id && j < i){
+			j++;
+		    }
+		    trans->serv[j].pmt = pmt;
+		    if (j==i){ // in case there is no SDT entry
+			trans->serv[j].id = trans->pat[n]->program_number[i];
+			i++;
+		    }
+		}
+	    }
+	}
+    }
+
+    return snum;
+}
+
 satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
     NIT **nits = NULL;
@@ -251,6 +313,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		exit(1);
 	    }
 	    dvb_copy_fe(&sat->trans[k].fe, fe);
+	    sat->trans[k].nit_transport = sat->nit[i]->transports[j];
 	    k++;
 	}
     }
@@ -260,10 +323,14 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	int lock = tune(dev, &trans->fe, lnb);
 	trans->lock = lock;
 	if (lock == 1){ 
+	    fprintf(stderr,"  getting SDT\n");
 	    trans->sdt = get_all_sdts(dev);
 	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
+	    fprintf(stderr,"  getting PAT\n");
 	    trans->pat = get_all_pats(dev);
 	    trans->npat = trans->pat[0]->pat->last_section_number+1;
+	    fprintf(stderr,"  getting PMTs\n");
+	    trans->nserv = get_all_services(trans, dev);
 	}
     }
     return sat;
