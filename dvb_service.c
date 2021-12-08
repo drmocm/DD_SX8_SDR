@@ -1,3 +1,4 @@
+#include <sys/poll.h>
 #include "dvb_service.h"
 
 #define UTF8_CC_START 0xc2
@@ -184,18 +185,37 @@ section *dvb_get_section(uint8_t *buf)
 section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
 {
     uint8_t sec_buf[4096];
+    struct pollfd ufd;
     int fdmx;
     int nsec = 0;
     int re = 0;
     section *sec1;
     section **sec;
+    uint16_t len = 0;
     
     close(dev->fd_dmx);
     if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
-					    0,0x000000FF,0)) < 0)
-	exit(1); 
-    
-    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+					    0,0x000000FF,0)) < 0){
+	fprintf(stderr,"Error opening section filter\n");
+	exit(1);
+    }
+    ufd.fd=fdmx;
+    ufd.events=POLLPRI;
+    if (poll(&ufd,1,2000) <= 0 ) {
+	fprintf(stderr,"TIMEOUT on read from demux\n");
+	close(fdmx);
+	return NULL;
+    }
+    if (!(re = read(fdmx, sec_buf, 3))){
+	fprintf(stderr,"Failed to read from demux\n");
+	return NULL;
+    }	
+    len = ((sec_buf[1] & 0x0f) << 8) | (sec_buf[2] & 0xff);
+    if (!(re = read(fdmx, sec_buf+3, len))){
+	fprintf(stderr,"Failed to read from demux\n");
+	return NULL;
+    }
+
     sec1 = dvb_get_section(sec_buf);
     if (!sec1->section_syntax_indicator) nsec = 0;
     else nsec = sec1->last_section_number;
@@ -487,7 +507,7 @@ PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid)
     section **sec=NULL;
     PMT **pmts;
     
-    sec =  get_all_sections(dev, pid, 0x02);
+    if (!(sec =  get_all_sections(dev, pid, 0x02))) return NULL;
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pmts = (PMT **)malloc(n*sizeof(PMT*)))){
@@ -508,7 +528,7 @@ PAT  **get_all_pats(dvb_devices *dev)
     section **sec=NULL;
     PAT **pats;
     
-    sec =  get_all_sections(dev, 0x00, 0x00);
+    if (!(sec =  get_all_sections(dev, 0x00, 0x00))) return NULL;
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pats = (PAT **)malloc(n*sizeof(PAT*)))){
@@ -529,7 +549,7 @@ NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id)
     section **sec=NULL;
     NIT **nits;
     
-    sec =  get_all_sections(dev, 0x10, table_id);
+    if (!(sec =  get_all_sections(dev, 0x10, table_id))) return NULL;
     nnit = sec[0]->last_section_number+1;
     if (nnit){
 	if (!(nits = (NIT **)malloc(nnit*sizeof(NIT*)))){
@@ -550,7 +570,7 @@ SDT  **get_all_sdts(dvb_devices *dev)
     section **sec=NULL;
     SDT **sdts;
     
-    sec =  get_all_sections(dev, 0x11, 0x42);
+    if (!(sec =  get_all_sections(dev, 0x11, 0x42))) return NULL;
     nsdt = sec[0]->last_section_number+1;
     if (nsdt){
 	if (!(sdts = (SDT **)malloc(nsdt*sizeof(NIT*)))){
@@ -1431,7 +1451,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     descriptor *desc = NULL;
     uint16_t tsid = 0;
 
-    nits = get_all_nits(dev, 0x40);
+    if (!(nits = get_all_nits(dev, 0x40))) return NULL;
     n = nits[0]->nit->last_section_number+1;
 
     for (int i=0; i<n; i++){    // look for linkage to full NIT
@@ -1459,7 +1479,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		    for (int i=0; i < n; i++){
 			dvb_delete_nit(nits[i]);
 		    }
-		    nits = get_all_nits(dev, 0x40);
+		    if (!(nits = get_all_nits(dev, 0x40))) return NULL;
 		    n = nits[0]->nit->last_section_number+1;
 		}
 	    }
@@ -1468,8 +1488,3 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     return nits;
 }
 
-
-int tune_transport(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, NIT **nits)
-{
-
-}

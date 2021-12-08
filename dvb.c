@@ -194,7 +194,7 @@ int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
     if (fd < 0) return -1;
 
     memset(&sctfilter, 0, sizeof(struct dmx_sct_filter_params));
-    
+    sctfilter.timeout = 0;
     sctfilter.pid = pid;
     sctfilter.filter.filter[0] = tid;
     sctfilter.filter.mask[0]   = 0xff;
