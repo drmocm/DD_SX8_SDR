@@ -802,6 +802,178 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
     return priv_id;
 }
 
+json_object *dvb_data_json(uint8_t *data, int len)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+    return jobj;
+}
+
+json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
+{
+    uint8_t *buf = desc->data;
+    int c = 0;
+    char *name=NULL;
+    uint16_t id;
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj,"tag",
+			   json_object_new_int(desc->tag));
+    switch(desc->tag){
+    case 0x40:// network_name_descriptor
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Network name descriptor"));
+	if ((name = dvb_get_name(buf,desc->len))){
+	    json_object_object_add(jobj,"name",
+				   json_object_new_string(name));
+	    free(name);
+	}
+	break;
+    case 0x41: //service list
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Service list descriptor"));
+	jarray = json_object_new_array();
+
+	for (int n = 0; n < desc->len; n+=3){
+	    json_object *ja = json_object_new_object();
+	    id = (buf[n] << 8) | buf[n+1];
+	    json_object_object_add(ja, "service id",
+				   json_object_new_int( id));
+	    json_object_object_add(ja, "service type nr",
+				   json_object_new_int( buf[n+2]));
+	    json_object_object_add(ja, "service type",
+				   json_object_new_string(
+				       service_type(buf[n+2])));
+	    json_object_array_add(jarray, ja);
+	}
+	json_object_object_add(jobj, "Services", jarray);
+	break;
+    case 0x43: // satellite
+//	dvb_print_delsys_descriptor(fd, desc, s);
+	break;
+    
+    case 0x44: // cable
+//	dvb_print_delsys_descriptor(fd, desc, s);
+	break;
+
+    case 0x48: //service descriptor
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Service descriptor"));
+	
+	json_object_object_add(jobj,"service type",
+			       json_object_new_string(
+				   service_type(buf[0]))); 
+	json_object_object_add(jobj,"service type nr",
+			       json_object_new_int(buf[0])); 
+	c++;
+	int l = buf[c];
+	c++;
+	if ((name = dvb_get_name(buf+c,l))){
+	    json_object_object_add(jobj,"provider",
+				   json_object_new_string(name));
+	    free(name);
+	}
+	c += l;
+	l = buf[c];
+	c++;
+	if ((name = dvb_get_name(buf+c,l))){
+	    json_object_object_add(jobj,"name",
+				   json_object_new_string(name));
+	    free(name);
+	}
+	break;
+
+    case 0x4a:
+//	dvb_print_linkage_descriptor(fd, desc, s);
+	break;
+	
+    case 0x5a: // terrestrial
+//	dvb_print_delsys_descriptor(fd, desc, s);
+	break;
+
+    case 0x5f:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Private data specifier descriptor"));
+	
+	*priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
+	json_object_object_add(jobj,"private_data_specifier",
+			       json_object_new_int(*priv_id));
+	break;
+
+    case 0x7f:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Extension descriptor"));
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	dvb_data_json(desc->data, desc->len);
+	break;
+	    
+    case 0xfa: // isdbt
+//	dvb_print_delsys_descriptor(fd, desc, s);
+	break;
+
+    case 0xfb ... 0xfe:
+    case 0x80 ... 0xf9: // user defined
+	switch (*priv_id){
+	case NORDIG:
+	    switch (desc->tag){
+	    case 0x83:
+	    case 0x87:
+		json_object_object_add(jobj,"type",
+				       json_object_new_string(
+					   "NorDig Logical channel descriptor"));
+		jarray = json_object_new_array();
+		
+		for (int n = 0; n < desc->len; n+=3){
+		    id = (buf[n] << 8) | buf[n+1];
+		    uint16_t lcn = ((buf[n+2]&0x3f) << 8) | buf[n+3];
+		    json_object *ja = json_object_new_object();
+		    json_object_object_add(ja, "service_id",
+					   json_object_new_int(id));
+		    json_object_object_add(ja, "logical channel number",
+					   json_object_new_int( lcn));
+		    json_object_array_add(jarray,ja);
+		}
+		break;
+	    default:
+		json_object_object_add(jobj,"type",
+				       json_object_new_string(
+					   "NorDig private data"));
+		json_object_object_add(jobj,"length",
+				       json_object_new_int(desc->len));
+		dvb_data_json(desc->data, desc->len);
+		break;
+	    }
+	    break;
+
+	default:
+	    json_object_object_add(jobj,"type",
+				   json_object_new_string(
+				       "User defined descriptor"));
+	    json_object_object_add(jobj,"length",
+				   json_object_new_int(desc->len));
+	    dvb_data_json(desc->data, desc->len);
+	    break;
+	}
+	break;
+    default:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "UNHANDLED descriptor"));
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	dvb_data_json(desc->data, desc->len);
+	break;
+	
+    }
+    return jobj;
+}
 
 json_object *dvb_pat_json(PAT *pat)
 {
@@ -828,5 +1000,31 @@ json_object *dvb_pat_json(PAT *pat)
 	}
     }
     json_object_object_add(jobj, "programs", jarray);
+    return jobj;
+}
+
+json_object *dvb_stream_json(pmt_stream *stream)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "elementary_PID",
+			   json_object_new_int(stream->elementary_PID));
+    json_object_object_add(jobj, "stream_type_nr",
+			   json_object_new_int(stream->stream_type));
+    json_object_object_add(jobj, "stream_type",
+			   json_object_new_string(
+			       stream_type(stream->stream_type)));
+    if (stream->desc_num){
+	uint32_t priv_id = 0;
+	jarray = json_object_new_array();
+
+	for (int n=0 ; n < stream->desc_num; n++){
+	    json_object_array_add(jarray,
+				  dvb_descriptor_json(stream->descriptors[n],
+						      &priv_id));
+	}
+	json_object_object_add(jobj, "descriptors", jarray);
+    }
     return jobj;
 }
