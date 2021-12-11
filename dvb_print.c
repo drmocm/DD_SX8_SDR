@@ -113,7 +113,6 @@ void dvb_print_section(int fd, section *sec)
     pr(fd,"        data (%d bytes):\n", sec->section_length+3);
     dvb_print_data(fd, sec->data,sec->section_length, 8,"          ", "");
     pr(fd,"\n");
-//    fflush(fp);
 }
 
 void dvb_print_pat(int fd, PAT *pat)
@@ -128,7 +127,6 @@ void dvb_print_pat(int fd, PAT *pat)
 		pat->pid[n]);
     }
     pr(fd,"\n");
-//    fflush(fp);
 }
 
 const char *stream_type(uint8_t type)
@@ -315,7 +313,6 @@ void dvb_print_pmt(int fd, PMT *pmt)
 	}
     }
     pr(fd,"\n");
-//    fflush(fp);
 }
 
 void dvb_print_transport(int fd, nit_transport *trans)
@@ -355,7 +352,6 @@ void dvb_print_nit(int fd, NIT *nit)
 	}
     }
     pr(fd,"\n");
-//    fflush(fp);
 }
 
 void dvb_print_service(int fd, sdt_service *serv)
@@ -392,7 +388,6 @@ void dvb_print_sdt(int fd, SDT *sdt)
 	    dvb_print_service(fd, sdt->services[n]);
 	}
     }
-//    fflush(fp);
 }
 
 void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
