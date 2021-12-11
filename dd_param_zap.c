@@ -217,20 +217,20 @@ void search_pat(dvb_devices *dev)
     int re = 0;
     PAT **pats = NULL;
     int npat = 0;
+    json_object *jobj = json_object_new_object();
 
     err("Searching PAT\n");
     pats = get_all_pats(dev);
     if (pats){
 	npat = pats[0]->pat->last_section_number+1;
-	json_object *jpat = json_object_new_object();
+	json_object *jpat = json_object_new_array();
 	for (int i=0; i < npat; i++){
 //	    dvb_print_pat(fileno(stdout), pats[i]);
-	    json_object_object_add(jpat, "PAT", dvb_pat_json(pats[i]));
+	    json_object_array_add(jpat, dvb_pat_json(pats[i]));
 	}
-	fprintf (stdout,"%s\n",
-		json_object_to_json_string_ext(jpat,
-					       JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
-
+	json_object_object_add(jobj, "PATs", jpat);
+	
+	json_object *jpmts = json_object_new_array();
 	for (int n=0; n < npat; n++){
 	    for (int i=0; i < pats[n]->nprog; i++){
 		int npmt = 0;
@@ -242,12 +242,20 @@ void search_pat(dvb_devices *dev)
 		if (pmt){
 		    npmt = pmt[0]->pmt->last_section_number+1;
 		    for (int i=0; i < npmt; i++){
-			dvb_print_pmt(fileno(stdout), pmt[i]);
+			//dvb_print_pmt(fileno(stdout), pmt[i]);
+			json_object *jpmt = dvb_pmt_json(pmt[i]);
+			json_object_array_add(jpmts, jpmt);
 		    }
 		}
 	    }
 	}
+	json_object_object_add(jobj, "PMTs", jpmts);
+	
     }
+    fprintf (stdout,"%s\n",
+	     json_object_to_json_string_ext(jobj,
+					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+
 }
 
 int main(int argc, char **argv){

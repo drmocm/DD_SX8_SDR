@@ -1,5 +1,90 @@
 #include "dvb_print.h"
 #include <stdarg.h>
+static char table64[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+    'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+    'w', 'x', 'y', 'z', '0', '1', '2', '3',
+    '4', '5', '6', '7', '8', '9', '+', '/'};
+
+static int mod_table[] = {0, 2, 1};
+
+static char *dtable() {
+
+    char *dt = malloc(256);
+
+    for (int i = 0; i < 64; i++)
+        dt[(unsigned char) table64[i]] = i;
+    return dt;
+}
+
+char *base64_encode(const uint8_t *data, int len, int *olen) {
+
+    *olen = 4 * ((len + 2) / 3);
+
+    char *edata = malloc(*olen);
+    if (edata == NULL) return NULL;
+
+    for (int i = 0, j = 0; i < len;) {
+
+        uint32_t octet_a = i < len ? data[i++] : 0;
+        uint32_t octet_b = i < len ? data[i++] : 0;
+        uint32_t octet_c = i < len ? data[i++] : 0;
+
+        uint32_t triple = (octet_a << 16) + (octet_b << 8) + octet_c;
+
+        edata[j++] = table64[(triple >> 3 * 6) & 0x3F];
+        edata[j++] = table64[(triple >> 2 * 6) & 0x3F];
+        edata[j++] = table64[(triple >> 1 * 6) & 0x3F];
+        edata[j++] = table64[(triple >> 0 * 6) & 0x3F];
+    }
+
+    for (int i = 0; i < mod_table[len % 3]; i++)
+        edata[*olen - 1 - i] = '=';
+
+    return edata;
+}
+
+
+unsigned char *base64_decode(uint8_t *data, int len, int *olen)
+{
+    
+    char *dt = dtable();
+
+    if (len % 4 != 0) return NULL;
+
+    *olen = len / 4 * 3;
+    if (data[len - 1] == '=') (*olen)--;
+    if (data[len - 2] == '=') (*olen)--;
+
+    unsigned char *ddata = malloc(*olen);
+    if (ddata == NULL) return NULL;
+
+    for (int i = 0, j = 0; i < len;) {
+
+        uint32_t sextet_a = data[i] == '=' ? 0 & i++ : dt[data[i++]];
+        uint32_t sextet_b = data[i] == '=' ? 0 & i++ : dt[data[i++]];
+        uint32_t sextet_c = data[i] == '=' ? 0 & i++ : dt[data[i++]];
+        uint32_t sextet_d = data[i] == '=' ? 0 & i++ : dt[data[i++]];
+
+        uint32_t triple = (sextet_a << 3 * 6)
+        + (sextet_b << 2 * 6)
+        + (sextet_c << 1 * 6)
+        + (sextet_d << 0 * 6);
+
+        if (j < *olen) ddata[j++] = (triple >> 2 * 8) & 0xFF;
+        if (j < *olen) ddata[j++] = (triple >> 1 * 8) & 0xFF;
+        if (j < *olen) ddata[j++] = (triple >> 0 * 8) & 0xFF;
+    }
+    
+    free(dt);
+    return ddata;
+}
+
+
+
 
 void pr(int fd, const char  *format,  ...)
 {
@@ -797,16 +882,17 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 		desc->len>1 ? "bytes":"byte");
 	dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
 	break;
-	
+
     }
     return priv_id;
 }
 
 json_object *dvb_data_json(uint8_t *data, int len)
 {
-    json_object *jobj = json_object_new_object();
-    json_object *jarray;
-    return jobj;
+    int olen = 0;
+    char *sdata = base64_encode(data, len,&olen);
+
+    return json_object_new_string_len(sdata,len);
 }
 
 json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
@@ -911,7 +997,8 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 				   "Extension descriptor"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
-	dvb_data_json(desc->data, desc->len);
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(desc->data, desc->len));
 	break;
 	    
     case 0xfa: // isdbt
@@ -947,7 +1034,8 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 					   "NorDig private data"));
 		json_object_object_add(jobj,"length",
 				       json_object_new_int(desc->len));
-		dvb_data_json(desc->data, desc->len);
+		json_object_object_add(jobj,"data",
+				       dvb_data_json(desc->data, desc->len));
 		break;
 	    }
 	    break;
@@ -958,9 +1046,10 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 				       "User defined descriptor"));
 	    json_object_object_add(jobj,"length",
 				   json_object_new_int(desc->len));
-	    dvb_data_json(desc->data, desc->len);
+	    json_object_object_add(jobj,"data",
+				   dvb_data_json(desc->data, desc->len));
 	    break;
-	}
+}
 	break;
     default:
 	json_object_object_add(jobj,"type",
@@ -968,7 +1057,8 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 				   "UNHANDLED descriptor"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
-	dvb_data_json(desc->data, desc->len);
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(desc->data, desc->len));
 	break;
 	
     }
@@ -995,7 +1085,7 @@ json_object *dvb_pat_json(PAT *pat)
 	    
 	    json_object_array_add(jarray,ja);
 	} else {
-	    json_object_object_add(jobj, "network_PID",
+	    json_object_object_add(jobj, "network_id",
 				   json_object_new_int( pat->pid[n]));
 	}
     }
@@ -1025,6 +1115,39 @@ json_object *dvb_stream_json(pmt_stream *stream)
 						      &priv_id));
 	}
 	json_object_object_add(jobj, "descriptors", jarray);
+    }
+    return jobj;
+}
+
+json_object *dvb_pmt_json(PMT *pmt)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "table_id",
+			   json_object_new_int(pmt->pmt->table_id));
+    json_object_object_add(jobj, "program_number",
+			   json_object_new_int(pmt->pmt->id));
+    json_object_object_add(jobj, "PCR_PID",
+			   json_object_new_int(pmt->PCR_PID));
+
+    if (pmt->desc_num) {
+	jarray = json_object_new_array();
+	uint32_t priv_id = 0;
+
+	for (int n=0 ; n < pmt->desc_num; n++){
+	    json_object_array_add(jarray,
+				  dvb_descriptor_json(pmt->descriptors[n],
+						      &priv_id));
+	}
+	json_object_object_add(jobj, "program info descriptors", jarray);
+    }
+    if (pmt->stream_num) {
+	jarray = json_object_new_array();
+	for (int n=0; n < pmt->stream_num; n++){
+	    json_object_array_add(jarray, dvb_stream_json(pmt->stream[n]));
+	}
+	json_object_object_add(jobj, "streams", jarray);
     }
     return jobj;
 }
