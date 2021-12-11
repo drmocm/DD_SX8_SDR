@@ -801,3 +801,32 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
     }
     return priv_id;
 }
+
+
+json_object *dvb_pat_json(PAT *pat)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "table_id",
+			   json_object_new_int(pat->pat->table_id));
+    json_object_object_add(jobj, "transport_stream_id",
+			   json_object_new_int(pat->pat->id));
+    jarray = json_object_new_array();
+    for(int n=0; n < pat->nprog; n++){
+	if (pat->program_number[n]){
+	    json_object *ja = json_object_new_object();
+	    json_object_object_add(ja, "program_number",
+				   json_object_new_int(pat->program_number[n]));
+	    json_object_object_add(ja, "program_map_PID",
+				   json_object_new_int( pat->pid[n]));
+	    
+	    json_object_array_add(jarray,ja);
+	} else {
+	    json_object_object_add(jobj, "network_PID",
+				   json_object_new_int( pat->pid[n]));
+	}
+    }
+    json_object_object_add(jobj, "programs", jarray);
+    return jobj;
+}

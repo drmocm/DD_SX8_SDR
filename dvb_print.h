@@ -1,5 +1,7 @@
 #ifndef _DVB_PRINT_H_
 #define _DVB_PRINT_H_
+#include <string.h>
+#include <json-c/json.h>
 #include "dvb_service.h"
 
 #define UTF8_CC_START 0xc2
@@ -27,6 +29,8 @@ void dvb_print_pat(int fd, PAT *pat);
 void dvb_print_pmt(int fd, PMT *pmt);
 void dvb_print_nit(int fd, NIT *nit);
 void dvb_print_sdt(int fd, SDT *sdt);
+
+json_object *dvb_pat_json(PAT *pat);
 
 
 #endif

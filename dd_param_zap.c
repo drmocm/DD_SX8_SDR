@@ -222,9 +222,14 @@ void search_pat(dvb_devices *dev)
     pats = get_all_pats(dev);
     if (pats){
 	npat = pats[0]->pat->last_section_number+1;
+	json_object *jpat = json_object_new_object();
 	for (int i=0; i < npat; i++){
-	    dvb_print_pat(fileno(stdout), pats[i]);
+//	    dvb_print_pat(fileno(stdout), pats[i]);
+	    json_object_object_add(jpat, "PAT", dvb_pat_json(pats[i]));
 	}
+	fprintf (stdout,"%s\n",
+		json_object_to_json_string_ext(jpat,
+					       JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
 
 	for (int n=0; n < npat; n++){
 	    for (int i=0; i < pats[n]->nprog; i++){
