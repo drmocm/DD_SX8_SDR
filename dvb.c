@@ -16,6 +16,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "dvb.h"
+#include <stdarg.h>
+
+void err(const char  *format,  ...)
+{
+    va_list args;
+    int print=0;
+    char finalstr[4096];
+    int w=0;
+    char nfor[256];
+    snprintf(nfor, sizeof(nfor), "%s", format);
+    va_start(args, format);
+    vsnprintf(finalstr,sizeof(finalstr),format,args);
+    w=write(STDERR_FILENO, finalstr, strlen(finalstr));
+    va_end(args);
+}
 
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -87,7 +102,7 @@ static int set_property(int fd, uint32_t cmd, uint32_t data)
     p.u.data = data;
     ret = ioctl(fd, FE_SET_PROPERTY, &c);
     if (ret < 0) {
-	fprintf(stderr, "FE_SET_PROPERTY returned %d %s\n", ret,
+	err( "FE_SET_PROPERTY returned %d %s\n", ret,
 		strerror(errno));
 	return -1;
     }
@@ -106,7 +121,7 @@ static int get_property(int fd, uint32_t cmd, uint32_t *data)
     c.props = &p;
     ret = ioctl(fd, FE_GET_PROPERTY, &c);
     if (ret < 0) {
-	fprintf(stderr, "FE_GET_PROPERTY returned %d %s\n", ret
+	err( "FE_GET_PROPERTY returned %d %s\n", ret
 		,strerror(errno));
 	return -1;
     }
@@ -134,23 +149,23 @@ int set_fe_input(int fd, uint32_t fr,
     c.props = p;
     ret = ioctl(fd, FE_SET_PROPERTY, &c);
     if (ret < 0) {
-	fprintf(stderr, "FE_SET_PROPERTY fe returned %d\n", ret);
+	err( "FE_SET_PROPERTY fe returned %d\n", ret);
 	return -1;
     }
     ret = set_property(fd, DTV_STREAM_ID, id);
     if (ret < 0) {
-	fprintf(stderr, "FE_SET_PROPERTY id returned %d\n", ret);
+	err( "FE_SET_PROPERTY id returned %d\n", ret);
 	return -1;
     }
     ret = set_property(fd, DTV_INPUT, input);
     if (ret < 0) {
-	fprintf(stderr, "FE_SET_PROPERTY input returned %d\n", ret);
+	err( "FE_SET_PROPERTY input returned %d\n", ret);
 	return -1;
     }
     
     ret = set_property(fd, DTV_TUNE, 0);
     if (ret < 0) {
-	fprintf(stderr, "FE_SET_PROPERTY tune returned %d\n", ret);
+	err( "FE_SET_PROPERTY tune returned %d\n", ret);
 	return -1;
     }
     
@@ -239,7 +254,7 @@ int open_fe(int adapter, int num)
 	sprintf(fname, "/dev/dvb/adapter%d/frontend%d", adapter, num); 
 	fd = open(fname, O_RDWR);
 	if (fd < 0) {
-	    fprintf(stderr,"Could not open frontend %s\n", fname);
+	    err("Could not open frontend %s\n", fname);
 	    return -1;
 	}
 	return fd;
@@ -253,7 +268,7 @@ int open_dvr(int adapter, int num)
 	sprintf(fname, "/dev/dvb/adapter%d/dvr%d", adapter, num); 
 	fd = open(fname, O_RDONLY);
 	if (fd < 0) {
-	    fprintf(stderr,"Could not open dvr %s\n", fname);
+	    err("Could not open dvr %s\n", fname);
 	    return -1;
 	}
 	return fd;
@@ -294,7 +309,7 @@ int diseqc(int fd, int lnb, int hor, int band)
         diseqc_send_msg(fd, hor ? SEC_VOLTAGE_18 : SEC_VOLTAGE_13,
                         &cmd, band ? SEC_TONE_ON : SEC_TONE_OFF,
                         (lnb & 1) ? SEC_MINI_B : SEC_MINI_A, 0);
-	//fprintf(stderr, "MS %02x %02x %02x %02x\n", 
+	//err( "MS %02x %02x %02x %02x\n", 
 	//	cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
         return 0;
 }
@@ -330,7 +345,7 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
 
-        //fprintf(stderr, "EN50494 %02x %02x %02x %02x %02x\n", 
+        //err( "EN50494 %02x %02x %02x %02x %02x\n", 
 	//	cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 
@@ -366,9 +381,9 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_13) == -1)
                 perror("FE_SET_VOLTAGE failed");
 /*
-        fprintf(stderr, "EN50607 %02x %02x %02x %02x\n", 
+        err( "EN50607 %02x %02x %02x %02x\n", 
                   cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3]);
-        fprintf(stderr, "EN50607 freq %u sr %u hor %u band: %d "
+        err( "EN50607 freq %u sr %u hor %u band: %d "
 		"ds: %d ufreq %d\n", 
 		freq, sr, hor, band,ds , ubfreq*1000);
 */
@@ -389,7 +404,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
         set_property(fd, DTV_INPUT, input);
-//	fprintf(stderr, "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d\n", freq, type,pol,hi,lofs,lof1,lof2);
+//	err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d\n", freq, type,pol,hi,lofs,lof1,lof2);
 	
 	if (freq > 3000000) {
 	    if (lofs)
@@ -399,7 +414,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	    else
 		freq -= lof1;
         }
-//	fprintf(stderr, "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
+//	err( "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
 
 	int re=-1;
         if (type == 1) { 
@@ -440,14 +455,14 @@ int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
     };              
     struct dtv_properties c;
         int ret;
-//        fprintf(stderr, "tune_c()\n");
+//        err( "tune_c()\n");
         set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
 
         c.num = ARRAY_SIZE(p);
         c.props = p;
         ret = ioctl(fd, FE_SET_PROPERTY, &c);
         if (ret < 0) {
-                fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+                err( "FE_SET_PROPERTY returned %d\n", ret);
                 return -1;
         }
         return 0;
@@ -460,7 +475,7 @@ int dvb_tune_c(dvb_devices *dev, dvb_fe *fe)
 
 void dvb_print_tuning_options()
 {
-    fprintf(stderr,
+    err(
 	    "\n TUNING OPTIONS:\n"
 	    " -d delsys    : the delivery system\n"
 	    " -a adapter   : the number n of the DVB adapter, i.e. \n"
@@ -596,7 +611,7 @@ int dvb_parse_args(int argc, char **argv,
 		nexts++;
 		lof2 = strtoul(nexts, NULL, 0);
 	    } else {
-		fprintf(stderr, "Error Missing data in -l (--lofs)");
+		err( "Error Missing data in -l (--lofs)");
 		return -1;
 	    } 
 	    break;
@@ -705,7 +720,7 @@ int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
   c.props = &p;
   ret = ioctl(fd, FE_GET_PROPERTY, &c);
   if (ret < 0) {
-    fprintf(stderr, "FE_GET_PROPERTY returned %d\n", ret);
+    err( "FE_GET_PROPERTY returned %d\n", ret);
     return -1;
   }
   memcpy(stats, &p.u.st, sizeof(struct dtv_fe_stats));
@@ -737,7 +752,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     int lock = 0;
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
-	fprintf(stderr,
+	err(
 		"Tuning freq: %d kHz sr: %d delsys: DVB-C  ",
 		fe->freq, fe->sr);
 	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
@@ -745,7 +760,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	
     case SYS_DVBS:
     case SYS_DVBS2:	
-	fprintf(stderr,
+	err(
 		"Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
 		"lnb_type: %d input: %d  ",
 		fe->freq, fe->pol ? "h":"v", fe->sr,
@@ -763,21 +778,21 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_ISDBS:
     case SYS_UNDEFINED:
     default:
-	fprintf(stderr,"Delivery System not yet implemented\n");
+	err("Delivery System not yet implemented\n");
 	return 0;
 	break;
     }
 
     while (!lock && t < MAXTRY ){
 	t++;
-	fprintf(stderr,".");
+	err(".");
 	lock = read_status(dev->fd_fe);
 	sleep(1);
     }
     if (lock == 2) {
-	fprintf(stderr," tuning timed out\n");
+	err(" tuning timed out\n");
     } else {
-	fprintf(stderr,"%slock\n",lock ? " ": " no ");
+	err("%slock\n",lock ? " ": " no ");
     }
     return lock;
 }

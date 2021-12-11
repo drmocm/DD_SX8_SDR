@@ -16,6 +16,9 @@
 #define SB_CC_USER_8B 0x8b
 #define SB_CC_USER_9F 0x9f
 
+
+
+
 uint32_t getbcd(uint8_t *p, int l)
 {
         int i;
@@ -99,7 +102,7 @@ void dvb2txt(char *in)
     buf = (char *) malloc(sizeof(char)*(len+1));
 
     if (!buf) {
-	fprintf(stderr,"Error allocating memory\n");
+	err("Error allocating memory\n");
 	    exit(1);
     }
     memset(buf,0,len+1);
@@ -122,7 +125,7 @@ descriptor *dvb_get_descriptor(uint8_t *buf)
 {
     descriptor *desc = NULL;
     if (!(desc = malloc(sizeof(descriptor)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+    	err("Error allocating memory in dvb_get_section\n");
 	return NULL;	
     }
     desc->tag = buf[0];
@@ -149,7 +152,7 @@ static int dvb_get_descriptor_loop(uint8_t *buf, descriptor **descriptors,
 	nc += desc->len+2;
 	dc++;
 	if (dc >= MAXDESC){
-	    fprintf(stderr,"WARNING: maximal descriptor coun reached\n");
+	    err("WARNING: maximal descriptor coun reached\n");
 	}
     }
     return dc;
@@ -164,7 +167,7 @@ section *dvb_get_section(uint8_t *buf)
 {
     section *sec = NULL;
     if (!(sec = malloc(sizeof(section)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_section\n");
+	err("Error allocating memory in dvb_get_section\n");
 	return NULL;	
     }
     memset(sec,0,sizeof(section));
@@ -196,23 +199,23 @@ section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
     close(dev->fd_dmx);
     if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
 					    0,0x000000FF,0)) < 0){
-	fprintf(stderr,"Error opening section filter\n");
+	err("Error opening section filter\n");
 	exit(1);
     }
     ufd.fd=fdmx;
     ufd.events=POLLPRI;
     if (poll(&ufd,1,2000) <= 0 ) {
-	fprintf(stderr,"TIMEOUT on read from demux\n");
+	err("TIMEOUT on read from demux\n");
 	close(fdmx);
 	return NULL;
     }
     if (!(re = read(fdmx, sec_buf, 3))){
-	fprintf(stderr,"Failed to read from demux\n");
+	err("Failed to read from demux\n");
 	return NULL;
     }	
     len = ((sec_buf[1] & 0x0f) << 8) | (sec_buf[2] & 0xff);
     if (!(re = read(fdmx, sec_buf+3, len))){
-	fprintf(stderr,"Failed to read from demux\n");
+	err("Failed to read from demux\n");
 	return NULL;
     }
 
@@ -221,7 +224,7 @@ section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
     else nsec = sec1->last_section_number;
     
     if (! (sec = (section **)malloc((nsec+1)*sizeof(section *)))){
-	fprintf(stderr,"Error not enough memory in get_all_sections");
+	err("Error not enough memory in get_all_sections");
 	return NULL;
     }
     memset(sec,0,(nsec+1)*sizeof(section *));
@@ -253,14 +256,14 @@ PAT *dvb_get_pat(uint8_t *buf, section *sec)
 	sec = dvb_get_section(buf);
 	buf = sec->data;
     } else if (sec && buf) {
-	fprintf(stderr,
+	err(
 		"ERROR dvb_get_pat, one function arguments must be NULL\n");
 	return NULL;
     }
     buf = sec->data;
 
     if (!(pat = malloc(sizeof(PAT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_pat\n");
+	err("Error allocating memory in dvb_get_pat\n");
 	return NULL;
     }
     pat->pat = sec;
@@ -284,7 +287,7 @@ static pmt_stream *dvb_get_pmt_stream(uint8_t *buf)
 {
     pmt_stream *stream = NULL;
     if (!(stream = malloc(sizeof(pmt_stream)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_pmt_stream\n");
+    	err("Error allocating memory in dvb_get_pmt_stream\n");
 	return NULL;	
     }
     stream->stream_type = buf[0];
@@ -318,13 +321,13 @@ PMT *dvb_get_pmt(uint8_t *buf, section *sec)
 	sec = dvb_get_section(buf);
 	buf = sec->data;
     } else if (sec && buf) {
-	fprintf(stderr,
+	err(
 		"ERROR dvb_get_pmt, one function arguments must be NULL\n");
 	return NULL;
     }
     buf = sec->data;
     if (!(pmt = malloc(sizeof(PMT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
+	err("Error allocating memory in dvb_get_sdt\n");
 	return NULL;
     }
     pmt->pmt = sec;
@@ -356,7 +359,7 @@ sdt_service *dvb_get_sdt_service(uint8_t *buf)
 {
     sdt_service *serv = NULL;
     if (!(serv = malloc(sizeof(sdt_service)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_sdt_service\n");
+    	err("Error allocating memory in dvb_get_sdt_service\n");
 	return NULL;	
     }
     serv->service_id = (buf[0] << 8) | buf[1];
@@ -389,14 +392,14 @@ SDT *dvb_get_sdt(uint8_t *buf, section *sec)
 	sec = dvb_get_section(buf);
 	buf = sec->data;
     } else if (sec && buf) {
-	fprintf(stderr,
+	err(
 		"ERROR dvb_get_sdt, one function arguments must be NULL\n");
 	return NULL;
     }
 
     buf = sec->data;
     if (!(sdt = malloc(sizeof(SDT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_sdt\n");
+	err("Error allocating memory in dvb_get_sdt\n");
 	return NULL;
     }
     sdt->sdt = sec;
@@ -426,7 +429,7 @@ nit_transport *dvb_get_nit_transport(uint8_t *buf)
 {
     nit_transport *trans = NULL;
     if (!(trans = malloc(sizeof(nit_transport)))) {
-    	fprintf(stderr,"Error allocating memory in dvb_get_nit_transport\n");
+    	err("Error allocating memory in dvb_get_nit_transport\n");
 	return NULL;	
     }
     trans->transport_stream_id = (buf[0] << 8) | buf[1];
@@ -459,21 +462,21 @@ NIT  *dvb_get_nit(uint8_t *buf, section *sec)
 	sec = dvb_get_section(buf);
 	buf = sec->data;
     } else if (sec && buf) {
-	fprintf(stderr,
+	err(
 		"ERROR dvb_get_sdt, one function arguments must be NULL\n");
 	return NULL;
     }
 
     buf = sec->data;
     if (!(nit = malloc(sizeof(NIT)))){
-	fprintf(stderr,"Error allocating memory in dvb_get_nit\n");
+	err("Error allocating memory in dvb_get_nit\n");
 	return NULL;
     }
     nit->nit = sec;
 
     if (sec->table_id != 0x40 && sec->table_id != 0x41){
 	free(sec);
-	fprintf(stderr,"Error in dvb_get_nit, not a NIT section\n");
+	err("Error in dvb_get_nit, not a NIT section\n");
 	return NULL;
     }
     nit->network_descriptor_length = (((buf[8]&0x0F) << 8) | buf[9]);
@@ -511,7 +514,7 @@ PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid)
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pmts = (PMT **)malloc(n*sizeof(PMT*)))){
-	    fprintf(stderr,"Could not allocate NIT");
+	    err("Could not allocate NIT");
 	    return 0;
 	}
 	for (int i=0; i < n; i++){
@@ -532,7 +535,7 @@ PAT  **get_all_pats(dvb_devices *dev)
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pats = (PAT **)malloc(n*sizeof(PAT*)))){
-	    fprintf(stderr,"Could not allocate NIT");
+	    err("Could not allocate NIT");
 	    return 0;
 	}
 	for (int i=0; i < n; i++){
@@ -553,7 +556,7 @@ NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id)
     nnit = sec[0]->last_section_number+1;
     if (nnit){
 	if (!(nits = (NIT **)malloc(nnit*sizeof(NIT*)))){
-	    fprintf(stderr,"Could not allocate NIT");
+	    err("Could not allocate NIT");
 	    return 0;
 	}
 	for (int i=0; i < nnit; i++){
@@ -574,7 +577,7 @@ SDT  **get_all_sdts(dvb_devices *dev)
     nsdt = sec[0]->last_section_number+1;
     if (nsdt){
 	if (!(sdts = (SDT **)malloc(nsdt*sizeof(NIT*)))){
-	    fprintf(stderr,"Could not allocate NIT");
+	    err("Could not allocate NIT");
 	    return 0;
 	}
 	for (int i=0; i < nsdt; i++){
@@ -1367,12 +1370,12 @@ static nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
 {
     int n = nits[0]->nit->last_section_number+1;
     nit_transport *trans = NULL;
-    fprintf(stderr,"searching transport tsid 0x%04x\n",tsid);
+    err("searching transport tsid 0x%04x\n",tsid);
     for(int i = 0; i < n; i++){
 	for (int j = 0; j < nits[i]->trans_num; j++){
 	    trans = nits[i]->transports[j];
 	    if (trans->transport_stream_id == tsid){
-		fprintf(stderr,"Found transport with complete NIT/BAT\n");
+		err("Found transport with complete NIT/BAT\n");
 		return trans;
 	    }
 	}
@@ -1470,7 +1473,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	uint32_t freq = fe->freq;
 	if ((trans = find_nit_transport(nits,tsid))){
 	    if (set_frontend_with_transport(fe, trans)) {
-		fprintf(stderr,"Could not set frontend\n");
+		err("Could not set frontend\n");
 		exit(1);
 	    }
 	    if (freq != fe->freq){
@@ -1487,4 +1490,5 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
     return nits;
 }
+
 

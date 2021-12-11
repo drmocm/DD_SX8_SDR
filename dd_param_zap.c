@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 void print_help()
 {
     dvb_print_tuning_options();
-    fprintf(stderr,
+    err(
 	    "\n OTHERS:\n"
 	    " -N           : get NIT\n"
 	    " -S           : get SDT\n"
@@ -110,13 +110,17 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     uint16_t tsid = 0;
     satellite *sat;
     
-    fprintf(stderr,"Full NIT search\n");
+    err("Full NIT search\n");
 
     nits = get_full_nit(dev, fe, lnb);
+    if (!nits){
+	err("NIT not found\n");
+	return NULL;
+    }
     n = nits[0]->nit->last_section_number+1;
 
     if(!(sat  = (satellite *) malloc(sizeof(satellite)))){
-	fprintf(stderr,"Not enough memory for satellite\n");
+	err("Not enough memory for satellite\n");
 	return NULL;
     }
 
@@ -130,15 +134,10 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
 
     sat->trans = (transport *) malloc(sat->ntrans*sizeof(transport));
-    int k= 0;
 
+    int k= 0;
     for  (int i =0; i < sat->nnit; i++){
 	for (int j=0; j < sat->nit[i]->trans_num; j++){
-	    if (set_frontend_with_transport(fe,sat->nit[i]->transports[j])){
-		fprintf(stderr,"Could not set frontend\n");
-		exit(1);
-	    }
-	    dvb_copy_fe(&sat->trans[k].fe, fe);
 	    sat->trans[k].nit_transport = sat->nit[i]->transports[j];
 	    k++;
 	}
@@ -146,17 +145,30 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     
     for (k = 0; k < sat->ntrans; k++){
 	transport *trans = &sat->trans[k];
+	if (set_frontend_with_transport(fe,trans->nit_transport)){
+	    err("Could not set frontend\n");
+	    exit(1);
+	}
+	dvb_copy_fe(&trans->fe, fe);
 	trans->sat = sat;
 	int lock = dvb_tune(dev, &trans->fe, lnb);
 	trans->lock = lock;
 	if (lock == 1){ 
-	    fprintf(stderr,"  getting SDT\n");
-	    trans->sdt = get_all_sdts(dev);
-	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
-	    fprintf(stderr,"  getting PAT\n");
-	    trans->pat = get_all_pats(dev);
-	    trans->npat = trans->pat[0]->pat->last_section_number+1;
-	    fprintf(stderr,"  getting PMTs\n");
+	    err("  getting SDT\n");
+	    if (!(trans->sdt = get_all_sdts(dev))){
+		err("SDT not found\n");
+		trans->nsdt = 0;
+	    } else {
+		trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
+	    }
+	    err("  getting PAT\n");
+	    if (!(trans->pat = get_all_pats(dev))){
+		err("PAT not found\n");
+		trans->npat = 0;
+	    } else {
+		trans->npat = trans->pat[0]->pat->last_section_number+1;
+	    }
+	    err("  getting PMTs\n");
 	    trans->nserv = get_all_services(trans, dev);
 	}
     }
@@ -170,8 +182,11 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
     NIT **nits = NULL;
     int nnit = 0;
     
-    fprintf(stderr,"Searching NIT\n");
-    nits = get_all_nits(dev, table_id);
+    err("Searching NIT\n");
+    if (!(nits = get_all_nits(dev, table_id))){
+	err("NIT not found\n");
+	exit(1);
+    }
     nnit = nits[0]->nit->last_section_number+1;
     for (int n=0; n < nnit; n++)
 	dvb_print_nit(fileno(stdout), nits[n]);
@@ -184,8 +199,11 @@ void search_sdt(dvb_devices *dev)
     SDT **sdts = NULL;
     int n = 0;
     
-    fprintf(stderr,"Searching SDT\n");
-    sdts = get_all_sdts(dev);
+    err("Searching SDT\n");
+    if(!(sdts = get_all_sdts(dev))){
+	err("SDT not found\n");
+	exit(1);
+    }
     n = sdts[0]->sdt->last_section_number+1;
     for (int i=0; i < n; i++)
 	dvb_print_sdt(fileno(stdout), sdts[i]);
@@ -199,7 +217,7 @@ void search_pat(dvb_devices *dev)
     PAT **pats = NULL;
     int npat = 0;
 
-    fprintf(stderr,"Searching PAT\n");
+    err("Searching PAT\n");
     pats = get_all_pats(dev);
     if (pats){
 	npat = pats[0]->pat->last_section_number+1;
@@ -212,7 +230,7 @@ void search_pat(dvb_devices *dev)
 		int npmt = 0;
 		uint16_t pid = pats[n]->pid[i];
 		if (!pats[n]->program_number[i]) continue;
-		fprintf(stderr,"Searching PMT 0x%02x for program 0x%04x\n",
+		err("Searching PMT 0x%02x for program 0x%04x\n",
 			pid,pats[n]->program_number[i]);
 		PMT  **pmt = get_all_pmts(dev, pid);
 		if (pmt){
@@ -252,11 +270,11 @@ int main(int argc, char **argv){
 	    uint8_t *buf=(uint8_t *)malloc(BUFFSIZE);
 	
 	    if (filename){
-		fprintf(stderr,"writing to %s\n", filename);
+		err("writing to %s\n", filename);
 		fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC,
 			  00644);
 	    } else {
-		fprintf(stderr,"writing to stdout\n");
+		err("writing to stdout\n");
 		fd = fileno(stdout); 
 	    }
 	    while(lock){
