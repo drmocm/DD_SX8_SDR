@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <getopt.h>
 #include "dvb.h"
 #include "dvb_service.h"
+#include "dvb_print.h"
 
 #define BUFFSIZE (1024*188)
 

@@ -142,7 +142,6 @@ typedef struct satellite_t{
     
     
 uint32_t getbcd(uint8_t *p, int l);
-void dvb2txt(char *in);
 
 void dvb_delete_pat(PAT *pat);
 void dvb_delete_pmt(PMT *pmt);
@@ -164,16 +163,6 @@ SDT  **get_all_sdts(dvb_devices *dev);
 nit_transport *dvb_get_nit_transport(uint8_t *buf);
 sdt_service *dvb_get_sdt_service(uint8_t *buf);
 descriptor *dvb_get_descriptor(uint8_t *buf);
-
-void dvb_print_data(FILE *fp, uint8_t *b, int length, int step,
-		    char *s, char *s2);
-uint32_t dvb_print_descriptor(FILE *fp, descriptor *desc, char *s,
-			      uint32_t priv_id);
-void dvb_print_section(int fd, section *sec);
-void dvb_print_pat(int fd, PAT *pat);
-void dvb_print_pmt(int fd, PMT *pmt);
-void dvb_print_nit(int fd, NIT *nit);
-void dvb_print_sdt(int fd, SDT *sdt);
 
 descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag);
 int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans);
