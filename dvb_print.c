@@ -1435,3 +1435,59 @@ json_object *dvb_nit_json(NIT *nit)
     }
     return jobj;
 }
+
+
+json_object *dvb_service_json(sdt_service *serv)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    const char *R[] = {	"undefined","not running",
+	"starts in a few seconds","pausing","running","service off-air",
+	"unknown","unknown"};
+    
+    json_object_object_add(jobj, "service_id",
+			   json_object_new_int(serv->service_id));
+    json_object_object_add(jobj, "EIT_schedule_flag",
+			   json_object_new_int(serv->EIT_schedule_flag));
+    json_object_object_add(jobj,"EIT_present_following_flag",
+			   json_object_new_int(
+			       serv->EIT_present_following_flag));
+    json_object_object_add(jobj, "running_status",
+			   json_object_new_string(R[serv->running_status]));
+    json_object_object_add(jobj, "free_CA_mode",
+			   json_object_new_int(serv->free_CA_mode));
+
+
+    if (serv->desc_num){
+	jarray = json_object_new_array();
+	uint32_t priv_id = 0;
+
+	for (int n=0 ; n < serv->desc_num; n++){
+	    json_object_array_add(jarray,
+				  dvb_descriptor_json(serv->descriptors[n],
+						      &priv_id));
+	}
+	json_object_object_add(jobj, "descriptors", jarray);
+    }
+    return jobj;
+}
+
+json_object *dvb_sdt_json(SDT *sdt)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "section data", dvb_section_json(sdt->sdt,0));
+    json_object_object_add(jobj, "original_network_id",
+			   json_object_new_int(sdt->sdt->id));
+    if (sdt->service_num){
+	jarray = json_object_new_array();
+	for (int n=0 ; n < sdt->service_num; n++){
+ 	    json_object_array_add(jarray,
+				  dvb_service_json(sdt->services[n]));
+	}
+	json_object_object_add(jobj, "services", jarray);
+    }
+    return jobj;
+}

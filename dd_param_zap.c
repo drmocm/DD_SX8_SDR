@@ -190,8 +190,7 @@ json_object *search_nit(dvb_devices *dev, uint8_t table_id)
     }
     nnit = nits[0]->nit->last_section_number+1;
     json_object *jobj = json_object_new_object();
-    json_object *jarray;
-    jarray = json_object_new_array();
+    json_object *jarray = json_object_new_array();
     for (int n=0; n < nnit; n++){
 	json_object_array_add (jarray,dvb_nit_json(nits[n]));
     }
@@ -214,8 +213,17 @@ void search_sdt(dvb_devices *dev)
 	exit(1);
     }
     n = sdts[0]->sdt->last_section_number+1;
-    for (int i=0; i < n; i++)
-	dvb_print_sdt(fileno(stdout), sdts[i]);
+    json_object *jobj = json_object_new_object();
+    json_object *jarray = json_object_new_array();
+    for (int i=0; i < n; i++){
+	json_object_array_add (jarray,dvb_sdt_json(sdts[i]));
+    }
+    json_object_object_add(jobj, "SDT", jarray);
+    //dvb_print_sdt(fileno(stdout), sdts[i]);
+
+    fprintf (stdout,"%s\n",
+	     json_object_to_json_string_ext(jobj,
+					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
 }
 
 void search_pat(dvb_devices *dev)
@@ -311,8 +319,8 @@ int main(int argc, char **argv){
 	    fprintf (stdout,"%s\n",
 		     json_object_to_json_string_ext(jobj,
 						    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
-	}
 	    break;
+	}
 
 	case 3:
 	    search_sdt(&dev);

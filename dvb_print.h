@@ -33,6 +33,7 @@ void dvb_print_sdt(int fd, SDT *sdt);
 json_object *dvb_pat_json(PAT *pat);
 json_object *dvb_pmt_json(PMT *pmt);
 json_object *dvb_nit_json(NIT *nit);
+json_object *dvb_sdt_json(SDT *sdt);
 
 
 #endif
