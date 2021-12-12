@@ -887,12 +887,134 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
     return priv_id;
 }
 
-json_object *dvb_data_json(uint8_t *data, int len)
+
+static json_object *dvb_data_json(uint8_t *data, int len)
 {
     int olen = 0;
     char *sdata = base64_encode(data, len,&olen);
 
     return json_object_new_string_len(sdata,len);
+}
+
+json_object *dvb_section_json(section *sec, int d)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    int c=9;
+    
+    json_object_object_add(jobj, "table_id",
+			   json_object_new_int(sec->table_id));
+    json_object_object_add(jobj, "syntax_indicator",
+			   json_object_new_int(sec->section_syntax_indicator));
+    json_object_object_add(jobj,"length",
+			   json_object_new_int(sec->section_length));
+    if(d) {
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(sec->data, sec->section_length));
+    }
+    if (sec->section_syntax_indicator){
+	json_object_object_add(jobj, "section_number",
+			   json_object_new_int(sec->section_number));
+	json_object_object_add(jobj, "last_section_number",
+			       json_object_new_int(sec->last_section_number));
+	json_object_object_add(jobj, "version_number",
+			       json_object_new_int(sec->version_number));
+	if(d) {
+	    json_object_object_add(jobj, "id",
+				   json_object_new_int(sec->id));
+	}
+    }
+    return jobj;
+}
+
+json_object *dvb_linkage_descriptor_json(descriptor *desc)
+{
+    uint16_t nid = 0;
+    uint16_t onid = 0;
+    uint16_t sid = 0;
+    uint16_t tsid = 0;
+    uint8_t link =0;
+    uint8_t *buf = desc->data;
+    int length = desc->len;
+    int c = 0;
+    const char *H[] = {
+	"reserved",
+	"DVB hand-over to an identical service in a neighbouring country",
+	"DVB hand-over to a local variation of the same service",
+	"DVB hand-over to an associated service",
+	"reserved"
+    };
+	
+    const char *L[] = {
+	"reserved","information service","EPG service",
+	"CA replacement service",
+	"TS containing complete Network/Bouquet SI",
+	"service replacement service",
+	"data broadcast service","RCS Map","mobile hand-over",
+	"System Software Update Service (TS 102 006 [11])",
+	"TS containing SSU BAT or NIT (TS 102 006 [11])",
+	"IP/MAC Notification Service (EN 301 192 [4])",
+	"TS containing INT BAT or NIT (EN 301 192 [4])"};
+
+    json_object *jobj = json_object_new_object();
+    json_object_object_add(jobj,"type", json_object_new_string(
+			       "Linkage descriptor"));
+    tsid = (buf[0] << 8) | buf[1];
+    onid = (buf[2] << 8) | buf[3];
+    sid = (buf[4] << 8) | buf[5];
+    link = buf[6];
+    
+    const char *lk = NULL;
+    if (link < 0x0D) lk = L[link];
+    else if(0x80 < link && link < 0xff) lk="user defined"; 
+    else lk="reserved";
+    
+    json_object_object_add(jobj,"transport_stream_id",
+			   json_object_new_int(tsid));
+    json_object_object_add(jobj,"original_network_id",
+			   json_object_new_int(onid));
+    json_object_object_add(jobj,"service id",
+			   json_object_new_int(sid));
+    json_object_object_add(jobj,"linkage_type nr",
+			   json_object_new_int(link));
+    json_object_object_add(jobj,"linkage_type",
+			   json_object_new_string(lk));
+    
+    c = 7;
+    if (link == 0x08){
+	uint8_t hand = (buf[c]&0xf0)>>4;
+	uint8_t org = buf[c]&0x01;
+	json_object_object_add(jobj,"handover_type",
+			       json_object_new_string(H[hand]));
+	json_object_object_add(jobj,"handover_type nr",
+			       json_object_new_int(hand));
+	json_object_object_add(jobj,"handover_type",
+			       json_object_new_string((org ? "SDT":"NIT")));
+	json_object_object_add(jobj,"origin_type nr",
+			       json_object_new_int(org));
+	if (hand ==0x01 || hand ==0x02 || hand ==0x03){
+	    nid = (buf[c+1] << 8) | buf[c+2];
+	    json_object_object_add(jobj,"network_id",
+				   json_object_new_int(nid));
+	    c++;
+	}
+	if (!org){
+	    sid = (buf[c+1] << 8) | buf[c+2];
+	    json_object_object_add(jobj,"initia_ service_id",
+				   json_object_new_int(sid));
+	    c++;
+	}
+    }
+    buf += c;
+    length -= c;
+    if (length){
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(length));
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(buf, length));
+    }
+    return jobj;
 }
 
 json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
@@ -974,7 +1096,8 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	break;
 
     case 0x4a:
-//	dvb_print_linkage_descriptor(fd, desc, s);
+	json_object_put(jobj);
+	jobj = dvb_linkage_descriptor_json(desc);
 	break;
 	
     case 0x5a: // terrestrial
@@ -1070,8 +1193,7 @@ json_object *dvb_pat_json(PAT *pat)
     json_object *jobj = json_object_new_object();
     json_object *jarray;
 
-    json_object_object_add(jobj, "table_id",
-			   json_object_new_int(pat->pat->table_id));
+    json_object_object_add(jobj, "section data", dvb_section_json(pat->pat,0));
     json_object_object_add(jobj, "transport_stream_id",
 			   json_object_new_int(pat->pat->id));
     jarray = json_object_new_array();
@@ -1124,8 +1246,7 @@ json_object *dvb_pmt_json(PMT *pmt)
     json_object *jobj = json_object_new_object();
     json_object *jarray;
 
-    json_object_object_add(jobj, "table_id",
-			   json_object_new_int(pmt->pmt->table_id));
+    json_object_object_add(jobj, "section data", dvb_section_json(pmt->pmt,0));
     json_object_object_add(jobj, "program_number",
 			   json_object_new_int(pmt->pmt->id));
     json_object_object_add(jobj, "PCR_PID",
@@ -1136,7 +1257,7 @@ json_object *dvb_pmt_json(PMT *pmt)
 	uint32_t priv_id = 0;
 
 	for (int n=0 ; n < pmt->desc_num; n++){
-	    json_object_array_add(jarray,
+ 	    json_object_array_add(jarray,
 				  dvb_descriptor_json(pmt->descriptors[n],
 						      &priv_id));
 	}
@@ -1148,6 +1269,66 @@ json_object *dvb_pmt_json(PMT *pmt)
 	    json_object_array_add(jarray, dvb_stream_json(pmt->stream[n]));
 	}
 	json_object_object_add(jobj, "streams", jarray);
+    }
+    return jobj;
+}
+
+json_object *dvb_transport_json(nit_transport *trans)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "transport_stream_id",
+			   json_object_new_int(trans->transport_stream_id));
+    json_object_object_add(jobj, "original_network_id",
+			   json_object_new_int(trans->original_network_id));
+
+    if (trans->desc_num){
+	jarray = json_object_new_array();
+	uint32_t priv_id = 0;
+
+	for (int n=0 ; n < trans->desc_num; n++){
+ 	    json_object_array_add(jarray,
+				  dvb_descriptor_json(trans->descriptors[n],
+						      &priv_id));
+	}
+	json_object_object_add(jobj, "descriptors", jarray);
+    }
+    return jobj;
+}
+
+json_object *dvb_nit_json(NIT *nit)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+
+    json_object_object_add(jobj, "section data", dvb_section_json(nit->nit,0));
+    json_object_object_add(jobj, "network_id",
+			   json_object_new_int(nit->nit->id));
+    json_object_object_add(jobj, "type",
+			   json_object_new_string(
+			       (nit->nit->table_id == 0x41) ?
+			       "other":"actual"));
+
+    if (nit->ndesc_num){
+	jarray = json_object_new_array();
+	uint32_t priv_id = 0;
+
+	for (int n=0 ; n < nit->ndesc_num; n++){
+ 	    json_object_array_add(jarray,
+				  dvb_descriptor_json(
+				      nit->network_descriptors[n],
+				      &priv_id));
+	}
+	json_object_object_add(jobj, "network_descriptors", jarray);
+    }
+    if (nit->trans_num){
+	jarray = json_object_new_array();
+	for (int n=0 ; n < nit->trans_num; n++){
+ 	    json_object_array_add(jarray,
+				  dvb_transport_json(nit->transports[n]));
+	}
+	json_object_object_add(jobj, "transports", jarray);
     }
     return jobj;
 }

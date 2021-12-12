@@ -189,8 +189,18 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
 	exit(1);
     }
     nnit = nits[0]->nit->last_section_number+1;
-    for (int n=0; n < nnit; n++)
-	dvb_print_nit(fileno(stdout), nits[n]);
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+    jarray = json_object_new_array();
+    for (int n=0; n < nnit; n++){
+	json_object_array_add (jarray,dvb_nit_json(nits[n]));
+    }
+    json_object_object_add(jobj, "NIT", jarray);
+
+    fprintf (stdout,"%s\n",
+	     json_object_to_json_string_ext(jobj,
+					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+//	dvb_print_nit(fileno(stdout), nits[n]);
 }
 
 void search_sdt(dvb_devices *dev)
