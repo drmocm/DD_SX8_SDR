@@ -176,7 +176,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     return sat;
 }
 
-void search_nit(dvb_devices *dev, uint8_t table_id)
+json_object *search_nit(dvb_devices *dev, uint8_t table_id)
 {
     int fdmx;
     int re = 0;
@@ -186,7 +186,7 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
     err("Searching NIT\n");
     if (!(nits = get_all_nits(dev, table_id))){
 	err("NIT not found\n");
-	exit(1);
+	return NULL;
     }
     nnit = nits[0]->nit->last_section_number+1;
     json_object *jobj = json_object_new_object();
@@ -197,9 +197,7 @@ void search_nit(dvb_devices *dev, uint8_t table_id)
     }
     json_object_object_add(jobj, "NIT", jarray);
 
-    fprintf (stdout,"%s\n",
-	     json_object_to_json_string_ext(jobj,
-					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+    return jobj;
 //	dvb_print_nit(fileno(stdout), nits[n]);
 }
 
@@ -262,10 +260,6 @@ void search_pat(dvb_devices *dev)
 	json_object_object_add(jobj, "PMTs", jpmts);
 	
     }
-    fprintf (stdout,"%s\n",
-	     json_object_to_json_string_ext(jobj,
-					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
-
 }
 
 int main(int argc, char **argv){
@@ -308,8 +302,16 @@ int main(int argc, char **argv){
 	    break;
 	}
 	case 2:
-	    search_nit(&dev,0x40);
-	    search_nit(&dev,0x41);
+	{
+	    json_object *jobj = json_object_new_object();
+	    json_object *jnit = search_nit(&dev,0x40);
+	    if (jnit) json_object_object_add(jobj,"NIT actual",jnit);
+	    jnit = search_nit(&dev,0x41);
+	    if (jnit) json_object_object_add(jobj,"NIT other",jnit);
+	    fprintf (stdout,"%s\n",
+		     json_object_to_json_string_ext(jobj,
+						    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+	}
 	    break;
 
 	case 3:
