@@ -83,8 +83,12 @@ unsigned char *base64_decode(uint8_t *data, int len, int *olen)
     return ddata;
 }
 
-
-
+static json_object* json_object_new_double_fmt(double d, const char *fmt)
+{
+    char tmp[128];
+    snprintf(tmp, 128, fmt, d);
+    return(json_object_new_double_s(d, tmp));
+}
 
 void pr(int fd, const char  *format,  ...)
 {
@@ -928,6 +932,111 @@ json_object *dvb_section_json(section *sec, int d)
     return jobj;
 }
 
+json_object *dvb_delsys_descriptor_json(descriptor *desc)
+{
+    uint8_t *buf = desc->data;
+    uint32_t freq;
+    uint16_t orbit;
+    uint32_t srate;
+    uint8_t pol;
+    uint8_t delsys;
+    uint8_t mod;
+    uint8_t fec;
+    uint8_t east;
+    uint8_t roll;
+
+    const char *POL[] = {"linear-horizontal", "linear-vertical",
+	"circular-left", "circulra-right"};
+    const char *MOD[] = {"Auto", "QPSK", "8PSK", "16QAM"};
+    const char *MODC[] ={"not defined","16-QAM","32-QAM","64-QAM",
+	"128-QAM","256-QAM","reserved"};
+    const double roff[] ={0.25, 0.35, 0.20, 0};
+    const char *FECO[] ={"not defined","no outer FEC coding",
+	"RS(204/188)","reserved"};
+    const char *FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
+	"3/5","4/5","9/10","reserved","no conv. coding"};
+
+    json_object *jobj = json_object_new_object();
+
+    switch(desc->tag){
+    case 0x43: // satellite
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("Satellite delivery system descriptor"));
+	freq = getbcd(buf, 8) *10;
+	orbit = getbcd(buf+4, 4) *10;
+	srate = getbcd(buf + 7, 7) / 10;
+	east = ((buf[6] & 0x80) >> 7);
+	pol =  ((buf[6] & 0x60) >> 5); 
+	roll = ((buf[6] & 0x18) >> 3);
+	delsys = ((buf[6] & 0x04) >> 2) ? SYS_DVBS2 : SYS_DVBS;
+	mod = buf[6] & 0x03;
+	fec = buf[10] & 0x0f;
+	if (fec > 10 && fec < 15) fec = 10;
+	if (fec == 15) fec = 11;
+	json_object_object_add(jobj,"frequency",
+			       json_object_new_int(freq));
+	json_object_object_add(jobj,"orbital_position",
+			       json_object_new_int(orbit));
+	json_object_object_add(jobj,"west_east_flag",
+			       json_object_new_string((east ? "E":"W")));
+	json_object_object_add(jobj,"polarisation",
+			       json_object_new_string(POL[pol]));
+	json_object_object_add(jobj,"modulation_system",
+			       json_object_new_string(
+				   (delsys ? "DVB-S2":"DVB-S")));
+	if (delsys) 
+	    json_object_object_add(jobj,"roll_off",
+				   json_object_new_double_fmt(roff[roll],
+							      "%0.2f"));
+	json_object_object_add(jobj,"modulation_type",
+			       json_object_new_string(MOD[mod]));
+	json_object_object_add(jobj,"symbol_rate",
+			       json_object_new_int(srate));
+	json_object_object_add(jobj,"FEC_Inner",
+			       json_object_new_string(FEC[fec]));
+	break;
+
+    case 0x44: // cable
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("Cable delivery system descriptor"));
+
+	freq =  getbcd(buf, 8)/10;
+	delsys = buf[5] & 0x0f;
+	mod = buf[6];
+	if (mod > 6) mod = 6;
+	srate = getbcd(buf + 7, 7) / 10;
+	fec = buf[10] & 0x0f;
+	if (fec > 10 && fec < 15) fec = 10;
+	if (fec == 15) fec = 11;
+
+	json_object_object_add(jobj,"frequency",
+			       json_object_new_int(freq));
+	json_object_object_add(jobj,"FEC_outer",
+			       json_object_new_string(FECO[delsys]));
+	json_object_object_add(jobj,"modulation",
+			       json_object_new_string(MODC[mod]));
+	json_object_object_add(jobj,"symbol_rate",
+			       json_object_new_int(srate));
+	json_object_object_add(jobj,"FEC_inner",
+			       json_object_new_string(FEC[delsys]));
+	break;
+
+    case 0x5a: // terrestrial
+	freq = (buf[5]|(buf[4] << 8)|(buf[3] << 16)|(buf[0] << 24))*10;
+	delsys = SYS_DVBT;
+	json_object_object_add(jobj,"frequency",
+			       json_object_new_int(freq));
+	break;
+
+    case 0xfa: // isdbt
+	freq = (buf[5]|(buf[4] << 8))*7000000;
+	json_object_object_add(jobj,"frequency",
+			       json_object_new_int(freq));
+	delsys = SYS_ISDBT;
+    }
+    return jobj;
+}
+
 json_object *dvb_linkage_descriptor_json(descriptor *desc)
 {
     uint16_t nid = 0;
@@ -1060,11 +1169,11 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	json_object_object_add(jobj, "Services", jarray);
 	break;
     case 0x43: // satellite
-//	dvb_print_delsys_descriptor(fd, desc, s);
-	break;
-    
     case 0x44: // cable
-//	dvb_print_delsys_descriptor(fd, desc, s);
+    case 0x5a: // terrestrial
+    case 0xfa: // isdbt
+	json_object_put(jobj);
+	jobj = dvb_delsys_descriptor_json(desc);
 	break;
 
     case 0x48: //service descriptor
@@ -1100,9 +1209,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	jobj = dvb_linkage_descriptor_json(desc);
 	break;
 	
-    case 0x5a: // terrestrial
-//	dvb_print_delsys_descriptor(fd, desc, s);
-	break;
 
     case 0x5f:
 	json_object_object_add(jobj,"type",
@@ -1124,9 +1230,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 			       dvb_data_json(desc->data, desc->len));
 	break;
 	    
-    case 0xfa: // isdbt
-//	dvb_print_delsys_descriptor(fd, desc, s);
-	break;
 
     case 0xfb ... 0xfe:
     case 0x80 ... 0xf9: // user defined
