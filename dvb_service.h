@@ -13,10 +13,10 @@
 
 #define NORDIG 0x00000029
 
-#define MAXSTREAM 100
-#define MAXSERV 100
-#define MAXDESC 100
-#define MTRANS  200
+#define MAXSTREAM 500
+#define MAXSERV 500
+#define MAXDESC 500
+#define MTRANS  500
 #define MAXSECT 4096
 #define MAXSDT  1024
 #define MAXNIT  1024
@@ -162,12 +162,24 @@ typedef struct tranport_t{
 } transport;
 
 typedef struct satellite_t{
+    enum fe_delivery_system delsys;
     dvb_devices dev;
     dvb_lnb lnb;
     int nnit;
     NIT **nit;
     int ntrans;
     transport *trans;
+
+    transport **trans_freq;
+
+    int n_lh_trans;
+    transport **l_h_trans;
+    int n_lv_trans;
+    transport **l_v_trans;
+    int n_uh_trans;
+    transport **u_h_trans;
+    int n_uv_trans;
+    transport **u_v_trans;
 } satellite;
     
 uint32_t getbcd(uint8_t *p, int l);

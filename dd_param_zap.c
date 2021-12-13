@@ -102,6 +102,122 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
     return out;
 }
 
+void dvb_sort_sat(satellite *sat)
+{
+    sat->l_h_trans = NULL;
+    sat->l_v_trans = NULL;
+    sat->u_h_trans = NULL;
+    sat->u_v_trans = NULL;
+    sat->n_lh_trans = 0;
+    sat->n_lv_trans = 0;
+    sat->n_uh_trans = 0;
+    sat->n_uv_trans = 0;
+
+    sat->trans_freq = (transport **) malloc(sat->ntrans*sizeof(transport *));
+    memset(sat->trans_freq, 0, sat->ntrans*sizeof(transport *));
+    for (int i=0; i < sat->ntrans; i++){
+	int j = 0;
+	transport *trans = &sat->trans[i];
+	while (j < i && sat->trans_freq[j]){
+	    if (trans->fe.freq < sat->trans_freq[j]->fe.freq){
+		for (int k = i; k > j; k--) {
+		    sat->trans_freq[k] = sat->trans_freq[k-1];
+		}
+		sat->trans_freq[j] = NULL;
+	    } else {
+		j++;
+	    }
+	}
+	sat->trans_freq[j] = trans;
+	if (sat->delsys == SYS_DVBS  || sat->delsys == SYS_DVBS2){
+	    fprintf(stderr,"freq %d pol %d u %d\n#",
+		    trans->fe.freq,trans->fe.pol,trans->fe.hi);
+	    if (trans->fe.pol){
+		if (trans->fe.hi) sat->n_uh_trans++;
+		else sat->n_lh_trans++;
+	    } else {
+		if (trans->fe.hi) sat->n_uv_trans++;
+		else sat->n_lv_trans++;
+	    }
+	}
+    }
+
+#if 0
+    for (int i=0; i < sat->ntrans ; i++) fprintf(stderr,"%d/%d freq %d\n",
+						 i+1,sat->ntrans,
+						 sat->trans_freq[i]->fe.freq);
+#endif
+    
+    if (sat->delsys != SYS_DVBS && sat->delsys != SYS_DVBS2) return;
+    sat->l_h_trans = (transport **) malloc(sat->n_lh_trans*sizeof(transport*));
+    sat->l_v_trans = (transport **) malloc(sat->n_lv_trans*sizeof(transport*));
+    sat->u_h_trans = (transport **) malloc(sat->n_uh_trans*sizeof(transport*));
+    sat->u_v_trans = (transport **) malloc(sat->n_uv_trans*sizeof(transport*));
+    memset(sat->l_h_trans, 0, sat->n_lh_trans*sizeof(transport *));
+    memset(sat->l_v_trans, 0, sat->n_lv_trans*sizeof(transport *));
+    memset(sat->u_h_trans, 0, sat->n_uh_trans*sizeof(transport *));
+    memset(sat->u_v_trans, 0, sat->n_uv_trans*sizeof(transport *));
+
+    int uh=0;
+    int uv=0;
+    int lh=0;
+    int lv=0;
+    for (int i=0; i < sat->ntrans; i++){
+	transport *trans= sat->trans_freq[i];
+	if (trans->fe.pol){
+	    if (trans->fe.hi){
+		sat->u_h_trans[uh] = trans;
+		uh++;
+	    } else {
+		sat->l_h_trans[lh] = trans;
+		lh++;
+	    }
+	} else {
+	    if (trans->fe.hi) { 
+		sat->u_v_trans[uv] = trans;
+		uv++;
+	    }else {
+		sat->l_v_trans[lv] = trans;
+		lv++;
+	    }
+	}
+    }
+
+#if 0
+    for (int i=0; i < sat->n_lh_trans ; i++){
+	transport *trans = sat->l_h_trans[i];
+
+	fprintf(stderr,"%d/%d freq %d pol %d\n",
+		i+1,sat->n_lh_trans,
+		trans->fe.freq,
+		trans->fe.pol);
+    }
+    for (int i=0; i < sat->n_lv_trans ; i++){
+	transport *trans = sat->l_v_trans[i];
+	
+	fprintf(stderr,"%d/%d freq %d pol %d\n",
+		i+1,sat->n_lv_trans,
+		trans->fe.freq,
+		trans->fe.pol);
+    }
+    for (int i=0; i < sat->n_uh_trans ; i++){
+	transport *trans = sat->u_h_trans[i];
+
+	fprintf(stderr,"%d/%d freq %d pol %d\n",
+		i+1,sat->n_uh_trans,
+		trans->fe.freq,
+		trans->fe.pol);
+    }
+    for (int i=0; i < sat->n_uv_trans ; i++){
+	transport *trans = sat->u_v_trans[i];
+	
+	fprintf(stderr,"%d/%d freq %d pol %d\n",
+		i+1,sat->n_uv_trans,
+		trans->fe.freq,
+		trans->fe.pol);
+    }
+#endif
+}
 
 
 satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
@@ -135,22 +251,27 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
 
     sat->trans = (transport *) malloc(sat->ntrans*sizeof(transport));
-
     int k= 0;
     for  (int i =0; i < sat->nnit; i++){
 	for (int j=0; j < sat->nit[i]->trans_num; j++){
-	    sat->trans[k].nit_transport = sat->nit[i]->transports[j];
+	    transport *trans = &sat->trans[k];
+	    trans->nit_transport = sat->nit[i]->transports[j];
+	    if (set_frontend_with_transport(fe,trans->nit_transport)){
+		err("Could not set frontend\n");
+		exit(1);
+	    }
+	    dvb_copy_fe(&trans->fe, fe);
+	    if (lnb->lofs)
+		trans->fe.hi = (trans->fe.freq > lnb->lofs) ? 1 : 0;
 	    k++;
 	}
     }
+    sat->delsys = fe->delsys;
+    
+    dvb_sort_sat(sat);
     
     for (k = 0; k < sat->ntrans; k++){
-	transport *trans = &sat->trans[k];
-	if (set_frontend_with_transport(fe,trans->nit_transport)){
-	    err("Could not set frontend\n");
-	    exit(1);
-	}
-	dvb_copy_fe(&trans->fe, fe);
+	transport *trans = sat->trans_freq[k];
 	trans->sat = sat;
 	int lock = dvb_tune(dev, &trans->fe, lnb);
 	trans->lock = lock;
@@ -173,6 +294,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	    trans->nserv = get_all_services(trans, dev);
 	}
     }
+
     return sat;
 }
 
