@@ -926,3 +926,100 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 }
 
 
+void dvb_sort_sat(satellite *sat)
+{
+    sat->l_h_trans = NULL;
+    sat->l_v_trans = NULL;
+    sat->u_h_trans = NULL;
+    sat->u_v_trans = NULL;
+    sat->n_lh_trans = 0;
+    sat->n_lv_trans = 0;
+    sat->n_uh_trans = 0;
+    sat->n_uv_trans = 0;
+
+    sat->trans_freq = (transport **) malloc(sat->ntrans*sizeof(transport *));
+    memset(sat->trans_freq, 0, sat->ntrans*sizeof(transport *));
+    for (int i=0; i < sat->ntrans; i++){
+	int j = 0;
+	transport *trans = &sat->trans[i];
+	while (j < i && sat->trans_freq[j]){
+	    if (trans->fe.freq < sat->trans_freq[j]->fe.freq){
+		for (int k = i; k > j; k--) {
+		    sat->trans_freq[k] = sat->trans_freq[k-1];
+		}
+		sat->trans_freq[j] = NULL;
+	    } else {
+		j++;
+	    }
+	}
+	sat->trans_freq[j] = trans;
+	if (sat->delsys == SYS_DVBS  || sat->delsys == SYS_DVBS2){
+	    if (trans->fe.pol){
+		if (trans->fe.hi) sat->n_uh_trans++;
+		else sat->n_lh_trans++;
+	    } else {
+		if (trans->fe.hi) sat->n_uv_trans++;
+		else sat->n_lv_trans++;
+	    }
+	}
+    }
+
+    if (sat->delsys != SYS_DVBS && sat->delsys != SYS_DVBS2) return;
+    sat->l_h_trans = (transport **) malloc(sat->n_lh_trans*sizeof(transport*));
+    sat->l_v_trans = (transport **) malloc(sat->n_lv_trans*sizeof(transport*));
+    sat->u_h_trans = (transport **) malloc(sat->n_uh_trans*sizeof(transport*));
+    sat->u_v_trans = (transport **) malloc(sat->n_uv_trans*sizeof(transport*));
+    memset(sat->l_h_trans, 0, sat->n_lh_trans*sizeof(transport *));
+    memset(sat->l_v_trans, 0, sat->n_lv_trans*sizeof(transport *));
+    memset(sat->u_h_trans, 0, sat->n_uh_trans*sizeof(transport *));
+    memset(sat->u_v_trans, 0, sat->n_uv_trans*sizeof(transport *));
+
+    int uh=0;
+    int uv=0;
+    int lh=0;
+    int lv=0;
+    for (int i=0; i < sat->ntrans; i++){
+	transport *trans= sat->trans_freq[i];
+	if (trans->fe.pol){
+	    if (trans->fe.hi){
+		sat->u_h_trans[uh] = trans;
+		uh++;
+	    } else {
+		sat->l_h_trans[lh] = trans;
+		lh++;
+	    }
+	} else {
+	    if (trans->fe.hi) { 
+		sat->u_v_trans[uv] = trans;
+		uv++;
+	    }else {
+		sat->l_v_trans[lv] = trans;
+		lv++;
+	    }
+	}
+    }
+}
+
+void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
+{
+    int lock = dvb_tune(dev, &trans->fe, lnb);
+    trans->lock = lock;
+    if (lock == 1){ 
+	err("  getting SDT\n");
+	if (!(trans->sdt = get_all_sdts(dev))){
+	    err("SDT not found\n");
+	    trans->nsdt = 0;
+	} else {
+	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
+	}
+	err("  getting PAT\n");
+	if (!(trans->pat = get_all_pats(dev))){
+	    err("PAT not found\n");
+	    trans->npat = 0;
+	} else {
+	    trans->npat = trans->pat[0]->pat->last_section_number+1;
+	}
+	err("  getting PMTs\n");
+	trans->nserv = get_all_services(trans, dev);
+    }
+}

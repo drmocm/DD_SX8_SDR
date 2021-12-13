@@ -211,6 +211,8 @@ descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag);
 int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans);
 int get_all_services(transport *trans, dvb_devices *dev);
 NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+void dvb_sort_sat(satellite *sat);
+void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans);
 
 #endif
 
