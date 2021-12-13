@@ -1,5 +1,6 @@
 #include "dvb_print.h"
 #include <stdarg.h>
+
 static char table64[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
     'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -218,157 +219,6 @@ void dvb_print_pat(int fd, PAT *pat)
     pr(fd,"\n");
 }
 
-const char *stream_type(uint8_t type)
-{
-    const char *t = "unknown";
-
-    switch (type) {
-    case 0x01:
-	t = "video MPEG1";
-	break;
-    case 0x02:
-	t = "video MPEG2";
-	break;
-    case 0x03:
-	t = "audio MPEG1";
-	break;
-    case 0x04:
-	t = "audio MPEG2";
-	break;
-    case 0x05:
-	t = "MPEG-2 private data";
-	break;
-    case 0x06:
-	t = "MPEG-2 packetized data (subtitles)";
-	break;
-    case 0x07:
-	t = "MHEG";
-	break;
-    case 0x08:
-	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC";
-	break;
-    case 0x09:
-	t = "ITU-T Rec. H.222.1";
-	break;
-    case 0x0A:
-	t = "DSM-CC ISO/IEC 13818-6 type A (Multi-protocol Encapsulation)";
-	break;
-    case 0x0B:
-	t = "DSM-CC ISO/IEC 13818-6 type B (U-N messages)";
-	break;
-    case 0x0C:
-	t = "DSM-CC ISO/IEC 13818-6 type C (Stream Descriptors)";
-	break;
-    case 0x0D:
-	t = "DSM-CC ISO/IEC 13818-6 type D (Sections – any type)";
-	break;
-    case 0x0E:
-	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary";
-	break;
-    case 0x0F:
-	t = "audio AAC";
-	break;
-    case 0x10:
-	t = "video MPEG2";
-	break;
-    case 0x11:
-	t = "audio LATM";
-	break;
-    case 0x12:
-	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets";
-	break;
-    case 0:
-	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections.";
-	break;
-    case 0x14:
-	t = "ISO/IEC 13818-6 Synchronized Download Protocol";
-	break;
-    case 0x15:
-	t = "Metadata in PES packets";
-	break;
-    case 0x16:
-	t = "Metadata in metadata_sections";
-	break;
-    case 0x17:
-	t = "Metadata 13818-6 Data Carousel";
-	break;
-    case 0x18:
-	t = "Metadata 13818-6 Object Carousel";
-	break;
-    case 0x19:
-	t = "Metadata 13818-6 Synchronized Download Protocol";
-	break;
-    case 0x1A:
-	t = "IPMP (13818-11, MPEG-2 IPMP)";
-	break;
-    case 0x1B:
-	t = "video H264 ISO/IEC 14496-10";
-	break;
-    case 0x1C:
-	t = "audio ISO/IEC 14496-3 (DST, ALS and SLS)";
-	break;
-    case 0x1D:
-	t = "text ISO/IEC 14496-17";
-	break;
-    case 0x1E:
-	t = "video ISO/IEC 23002-3 Aux.";
-	break;
-    case 0x1F:
-	t = "video ISO/IEC 14496-10 sub";
-	break;
-    case 0x20:
-	t = "video MVC sub-bitstream";
-	break;
-    case 0x21:
-	t = "video J2K";
-	break;
-    case 0x22:
-	t = "video H.262 for 3D services";
-	break;
-    case 0x23:
-	t = "video H.264 for 3D services";
-	break;
-    case 0x24:
-	t = "video H.265 or HEVC temporal sub-bitstream";
-	break;
-    case 0x25:
-	t = "video H.265 temporal subset";
-	break;
-    case 0x26:
-	t = "video MVCD in AVC";
-	break;
-    case 0x42:
-	t = "video CAVS";
-	break;
-    case 0x7F:
-	t = "IPMP";
-	break;
-    case 0x81:
-	t = "audio AC-3 (ATSC)";
-	break;
-    case 0x82:
-	t = "audio DTS";
-	break;
-    case 0x83:
-	t = "audio TRUEHD";
-	break;
-    case 0x86:
-	t = "SCTE-35";
-	break;
-    case 0x87:
-	t = "audio E-AC-3 (ATSC)";
-	break;
-    case 0xEA:
-	t = "video VC1";
-	break;
-    case 0xD1:
-	t = "video DIRAC";
-	break;
-    }
-    return t;
-}
-
-
 void dvb_print_stream(int fd, pmt_stream *stream)
 {
     pr(fd,"  stream: elementary_PID 0x%04x stream_type %s \n",
@@ -492,17 +342,6 @@ void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
     uint8_t east;
     uint8_t roll;
 
-    const char *POL[] = {"linear-horizontal", "linear-vertical",
-	"circular-left", "circulra-right"};
-    const char *MOD[] = {"Auto", "QPSK", "8PSK", "16QAM"};
-    const char *MODC[] ={"not defined","16-QAM","32-QAM","64-QAM",
-	"128-QAM","256-QAM","reserved"};
-    const double roff[] ={0.25, 0.35, 0.20, 0};
-    const char *FECO[] ={"not defined","no outer FEC coding",
-	"RS(204/188)","reserved"};
-    const char *FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
-	"3/5","4/5","9/10","reserved","no conv. coding"};
-	
     switch(desc->tag){
     case 0x43: // satellite
 	pr(fd,"%s  Satellite delivery system descriptor: \n",s);
@@ -520,12 +359,12 @@ void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
 	pr(fd,
 		"%s  frequency %d orbital_position %d west_east_flag %s\n"
 		"%s  polarization %s  modulation_system %s",s,
-		freq, orbit, east ? "E":"W", s, POL[pol],
+		freq, orbit, east ? "E":"W", s, DVB_POL[pol],
 		delsys ? "DVB-S2":"DVB-S");
-	if (delsys) pr(fd," roll_off %.2f\n", roff[roll]);
+	if (delsys) pr(fd," roll_off %.2f\n", DVB_roff[roll]);
 	pr(fd,
 		"%s  modulation_type %s symbol_rate %d FEC_inner %s\n",s, 
-		MOD[mod], srate, FEC[fec]);
+		DVB_MOD[mod], srate, DVB_FEC[fec]);
 	break;
 
     case 0x44: // cable
@@ -542,7 +381,7 @@ void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
 	pr(fd,
 		"%s  frequency %d FEC_outer %s modulation %s\n"
 		"%s  symbol_rate %d FEC_inner %s\n",
-		s, freq, FECO[delsys],MODC[mod],s, srate, FEC[fec]);
+		s, freq, DVB_FECO[delsys],DVB_MODC[mod],s, srate, DVB_FEC[fec]);
 	break;
 
     case 0x5a: // terrestrial
@@ -602,24 +441,6 @@ void dvb_print_linkage_descriptor(int fd, descriptor *desc, char *s)
     uint8_t *buf = desc->data;
     int length = desc->len;
     int c = 0;
-    const char *H[] = {
-	"reserved",
-	"DVB hand-over to an identical service in a neighbouring country",
-	"DVB hand-over to a local variation of the same service",
-	"DVB hand-over to an associated service",
-	"reserved"
-    };
-	
-    const char *L[] = {
-	"reserved","information service","EPG service",
-	"CA replacement service",
-	"TS containing complete Network/Bouquet SI",
-	"service replacement service",
-	"data broadcast service","RCS Map","mobile hand-over",
-	"System Software Update Service (TS 102 006 [11])",
-	"TS containing SSU BAT or NIT (TS 102 006 [11])",
-	"IP/MAC Notification Service (EN 301 192 [4])",
-	"TS containing INT BAT or NIT (EN 301 192 [4])"};
 
     pr(fd,"%s  Linkage descriptor:\n",s);
     tsid = (buf[0] << 8) | buf[1];
@@ -628,7 +449,7 @@ void dvb_print_linkage_descriptor(int fd, descriptor *desc, char *s)
     link = buf[6];
     
     const char *lk = NULL;
-    if (link < 0x0D) lk = L[link];
+    if (link < 0x0D) lk = DVB_L[link];
     else if(0x80 < link && link < 0xff) lk="user defined"; 
     else lk="reserved";
     
@@ -644,7 +465,7 @@ void dvb_print_linkage_descriptor(int fd, descriptor *desc, char *s)
 	uint8_t org = buf[c]&0x01;
 	pr(fd,
 		"%s    handover_type %s origin_type %s\n",s,
-		H[hand], org ? "SDT":"NIT");
+		DVB_H[hand], org ? "SDT":"NIT");
 	if (hand ==0x01 || hand ==0x02 || hand ==0x03){
 	    nid = (buf[c+1] << 8) | buf[c+2];
 	    pr(fd,
@@ -666,107 +487,6 @@ void dvb_print_linkage_descriptor(int fd, descriptor *desc, char *s)
 	dvb_print_data(fd, buf, length, 8,  s, "    ");
     }
 }
-
-static const char *service_type(uint8_t type)
-{
-    const char *t = "unknown";
-
-    switch (type) {
-
-    case 0x00:
-    case 0x20 ... 0x7F:
-    case 0x12 ... 0x15:
-    case 0xFF:
-	t = "reserved";
-	break;
-    case 0x01:
-	t = "digital television service";
-	break;
-    case 0x02:
-	t = "digital radio sound service";
-	break;
-    case 0x03:
-	t = "Teletext service";
-	break;
-    case 0x04:
-	t = "NVOD reference service";
-	break;
-    case 0x05:
-	t = "NVOD time-shifted service";
-	break;
-    case 0x06:
-	t = "mosaic service";
-	break;
-    case 0x07:
-	t = "PAL coded signal";
-	break;
-    case 0x08:
-	t = "SECAM coded signal";
-	break;
-    case 0x09:
-	t = "D/D2-MAC";
-	break;
-    case 0x0A:
-	t = "FM Radio";
-	break;
-    case 0x0B:
-	t = "NTSC coded signal";
-	break;
-    case 0x0C:
-	t = "data broadcast service";
-	break;
-    case 0x0D:
-	t = "reserved for Common Interface usage";
-	break;
-    case 0x0E:
-	t = "RCS Map (see EN 301 790)";
-	break;
-    case 0x0F:
-	t = "RCS FLS (see EN 301 790)";
-	break;
-    case 0x10:
-	t = "DVB MHP service";
-	break;
-    case 0x11:
-	t = "MPEG-2 HD digital television service";
-	break;
-    case 0x16:
-	    t = "H.264/AVC SD digital television service";
-	break;
-    case 0x17:
-	    t = "H.264/AVC SD NVOD time-shifted service";
-	break;
-    case 0x18:
-	    t = "H.264/AVC SD NVOD reference service";
-	break;
-    case 0x19:
-	    t = "H.264/AVC HD digital television service";
-	break;
-    case 0x1A:
-	    t = "H.264/AVC HD NVOD time-shifted service";
-	break;
-    case 0x1B:
-	    t = "H.264/AVC HD NVOD reference service";
-	break;
-    case 0x1C:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD digital television service ";
-	break;
-    case 0x1D:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD time-shifted service";
-	break;
-    case 0x1E:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD reference service";
-	break;
-    case 0x1F:
-	    t = "HEVC digital television service";
-	break;
-    case 0x80 ... 0xFE:
-	t = "user defined";
-	break;
-    }
-    return t;
-}
-
 
 uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 			      uint32_t priv_id)
@@ -945,17 +665,6 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
     uint8_t east;
     uint8_t roll;
 
-    const char *POL[] = {"linear-horizontal", "linear-vertical",
-	"circular-left", "circulra-right"};
-    const char *MOD[] = {"Auto", "QPSK", "8PSK", "16QAM"};
-    const char *MODC[] ={"not defined","16-QAM","32-QAM","64-QAM",
-	"128-QAM","256-QAM","reserved"};
-    const double roff[] ={0.25, 0.35, 0.20, 0};
-    const char *FECO[] ={"not defined","no outer FEC coding",
-	"RS(204/188)","reserved"};
-    const char *FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
-	"3/5","4/5","9/10","reserved","no conv. coding"};
-
     json_object *jobj = json_object_new_object();
 
     switch(desc->tag){
@@ -977,23 +686,35 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 			       json_object_new_int(freq));
 	json_object_object_add(jobj,"orbital_position",
 			       json_object_new_int(orbit));
+	json_object_object_add(jobj,"west_east_flag nr",
+			       json_object_new_int(east));
 	json_object_object_add(jobj,"west_east_flag",
 			       json_object_new_string((east ? "E":"W")));
+	json_object_object_add(jobj,"polarisation nr",
+			       json_object_new_int(pol));
 	json_object_object_add(jobj,"polarisation",
-			       json_object_new_string(POL[pol]));
+			       json_object_new_string(DVB_POL[pol]));
+	json_object_object_add(jobj,"modulation_system nr",
+			       json_object_new_int(delsys));
 	json_object_object_add(jobj,"modulation_system",
 			       json_object_new_string(
 				   (delsys ? "DVB-S2":"DVB-S")));
-	if (delsys) 
+	if (delsys) {
+	    json_object_object_add(jobj,"roll_off nr",
+				   json_object_new_int(roll));
 	    json_object_object_add(jobj,"roll_off",
-				   json_object_new_double_fmt(roff[roll],
+				   json_object_new_double_fmt(DVB_roff[roll],
 							      "%0.2f"));
+	}
+	json_object_object_add(jobj,"modulation_type nr",
+			       json_object_new_int(mod));
 	json_object_object_add(jobj,"modulation_type",
-			       json_object_new_string(MOD[mod]));
-	json_object_object_add(jobj,"symbol_rate",
-			       json_object_new_int(srate));
+			       json_object_new_string(DVB_MOD[mod]));
+	json_object_object_add(jobj,"symbol_rate", json_object_new_int(srate));
+	json_object_object_add(jobj,"FEC_Inner nr",
+			       json_object_new_int(fec));
 	json_object_object_add(jobj,"FEC_Inner",
-			       json_object_new_string(FEC[fec]));
+			       json_object_new_string(DVB_FEC[fec]));
 	break;
 
     case 0x44: // cable
@@ -1011,14 +732,20 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 
 	json_object_object_add(jobj,"frequency",
 			       json_object_new_int(freq));
+	json_object_object_add(jobj,"FEC_outer nr",
+			       json_object_new_int(delsys));
 	json_object_object_add(jobj,"FEC_outer",
-			       json_object_new_string(FECO[delsys]));
+			       json_object_new_string(DVB_FECO[delsys]));
+	json_object_object_add(jobj,"modulation nr",
+			       json_object_new_int(mod));
 	json_object_object_add(jobj,"modulation",
-			       json_object_new_string(MODC[mod]));
+			       json_object_new_string(DVB_MODC[mod]));
 	json_object_object_add(jobj,"symbol_rate",
 			       json_object_new_int(srate));
+	json_object_object_add(jobj,"FEC_inner nr",
+			       json_object_new_int(delsys));
 	json_object_object_add(jobj,"FEC_inner",
-			       json_object_new_string(FEC[delsys]));
+			       json_object_new_string(DVB_FEC[delsys]));
 	break;
 
     case 0x5a: // terrestrial
@@ -1047,24 +774,6 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
     uint8_t *buf = desc->data;
     int length = desc->len;
     int c = 0;
-    const char *H[] = {
-	"reserved",
-	"DVB hand-over to an identical service in a neighbouring country",
-	"DVB hand-over to a local variation of the same service",
-	"DVB hand-over to an associated service",
-	"reserved"
-    };
-	
-    const char *L[] = {
-	"reserved","information service","EPG service",
-	"CA replacement service",
-	"TS containing complete Network/Bouquet SI",
-	"service replacement service",
-	"data broadcast service","RCS Map","mobile hand-over",
-	"System Software Update Service (TS 102 006 [11])",
-	"TS containing SSU BAT or NIT (TS 102 006 [11])",
-	"IP/MAC Notification Service (EN 301 192 [4])",
-	"TS containing INT BAT or NIT (EN 301 192 [4])"};
 
     json_object *jobj = json_object_new_object();
     json_object_object_add(jobj,"type", json_object_new_string(
@@ -1075,7 +784,7 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
     link = buf[6];
     
     const char *lk = NULL;
-    if (link < 0x0D) lk = L[link];
+    if (link < 0x0D) lk = DVB_L[link];
     else if(0x80 < link && link < 0xff) lk="user defined"; 
     else lk="reserved";
     
@@ -1095,7 +804,7 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
 	uint8_t hand = (buf[c]&0xf0)>>4;
 	uint8_t org = buf[c]&0x01;
 	json_object_object_add(jobj,"handover_type",
-			       json_object_new_string(H[hand]));
+			       json_object_new_string(DVB_H[hand]));
 	json_object_object_add(jobj,"handover_type nr",
 			       json_object_new_int(hand));
 	json_object_object_add(jobj,"handover_type",

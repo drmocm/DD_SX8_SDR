@@ -28,6 +28,36 @@
 #define MAXTDT  8
 #define MAXTOT  32
 
+static const char *DVB_POL[] = {"linear-horizontal", "linear-vertical",
+    "circular-left", "circulra-right"};
+static const char *DVB_MOD[] = {"Auto", "QPSK", "8PSK", "16QAM"};
+static const char *DVB_MODC[] ={"not defined","16-QAM","32-QAM","64-QAM",
+    "128-QAM","256-QAM","reserved"};
+static const double DVB_roff[] ={0.25, 0.35, 0.20, 0};
+static const char *DVB_FECO[] ={"not defined","no outer FEC coding",
+    "RS(204/188)","reserved"};
+static const char *DVB_FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
+    "3/5","4/5","9/10","reserved","no conv. coding"};
+
+static const char *DVB_H[] = {
+    "reserved",
+    "DVB hand-over to an identical service in a neighbouring country",
+    "DVB hand-over to a local variation of the same service",
+    "DVB hand-over to an associated service",
+    "reserved"
+};
+	
+static const char *DVB_L[] = {
+    "reserved","information service","EPG service",
+    "CA replacement service",
+    "TS containing complete Network/Bouquet SI",
+    "service replacement service",
+    "data broadcast service","RCS Map","mobile hand-over",
+    "System Software Update Service (TS 102 006 [11])",
+    "TS containing SSU BAT or NIT (TS 102 006 [11])",
+    "IP/MAC Notification Service (EN 301 192 [4])",
+    "TS containing INT BAT or NIT (EN 301 192 [4])"};
+
 typedef struct descriptor_t {
     uint8_t tag;
     uint8_t len;
@@ -140,8 +170,9 @@ typedef struct satellite_t{
     transport *trans;
 } satellite;
     
-    
 uint32_t getbcd(uint8_t *p, int l);
+const char *service_type(uint8_t type);
+const char *stream_type(uint8_t type);
 
 void dvb_delete_pat(PAT *pat);
 void dvb_delete_pmt(PMT *pmt);

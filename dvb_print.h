@@ -19,6 +19,8 @@
 #define SB_CC_USER_8B 0x8b
 #define SB_CC_USER_9F 0x9f
 
+char *base64_encode(const uint8_t *data, int len, int *olen);
+unsigned char *base64_decode(uint8_t *data, int len, int *olen);
 void dvb2txt(char *in);
 void dvb_print_data(int fd, uint8_t *b, int length, int step,
 		    char *s, char *s2);

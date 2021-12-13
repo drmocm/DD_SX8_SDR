@@ -15,6 +15,255 @@ uint32_t getbcd(uint8_t *p, int l)
         return val;
 }
 
+const char *service_type(uint8_t type)
+{
+    const char *t = "unknown";
+
+    switch (type) {
+
+    case 0x00:
+    case 0x20 ... 0x7F:
+    case 0x12 ... 0x15:
+    case 0xFF:
+	t = "reserved";
+	break;
+    case 0x01:
+	t = "digital television service";
+	break;
+    case 0x02:
+	t = "digital radio sound service";
+	break;
+    case 0x03:
+	t = "Teletext service";
+	break;
+    case 0x04:
+	t = "NVOD reference service";
+	break;
+    case 0x05:
+	t = "NVOD time-shifted service";
+	break;
+    case 0x06:
+	t = "mosaic service";
+	break;
+    case 0x07:
+	t = "PAL coded signal";
+	break;
+    case 0x08:
+	t = "SECAM coded signal";
+	break;
+    case 0x09:
+	t = "D/D2-MAC";
+	break;
+    case 0x0A:
+	t = "FM Radio";
+	break;
+    case 0x0B:
+	t = "NTSC coded signal";
+	break;
+    case 0x0C:
+	t = "data broadcast service";
+	break;
+    case 0x0D:
+	t = "reserved for Common Interface usage";
+	break;
+    case 0x0E:
+	t = "RCS Map (see EN 301 790)";
+	break;
+    case 0x0F:
+	t = "RCS FLS (see EN 301 790)";
+	break;
+    case 0x10:
+	t = "DVB MHP service";
+	break;
+    case 0x11:
+	t = "MPEG-2 HD digital television service";
+	break;
+    case 0x16:
+	    t = "H.264/AVC SD digital television service";
+	break;
+    case 0x17:
+	    t = "H.264/AVC SD NVOD time-shifted service";
+	break;
+    case 0x18:
+	    t = "H.264/AVC SD NVOD reference service";
+	break;
+    case 0x19:
+	    t = "H.264/AVC HD digital television service";
+	break;
+    case 0x1A:
+	    t = "H.264/AVC HD NVOD time-shifted service";
+	break;
+    case 0x1B:
+	    t = "H.264/AVC HD NVOD reference service";
+	break;
+    case 0x1C:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD digital television service ";
+	break;
+    case 0x1D:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD time-shifted service";
+	break;
+    case 0x1E:
+	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD reference service";
+	break;
+    case 0x1F:
+	    t = "HEVC digital television service";
+	break;
+    case 0x80 ... 0xFE:
+	t = "user defined";
+	break;
+    }
+    return t;
+}
+
+const char *stream_type(uint8_t type)
+{
+    const char *t = "unknown";
+
+    switch (type) {
+    case 0x01:
+	t = "video MPEG1";
+	break;
+    case 0x02:
+	t = "video MPEG2";
+	break;
+    case 0x03:
+	t = "audio MPEG1";
+	break;
+    case 0x04:
+	t = "audio MPEG2";
+	break;
+    case 0x05:
+	t = "MPEG-2 private data";
+	break;
+    case 0x06:
+	t = "MPEG-2 packetized data (subtitles)";
+	break;
+    case 0x07:
+	t = "MHEG";
+	break;
+    case 0x08:
+	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC";
+	break;
+    case 0x09:
+	t = "ITU-T Rec. H.222.1";
+	break;
+    case 0x0A:
+	t = "DSM-CC ISO/IEC 13818-6 type A (Multi-protocol Encapsulation)";
+	break;
+    case 0x0B:
+	t = "DSM-CC ISO/IEC 13818-6 type B (U-N messages)";
+	break;
+    case 0x0C:
+	t = "DSM-CC ISO/IEC 13818-6 type C (Stream Descriptors)";
+	break;
+    case 0x0D:
+	t = "DSM-CC ISO/IEC 13818-6 type D (Sections – any type)";
+	break;
+    case 0x0E:
+	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary";
+	break;
+    case 0x0F:
+	t = "audio AAC";
+	break;
+    case 0x10:
+	t = "video MPEG2";
+	break;
+    case 0x11:
+	t = "audio LATM";
+	break;
+    case 0x12:
+	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets";
+	break;
+    case 0:
+	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections.";
+	break;
+    case 0x14:
+	t = "ISO/IEC 13818-6 Synchronized Download Protocol";
+	break;
+    case 0x15:
+	t = "Metadata in PES packets";
+	break;
+    case 0x16:
+	t = "Metadata in metadata_sections";
+	break;
+    case 0x17:
+	t = "Metadata 13818-6 Data Carousel";
+	break;
+    case 0x18:
+	t = "Metadata 13818-6 Object Carousel";
+	break;
+    case 0x19:
+	t = "Metadata 13818-6 Synchronized Download Protocol";
+	break;
+    case 0x1A:
+	t = "IPMP (13818-11, MPEG-2 IPMP)";
+	break;
+    case 0x1B:
+	t = "video H264 ISO/IEC 14496-10";
+	break;
+    case 0x1C:
+	t = "audio ISO/IEC 14496-3 (DST, ALS and SLS)";
+	break;
+    case 0x1D:
+	t = "text ISO/IEC 14496-17";
+	break;
+    case 0x1E:
+	t = "video ISO/IEC 23002-3 Aux.";
+	break;
+    case 0x1F:
+	t = "video ISO/IEC 14496-10 sub";
+	break;
+    case 0x20:
+	t = "video MVC sub-bitstream";
+	break;
+    case 0x21:
+	t = "video J2K";
+	break;
+    case 0x22:
+	t = "video H.262 for 3D services";
+	break;
+    case 0x23:
+	t = "video H.264 for 3D services";
+	break;
+    case 0x24:
+	t = "video H.265 or HEVC temporal sub-bitstream";
+	break;
+    case 0x25:
+	t = "video H.265 temporal subset";
+	break;
+    case 0x26:
+	t = "video MVCD in AVC";
+	break;
+    case 0x42:
+	t = "video CAVS";
+	break;
+    case 0x7F:
+	t = "IPMP";
+	break;
+    case 0x81:
+	t = "audio AC-3 (ATSC)";
+	break;
+    case 0x82:
+	t = "audio DTS";
+	break;
+    case 0x83:
+	t = "audio TRUEHD";
+	break;
+    case 0x86:
+	t = "SCTE-35";
+	break;
+    case 0x87:
+	t = "audio E-AC-3 (ATSC)";
+	break;
+    case 0xEA:
+	t = "video VC1";
+	break;
+    case 0xD1:
+	t = "video DIRAC";
+	break;
+    }
+    return t;
+}
 
 static void dvb_delete_descriptor(descriptor *desc)
 {
