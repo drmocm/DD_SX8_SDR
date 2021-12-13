@@ -265,9 +265,11 @@ void search_pat(dvb_devices *dev)
 		}
 	    }
 	}
-	json_object_object_add(jobj, "PMTs", jpmts);
-	
+	json_object_object_add(jobj, "PMTs", jpmts);	
     }
+    fprintf (stdout,"%s\n",
+	     json_object_to_json_string_ext(jobj,
+					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
 }
 
 int main(int argc, char **argv){

@@ -1001,6 +1001,17 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     return jobj;
 }
 
+void dvb_descriptor_json_array_add(json_object *jobj, const char *key,
+				   descriptor **desc, int desc_num)
+{
+    uint32_t priv_id = 0;
+    json_object *jarray = json_object_new_array();
+    for (int n=0 ; n < desc_num; n++){
+	json_object_array_add(jarray, dvb_descriptor_json(desc[n], &priv_id));
+    }
+    json_object_object_add(jobj, key, jarray);
+}
+    
 json_object *dvb_pat_json(PAT *pat)
 {
     json_object *jobj = json_object_new_object();
@@ -1041,15 +1052,8 @@ json_object *dvb_stream_json(pmt_stream *stream)
 			   json_object_new_string(
 			       stream_type(stream->stream_type)));
     if (stream->desc_num){
-	uint32_t priv_id = 0;
-	jarray = json_object_new_array();
-
-	for (int n=0 ; n < stream->desc_num; n++){
-	    json_object_array_add(jarray,
-				  dvb_descriptor_json(stream->descriptors[n],
-						      &priv_id));
-	}
-	json_object_object_add(jobj, "descriptors", jarray);
+	dvb_descriptor_json_array_add(jobj, "descriptors",
+				      stream->descriptors, stream->desc_num);
     }
     return jobj;
 }
@@ -1066,15 +1070,8 @@ json_object *dvb_pmt_json(PMT *pmt)
 			   json_object_new_int(pmt->PCR_PID));
 
     if (pmt->desc_num) {
-	jarray = json_object_new_array();
-	uint32_t priv_id = 0;
-
-	for (int n=0 ; n < pmt->desc_num; n++){
- 	    json_object_array_add(jarray,
-				  dvb_descriptor_json(pmt->descriptors[n],
-						      &priv_id));
-	}
-	json_object_object_add(jobj, "program info descriptors", jarray);
+	dvb_descriptor_json_array_add(jobj, "program info descriptors",
+				      pmt->descriptors, pmt->desc_num);
     }
     if (pmt->stream_num) {
 	jarray = json_object_new_array();
@@ -1097,15 +1094,8 @@ json_object *dvb_transport_json(nit_transport *trans)
 			   json_object_new_int(trans->original_network_id));
 
     if (trans->desc_num){
-	jarray = json_object_new_array();
-	uint32_t priv_id = 0;
-
-	for (int n=0 ; n < trans->desc_num; n++){
- 	    json_object_array_add(jarray,
-				  dvb_descriptor_json(trans->descriptors[n],
-						      &priv_id));
-	}
-	json_object_object_add(jobj, "descriptors", jarray);
+	dvb_descriptor_json_array_add(jobj, "descriptors",
+				      trans->descriptors, trans->desc_num);
     }
     return jobj;
 }
@@ -1124,16 +1114,9 @@ json_object *dvb_nit_json(NIT *nit)
 			       "other":"actual"));
 
     if (nit->ndesc_num){
-	jarray = json_object_new_array();
-	uint32_t priv_id = 0;
-
-	for (int n=0 ; n < nit->ndesc_num; n++){
- 	    json_object_array_add(jarray,
-				  dvb_descriptor_json(
-				      nit->network_descriptors[n],
-				      &priv_id));
-	}
-	json_object_object_add(jobj, "network_descriptors", jarray);
+	dvb_descriptor_json_array_add(jobj, "network_descriptors",
+				      nit->network_descriptors,
+				      nit->ndesc_num);
     }
     if (nit->trans_num){
 	jarray = json_object_new_array();
@@ -1170,15 +1153,8 @@ json_object *dvb_service_json(sdt_service *serv)
 
 
     if (serv->desc_num){
-	jarray = json_object_new_array();
-	uint32_t priv_id = 0;
-
-	for (int n=0 ; n < serv->desc_num; n++){
-	    json_object_array_add(jarray,
-				  dvb_descriptor_json(serv->descriptors[n],
-						      &priv_id));
-	}
-	json_object_object_add(jobj, "descriptors", jarray);
+	dvb_descriptor_json_array_add(jobj, "descriptors",
+				      serv->descriptors,serv->desc_num);
     }
     return jobj;
 }
