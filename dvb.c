@@ -432,9 +432,15 @@ int tune_sat(int fd, int type, uint32_t freq,
 
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
-    return tune_sat(dev->fd_fe, lnb->type, fe->freq, fe->sr, fe->delsys,
+    uint32_t scif_freq = lnb->scif_freq;
+    int type = lnb->type;
+    if (lnb->type == INVERTO32){
+	scif_freq = inverto32_slot[lnb->scif_slot];
+	type = 2;
+    }
+    return tune_sat(dev->fd_fe, type, fe->freq, fe->sr, fe->delsys,
 		    fe->input, fe->id, fe->pol, fe->hi, lnb->num, lnb->lofs,
-		    lnb->lof1, lnb->lof2, lnb->scif_slot, lnb->scif_freq);
+		    lnb->lof1, lnb->lof2, lnb->scif_slot, scif_freq);
 }
 
 
@@ -493,7 +499,8 @@ void dvb_print_tuning_options()
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
 	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
-	    " -j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)\n"
+	    " -j slot      : slot s ( default slot 1)\n"
+	    " -J freq      : freq (default 1210 MHz)\n"
 	);
 }
 
@@ -539,6 +546,7 @@ int dvb_parse_args(int argc, char **argv,
 	    {"lofs", required_argument, 0, 'l'},
 	    {"unicable", required_argument, 0, 'U'},
 	    {"slot", required_argument, 0, 'j'},
+	    {"scif", required_argument, 0, 'J'},
 	    {"input", required_argument, 0, 'i'},
 	    {"id", required_argument, 0, 'I'},
 	    {"frontend", required_argument, 0, 'e'},
@@ -550,7 +558,7 @@ int dvb_parse_args(int argc, char **argv,
 	};
 
 	c = getopt_long(argc, myargv, 
-			"a:d:Df:I:i:j:e:L:p:s:ul:U:",
+			"a:d:Df:I:i:j:J:e:L:p:s:ul:U:",
 			long_options, &option_index);
 	if (c==-1)
 	    break;
@@ -621,12 +629,12 @@ int dvb_parse_args(int argc, char **argv,
 	    break;
 
 	case 'j':
-	    nexts = NULL;
-	    scif_slot = strtoul(optarg, &nexts, 0);
+	    scif_slot = strtoul(optarg, NULL, 0);
 	    scif_slot = scif_slot-1;
-	    nexts++;
-	    scif_freq = strtoul(nexts, NULL, 0);
-	    scif_freq = scif_freq;
+	    break;
+	    
+	case 'J':
+	    scif_freq = strtoul(optarg, NULL, 0);
 	    break;
 	    
 	case 'i':
@@ -667,7 +675,9 @@ int dvb_parse_args(int argc, char **argv,
 	    
 	}
     }
-
+    
+    if (lnb_type == INVERTO32) scif_freq = inverto32_slot[scif_slot];
+    
     fe->delsys = delsys;
     fe->input = input;
     fe->freq = freq;
@@ -759,16 +769,30 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	break;
 	
     case SYS_DVBS:
-    case SYS_DVBS2:	
-	err(
-		"Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
-		"lnb_type: %d input: %d  ",
-		fe->freq, fe->pol ? "h":"v", fe->sr,
-		fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
-		lnb->type, fe->input);
+    case SYS_DVBS2:
+    {
+	err(    
+	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
+	    "lnb_type: %d input: %d ",
+	    fe->freq, fe->pol ? "h":"v", fe->sr,
+	    fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
+	    lnb->type, fe->input);
+	switch (lnb->type){
+	case UNICABLE1:
+	case UNICABLE2:
+	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1, lnb->scif_freq);
+	    break;
+	case INVERTO32:
+	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1,
+		 inverto32_slot[lnb->scif_slot]);
+	    break;
+	default:
+	    break;
+	    
+	}
 	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
 	break;
-
+    }
 
     case SYS_DVBT:
     case SYS_DVBT2:

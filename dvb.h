@@ -23,10 +23,20 @@
 #define AGC_OFF   0x20020080
 #define AGC_OFF_C 0x20020020
 
-#define UNIVERSAL 0
-#define UNICABLE1 1
-#define UNICABLE2 2
+enum lnbtype {
+    UNIVERSAL = 0,
+    UNICABLE1 = 1,
+    UNICABLE2 = 2,
+    INVERTO32 = 3
+};
 
+static const uint32_t inverto32_slot[32] =
+{
+    1210, 1420, 1680, 2040,  984, 1020, 1056, 1092, 1128, 1164, 1256, 1292,
+    1328, 1364, 1458, 1494, 1530, 1566, 1602, 1638, 1716, 1752, 1788, 1824,
+    1860, 1896, 1932, 1968, 2004, 2076, 2112, 2148
+};
+	
 #ifndef MAXTRY
 #define MAXTRY 10
 #endif

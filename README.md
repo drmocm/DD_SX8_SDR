@@ -192,7 +192,8 @@ set all the parameters by hand, i.e.
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
-	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
+    -j slot      : slot s ( default slot 1)
+    -J freq      : freq (default 1210 MHz)
 
 	OTHERS:
 	-N           : get NIT
