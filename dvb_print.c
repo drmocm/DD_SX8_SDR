@@ -855,7 +855,7 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	    case 0x83:
 	    case 0x87:
 		pr(fd,"%s  NorDig Logical channel descriptor: \n",s);
-		for (int n = 0; n < desc->len; n+=3){
+		for (int n = 0; n < desc->len; n+=4){
 		    id = (buf[n] << 8) | buf[n+1];
 		    uint16_t lcn = ((buf[n+2]&0x3f) << 8) | buf[n+3];
 		    pr(fd,
@@ -1243,7 +1243,7 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 					   "NorDig Logical channel descriptor"));
 		jarray = json_object_new_array();
 		
-		for (int n = 0; n < desc->len; n+=3){
+		for (int n = 0; n < desc->len; n+=4){
 		    id = (buf[n] << 8) | buf[n+1];
 		    uint16_t lcn = ((buf[n+2]&0x3f) << 8) | buf[n+3];
 		    json_object *ja = json_object_new_object();
@@ -1253,6 +1253,7 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 					   json_object_new_int( lcn));
 		    json_object_array_add(jarray,ja);
 		}
+		json_object_object_add(jobj, "channel list",jarray);
 		break;
 	    default:
 		json_object_object_add(jobj,"type",
