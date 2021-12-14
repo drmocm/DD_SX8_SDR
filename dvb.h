@@ -75,6 +75,7 @@ typedef struct dvb_lnb_t{
 } dvb_lnb;
 
 void err(const char  *format,  ...);
+const char *delsys_name(enum fe_delivery_system delsys);
 int set_fe_input(int fd, uint32_t fr,
 		 uint32_t sr, fe_delivery_system_t ds,
 		 uint32_t input, uint32_t id);

@@ -851,7 +851,9 @@ int get_all_services(transport *trans, dvb_devices *dev)
 	    }
 	}
     } 
-    
+
+    int nserv = i;
+    int j=0;
     for (int n=0; n < trans->npat; n++){
 	for (int i=0; i < trans->pat[n]->nprog; i++){
 	    int npmt = 0;
@@ -859,22 +861,23 @@ int get_all_services(transport *trans, dvb_devices *dev)
 	    if (!trans->pat[n]->program_number[i]) continue;
 	    PMT  **pmt = get_all_pmts(dev, pid);
 	    if (pmt){
-		npmt = pmt[0]->pmt->last_section_number+1;
-		for (int k=0; k < npmt; k++){
-		    int j=0;
-		    while (trans->pat[n]->program_number[i] !=
-			trans->serv[j].id && j < i){
-			j++;
+		int found =0;
+		for (int k = 0; k < nserv; k++){
+		    if (trans->pat[n]->program_number[i] ==
+			trans->serv[k].id){
+			trans->serv[k].pmt = pmt;
+			found = 1;
+			break;
 		    }
-		    trans->serv[j].pmt = pmt;
-		    if (j==i){ // in case there is no SDT entry
-			trans->serv[j].id = trans->pat[n]->program_number[i];
-			i++;
-		    }
+		}
+		if (!found){ // in case there is no SDT entry
+		    trans->serv[nserv+j].id = trans->pat[n]->program_number[i];
+		    j++;
 		}
 	    }
 	}
     }
+    
 
     return snum;
 }
@@ -1023,3 +1026,4 @@ void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
 	trans->nserv = get_all_services(trans, dev);
     }
 }
+

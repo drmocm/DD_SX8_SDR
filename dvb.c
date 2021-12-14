@@ -32,6 +32,52 @@ void err(const char  *format,  ...)
     va_end(args);
 }
 
+const char *delsys_name(enum fe_delivery_system delsys)
+{
+    switch (delsys){
+    case SYS_DVBC_ANNEX_A:
+	return "DVB-C ANNEX A";
+	break;
+	
+    case SYS_DVBS:
+	return "DVB-S";
+	break;
+	
+    case SYS_DVBS2:
+	return "DVB-S2";
+	break;
+
+    case SYS_DVBT:
+	return "DVB-T";
+	break;
+
+    case SYS_DVBT2:
+	return "DVB-T2";
+	break;
+
+    case SYS_DVBC_ANNEX_B:
+	return "DVB-C ANNEX B";
+	break;
+
+    case SYS_ISDBC:
+	return "ISDB-C";
+	break;
+
+    case SYS_ISDBT:
+	return "ISDB-T";
+	break;
+
+    case SYS_ISDBS:
+	return "ISDB-S";
+	break;
+
+    case SYS_UNDEFINED:
+    default:
+	return "unknown";
+	break;
+    }
+    return "unknown";
+}
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 

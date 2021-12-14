@@ -407,6 +407,24 @@ static char *dvb_get_name(uint8_t *buf, int len)
     return name;
 }
 
+char *get_network_name(NIT **nits)
+{
+    char *name = NULL;
+    int n = nits[0]->nit->last_section_number+1;
+    for (int i = 0; i < n; i++){
+	for (int j = 0; j<nits[i]->ndesc_num; j++){
+	    descriptor *desc = nits[i]->network_descriptors[j];
+	    if (desc->tag == 0x40){
+		uint8_t *buf = desc->data;
+		name = dvb_get_name(buf,desc->len);
+		break;
+	    }
+	}
+	if (name) break;
+    }
+    return name;
+}
+
 void dvb_print_data(int fd, uint8_t *b, int length, int step,
 		    char *s, char *s2)
 {
@@ -651,7 +669,7 @@ json_object *dvb_section_json(section *sec, int d)
     }
     return jobj;
 }
-
+ 
 json_object *dvb_delsys_descriptor_json(descriptor *desc)
 {
     uint8_t *buf = desc->data;
@@ -1178,11 +1196,51 @@ json_object *dvb_sdt_json(SDT *sdt)
     return jobj;
 }
 
-json_object *dvb_transport_json(transport *trans)
+json_object *dvb_all_pat_json(PAT **pats)
 {
     json_object *jobj = json_object_new_object();
-    json_object *jarray;
+    int npat = pats[0]->pat->last_section_number+1;
+    json_object *jpat = json_object_new_array();
+    for (int i=0; i < npat; i++){
+	json_object_array_add(jpat, dvb_pat_json(pats[i]));
+    }
+    json_object_object_add(jobj, "PAT", jpat);
+    return jobj;
+}
 
+json_object *dvb_all_pmt_json(PMT **pmts)
+{
+    json_object *jobj = json_object_new_object();
+    int npmt = pmts[0]->pmt->last_section_number+1;
+    json_object *jpmt = json_object_new_array();
+    for (int i=0; i < npmt; i++){
+	json_object_array_add(jpmt, dvb_pmt_json(pmts[i]));
+    }
+    json_object_object_add(jobj, "PMT", jpmt);
+    return jobj;
+}
+
+json_object *dvb_all_nit_json(NIT **nits)
+{
+    int nnit = nits[0]->nit->last_section_number+1;
+    json_object *jobj = json_object_new_object();
+    json_object *jarray = json_object_new_array();
+    for (int n=0; n < nnit; n++){
+	json_object_array_add (jarray,dvb_nit_json(nits[n]));
+    }
+    json_object_object_add(jobj, "NIT", jarray);
+    return jobj;
+}
+
+json_object *dvb_all_sdt_json(SDT **sdts)
+{
+    int n = sdts[0]->sdt->last_section_number+1;
+    json_object *jobj = json_object_new_object();
+    json_object *jarray = json_object_new_array();
+    for (int i=0; i < n; i++){
+	json_object_array_add (jarray,dvb_sdt_json(sdts[i]));
+    }
+    json_object_object_add(jobj, "SDT", jarray);
     return jobj;
 }
 
@@ -1191,6 +1249,53 @@ json_object *dvb_service_json(service *serv)
     json_object *jobj = json_object_new_object();
     json_object *jarray;
 
+    char *name = NULL;
+    uint32_t p;
+    
+    json_object_object_add(jobj,"id", json_object_new_int(serv->id));
+    if (serv->sdt_service){
+	for (int j = 0; j< serv->sdt_service->desc_num; j++){
+	    descriptor *desc = serv->sdt_service->descriptors[j];
+	    if (desc->tag == 0x48){
+		json_object_object_add(jobj,"service descriptor",
+				       dvb_descriptor_json(desc,&p));
+		break;
+	    }
+	}
+    }
+
+    if (serv->pmt){
+	jarray = json_object_new_array();	
+	for (int i= 0; i < serv->pmt[0]->pmt->last_section_number+1; i++){
+	    PMT *pmt = serv->pmt[i];
+	    for (int j=0; j < pmt->stream_num; j++){
+		pmt_stream *stream = pmt->stream[j];
+		json_object *jp = json_object_new_object();
+		json_object_object_add(jp,"pid",json_object_new_int(
+					   stream->elementary_PID));
+		json_object_object_add(jp,"type",json_object_new_string(
+					   stream_type(stream->stream_type)));
+		json_object_array_add (jarray,jp);
+	    }
+	}
+	json_object_object_add(jobj,"pids",jarray);
+    }
+    return jobj;
+}
+
+json_object *dvb_transport_json(transport *trans)
+{
+    json_object *jobj = json_object_new_object();
+    json_object *jarray;
+    json_object_object_add(jobj,"frontend", dvb_fe_json(&trans->fe));
+
+    jarray = json_object_new_array();
+    for (int i=0; i < trans->nserv; i++){
+	service *serv = &trans->serv[i];
+	json_object_array_add(jarray, dvb_service_json(serv));
+    }
+    json_object_object_add(jobj, "services", jarray);
+
     return jobj;
 }
 
@@ -1198,6 +1303,28 @@ json_object *dvb_devices_json(dvb_devices *dev)
 {
     json_object *jobj = json_object_new_object();
     json_object *jarray;
+    json_object_object_add(jobj,"adapter", json_object_new_int(dev->adapter));
+    json_object_object_add(jobj,"num", json_object_new_int(dev->num));
+
+    return jobj;
+}
+
+json_object *dvb_fe_json(dvb_fe *fe)
+{
+    json_object *jobj = json_object_new_object();
+
+    json_object_object_add(jobj,"delivery system", json_object_new_string(
+			       delsys_name(fe->delsys)));
+    json_object_object_add(jobj,"frequency", json_object_new_int(fe->freq));
+    json_object_object_add(jobj,"symbol rate", json_object_new_int(fe->sr));
+    json_object_object_add(jobj,"fec", json_object_new_int(fe->fec));
+    json_object_object_add(jobj,"input", json_object_new_int(fe->input));
+    if (fe->delsys == SYS_DVBS || fe->delsys == SYS_DVBS2){
+	json_object_object_add(jobj,"pol", json_object_new_string(
+				   fe->pol ? "h":"v" ));
+	json_object_object_add(jobj,"band", json_object_new_string(
+				   fe->hi ? "upper":"lower"));
+    }
 
     return jobj;
 }
@@ -1205,8 +1332,19 @@ json_object *dvb_devices_json(dvb_devices *dev)
 json_object *dvb_lnb_json(dvb_lnb *lnb)
 {
     json_object *jobj = json_object_new_object();
-    json_object *jarray;
 
+    json_object_object_add(jobj,"type", json_object_new_int(lnb->type));
+    json_object_object_add(jobj,"num", json_object_new_int(lnb->num));
+    json_object_object_add(jobj,"lofs", json_object_new_int(lnb->lofs));
+    json_object_object_add(jobj,"lof1", json_object_new_int(lnb->lof1));
+    json_object_object_add(jobj,"lof2", json_object_new_int(lnb->lof2));
+
+    if (lnb->type > 0){
+	json_object_object_add(jobj,"scif_slot",
+			       json_object_new_int(lnb->scif_slot));
+	json_object_object_add(jobj,"scif_freq",
+			       json_object_new_int(lnb->scif_freq));
+    }
     return jobj;
 }
 
@@ -1215,7 +1353,22 @@ json_object *dvb_satellite_json(satellite *sat)
     json_object *jobj = json_object_new_object();
     json_object *jarray;
 
+    json_object_object_add(jobj, "delivery system",
+			   json_object_new_string(delsys_name(sat->delsys)));
+    json_object_object_add(jobj, "network name",
+			   json_object_new_string(get_network_name(sat->nit)));
     json_object_object_add(jobj, "devices", dvb_devices_json(&sat->dev));
+    if (sat->delsys == SYS_DVBS || sat->delsys == SYS_DVBS2){
+	json_object_object_add(jobj, "lnb", dvb_lnb_json(&sat->lnb));
+    }
+    jarray = json_object_new_array();
+    for (int i=0; i < sat->ntrans; i++){
+	transport *trans = NULL;
+	if (sat->trans_freq) trans = sat->trans_freq[i];
+	else trans = &sat->trans[i];
+	json_object_array_add(jarray, dvb_transport_json(trans));
+    }
+    json_object_object_add(jobj, "transports", jarray);
     
     return jobj;
 }

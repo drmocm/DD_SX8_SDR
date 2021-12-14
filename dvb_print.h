@@ -26,6 +26,8 @@ void dvb_print_data(int fd, uint8_t *b, int length, int step,
 		    char *s, char *s2);
 uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 			      uint32_t priv_id);
+char *get_network_name(NIT **nits);
+
 void dvb_print_section(int fd, section *sec);
 void dvb_print_pat(int fd, PAT *pat);
 void dvb_print_pmt(int fd, PMT *pmt);
@@ -36,6 +38,15 @@ json_object *dvb_pat_json(PAT *pat);
 json_object *dvb_pmt_json(PMT *pmt);
 json_object *dvb_nit_json(NIT *nit);
 json_object *dvb_sdt_json(SDT *sdt);
+json_object *dvb_all_pat_json(PAT **pats);
+json_object *dvb_all_pmt_json(PMT **pmts);
+json_object *dvb_all_nit_json(NIT **nits);
+json_object *dvb_all_sdt_json(SDT **sdts);
+
+json_object *dvb_satellite_json(satellite *sat);
+json_object *dvb_lnb_json(dvb_lnb *lnb);
+json_object *dvb_devices_json(dvb_devices *dev);
+json_object *dvb_fe_json(dvb_fe *fe);
 
 
 #endif

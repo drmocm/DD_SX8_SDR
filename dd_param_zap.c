@@ -153,7 +153,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     sat->delsys = fe->delsys;
     
     dvb_sort_sat(sat);
-    
+
     for (k = 0; k < sat->ntrans; k++){
 	transport *trans = sat->trans_freq[k];
 	trans->sat = sat;
@@ -175,16 +175,8 @@ json_object *search_nit(dvb_devices *dev, uint8_t table_id)
 	err("NIT not found\n");
 	return NULL;
     }
-    nnit = nits[0]->nit->last_section_number+1;
-    json_object *jobj = json_object_new_object();
-    json_object *jarray = json_object_new_array();
-    for (int n=0; n < nnit; n++){
-	json_object_array_add (jarray,dvb_nit_json(nits[n]));
-    }
-    json_object_object_add(jobj, "NIT", jarray);
 
-    return jobj;
-//	dvb_print_nit(fileno(stdout), nits[n]);
+    return dvb_all_nit_json(nits);
 }
 
 void search_sdt(dvb_devices *dev)
@@ -199,15 +191,7 @@ void search_sdt(dvb_devices *dev)
 	err("SDT not found\n");
 	exit(1);
     }
-    n = sdts[0]->sdt->last_section_number+1;
-    json_object *jobj = json_object_new_object();
-    json_object *jarray = json_object_new_array();
-    for (int i=0; i < n; i++){
-	json_object_array_add (jarray,dvb_sdt_json(sdts[i]));
-    }
-    json_object_object_add(jobj, "SDT", jarray);
-    //dvb_print_sdt(fileno(stdout), sdts[i]);
-
+    json_object *jobj = dvb_all_sdt_json(sdts);
     fprintf (stdout,"%s\n",
 	     json_object_to_json_string_ext(jobj,
 					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
@@ -220,19 +204,13 @@ void search_pat(dvb_devices *dev)
     int re = 0;
     PAT **pats = NULL;
     int npat = 0;
-    json_object *jobj = json_object_new_object();
 
     err("Searching PAT\n");
     pats = get_all_pats(dev);
     if (pats){
+	json_object *jobj = dvb_all_pat_json(pats);
 	npat = pats[0]->pat->last_section_number+1;
-	json_object *jpat = json_object_new_array();
-	for (int i=0; i < npat; i++){
-//	    dvb_print_pat(fileno(stdout), pats[i]);
-	    json_object_array_add(jpat, dvb_pat_json(pats[i]));
-	}
-	json_object_object_add(jobj, "PATs", jpat);
-	
+
 	json_object *jpmts = json_object_new_array();
 	for (int n=0; n < npat; n++){
 	    for (int i=0; i < pats[n]->nprog; i++){
@@ -243,20 +221,15 @@ void search_pat(dvb_devices *dev)
 			pid,pats[n]->program_number[i]);
 		PMT  **pmt = get_all_pmts(dev, pid);
 		if (pmt){
-		    npmt = pmt[0]->pmt->last_section_number+1;
-		    for (int i=0; i < npmt; i++){
-			//dvb_print_pmt(fileno(stdout), pmt[i]);
-			json_object *jpmt = dvb_pmt_json(pmt[i]);
-			json_object_array_add(jpmts, jpmt);
-		    }
+			json_object_array_add(jpmts, dvb_all_pmt_json(pmt));
 		}
 	    }
 	}
 	json_object_object_add(jobj, "PMTs", jpmts);	
-    }
     fprintf (stdout,"%s\n",
 	     json_object_to_json_string_ext(jobj,
 					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+    }
 }
 
 int main(int argc, char **argv){
@@ -320,7 +293,14 @@ int main(int argc, char **argv){
 	    break;
 
 	case 5:
-	    full_nit_search(&dev, &fe, &lnb);
+	{
+	    json_object *jobj =
+		dvb_satellite_json(full_nit_search(&dev, &fe, &lnb));
+	    fprintf (stdout,"%s\n",
+		     json_object_to_json_string_ext(jobj,
+						    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
+	    break;
+	}
 	default:
 	    break;
 	}
