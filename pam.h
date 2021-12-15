@@ -10,6 +10,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <linux/fb.h>
+#include <sys/mman.h>
+#include <sys/ioctl.h>
 #include <math.h>
 #include <time.h>
 #include <string.h>
@@ -19,6 +22,11 @@ typedef struct bitmap_{
     int width;
     int height;
     int depth;
+    int fbfd;
+    struct fb_var_screeninfo vinfo;
+    struct fb_fix_screeninfo finfo;
+    long int screensize;
+    uint8_t *fbp;
 } bitmap;
 
 typedef struct graph_{
@@ -48,11 +56,13 @@ void ellipse(bitmap *bm, int x0, int y0 ,int rx, int ry,
 	     uint8_t R,uint8_t G, uint8_t B);
 void coordinate_axes(bitmap *bm, uint8_t r, uint8_t g, uint8_t b);
 void get_rgb(int val, uint8_t *R, uint8_t *G, uint8_t *B);
+void write_fb (bitmap *bm);
 void write_pam(int fd, bitmap *bm);
 void write_csv(int fd, int width, uint32_t freq,
 	       uint32_t fft_sr, double *pow, int center, int64_t str, int min);
 void clear_bitmap(bitmap *bm);
 bitmap *init_bitmap(int width, int height, int depth);
+bitmap *init_bitmap_fb(int devnum);
 void delete_bitmap(bitmap *bm);
 void clear_range_bitmap(bitmap *bm, int first, int last);
 void display_array(bitmap *bm, double *pow, int length,

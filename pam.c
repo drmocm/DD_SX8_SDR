@@ -354,6 +354,28 @@ void write_pam (int fd, bitmap *bm)
     we=write(fd,bm->data,size);
 }
 
+void write_fb (bitmap *bm)
+{
+    int size = bm->width*bm->height*bm->depth;
+    int line = bm->width*bm->depth;
+    int s = line * bm->height;
+    for (int y = 0; y < bm->height; y++){
+	for (int x = 0; x < bm->width; x++){
+	    // warning onyl works for 16bit fb
+	    int po = x*bm->depth+y*bm->depth*bm->width;
+	    uint8_t r = bm->data[po]&0xf8;
+	    uint8_t g = bm->data[po+1]&0xfc;
+	    uint8_t b = bm->data[po+2]&0xf8;
+            int p = (x+bm->vinfo.xoffset) * 2 +
+                       (y+bm->vinfo.yoffset) * bm->finfo.line_length;
+	    bm->fbp[p] = (r<<3) | (g>>5);
+	    bm->fbp[p+1] = (g<<5) | (b>>3);
+	}
+    }
+    usleep(1000);
+}
+
+
 void write_csv (int fd, int width, uint32_t step, uint32_t start_freq,
 		double *pow, int center, int64_t str, int min)
 {
@@ -395,8 +417,10 @@ void clear_bitmap(bitmap *bm)
 bitmap *init_bitmap(int width, int height, int depth)
 {
     bitmap *bm;
-
+    
     bm = (bitmap *) malloc(sizeof(bitmap));
+    bm->fbfd = 0;
+    bm->fbp = NULL;
     bm->width = width;
     bm->height = height;
     bm->depth = depth;
@@ -409,6 +433,69 @@ bitmap *init_bitmap(int width, int height, int depth)
     return bm;
 }
 
+bitmap *init_bitmap_fb(int devnum)
+{
+    bitmap *bm;
+    int width;
+    int height;
+    int depth;
+    int fbfd = 0;
+    uint8_t *fbp=NULL;
+    struct fb_var_screeninfo vinfo;
+    struct fb_fix_screeninfo finfo;
+    long int screensize = 0;
+    int x = 0, y = 0;
+    long int location = 0;
+    char name[80];
+    // Open the file for reading and writing
+
+    depth = 3;
+    sprintf(name, "/dev/fb%u", devnum);
+    fbfd = open("/dev/fb1", O_RDWR);
+    if (fbfd == -1) {
+        perror("Error: cannot open framebuffer device");
+        exit(1);
+    }
+    printf("The framebuffer device was opened successfully.\n");
+    
+    // Get fixed screen information
+    if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo) == -1) {
+        perror("Error reading fixed information");
+        exit(2);
+    }
+    
+    // Get variable screen information
+    if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
+        perror("Error reading variable information");
+        exit(3);
+    }
+    
+    
+    printf("%dx%d, %dbpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel);
+    
+    // Figure out the size of the screen in bytes
+    screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
+    width = vinfo.xres;
+    height = vinfo.yres;
+    bm = init_bitmap(width, height, depth);
+    
+    // Map the device to memory
+    if (!(fbp = (uint8_t *)mmap(0, screensize,
+				PROT_READ | PROT_WRITE, MAP_SHARED, fbfd, 0))){
+        perror("Error: failed to map framebuffer device to memory");
+        exit(4);
+    }
+    bm->vinfo = vinfo;
+    bm->finfo = finfo;
+    bm->screensize = screensize;
+    bm->fbp = fbp;
+    bm->fbfd = fbfd;
+    printf("The framebuffer device was mapped to memory successfully.\n");
+    memset(fbp,0,screensize);
+
+    return bm;
+}
+
 void delete_bitmap(bitmap *bm)
 {
     if (!bm){
@@ -417,6 +504,10 @@ void delete_bitmap(bitmap *bm)
     }
     free (bm->data);
     free (bm);
+    if (bm->fbp){
+	munmap(bm->fbp, bm->screensize);
+	close(bm->fbfd);
+    }
 }
 
 void init_graph(graph *g, bitmap *bm, double xmin, double xmax,
