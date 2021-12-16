@@ -159,6 +159,7 @@ typedef struct tranport_t{
     PAT **pat;
     int nserv;
     service *serv;
+    pthread_t tMux;
 } transport;
 
 typedef struct satellite_t{
@@ -213,6 +214,8 @@ int get_all_services(transport *trans, dvb_devices *dev);
 NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 void dvb_sort_sat(satellite *sat);
 void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans);
+int thread_scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans,
+			  int m);
 
 #endif
 

@@ -790,7 +790,8 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	exit(1);
     }
 
-    if (fe->pol != DVB_UNDEF) power_on_delay(dev->fd_fe, lnb->delay);
+    if (lnb->delay && fe->pol != DVB_UNDEF)
+	power_on_delay(dev->fd_fe, lnb->delay);
 
     if ( (dev->fd_dmx = open_dmx(dev->adapter, dev->num)) < 0){
 	exit(1);
@@ -809,8 +810,8 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
 	err(
-		"Tuning freq: %d kHz sr: %d delsys: DVB-C  ",
-		fe->freq, fe->sr);
+		"Tuning freq: %d kHz sr: %d delsys: DVB-C frontend: %d ",
+		fe->freq, fe->sr, dev->num);
 	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
 	break;
 	
@@ -819,10 +820,10 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     {
 	err(    
 	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
-	    "lnb_type: %d input: %d ",
+	    "lnb_type: %d input: %d frontend: %d",
 	    fe->freq, fe->pol ? "h":"v", fe->sr,
 	    fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
-	    lnb->type, fe->input);
+	    lnb->type, fe->input, dev->num);
 	switch (lnb->type){
 	case UNICABLE1:
 	case UNICABLE2:
@@ -848,7 +849,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_ISDBS:
     case SYS_UNDEFINED:
     default:
-	err("Delivery System not yet implemented\n");
+	err("Delivery System %d not yet implemented\n",fe->delsys );
 	return 0;
 	break;
     }

@@ -1,4 +1,5 @@
 #include <sys/poll.h>
+ #include <pthread.h>
 #include "dvb_service.h"
 
 uint32_t getbcd(uint8_t *p, int l)
@@ -1026,4 +1027,63 @@ void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
 	trans->nserv = get_all_services(trans, dev);
     }
 }
+
+struct scan_thread_t
+{
+    dvb_devices *dev;
+    dvb_lnb *lnb;
+    transport *trans;
+};
+
+static void *start_scan_thread(void *ptr)
+{
+    struct scan_thread_t *scant = (struct scan_thread_t *) ptr;
+    dvb_devices *dev = scant->dev;
+    dvb_lnb *lnb = scant->lnb;
+    transport *trans = scant->trans;
+    
+    scan_transport(dev, lnb, trans);
+
+    close(dev->fd_fe);
+    close(dev->fd_dvr);
+    close(dev->fd_dmx);
+    free(dev);
+    free(lnb);
+
+    pthread_exit(NULL);  
+}
+
+int thread_scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans,
+			  int m)
+{
+    struct scan_thread_t scant;
+    char tname[16];
+    dvb_devices *dev2 = (dvb_devices *) malloc(sizeof(dvb_devices));
+    dvb_lnb *lnb2 = (dvb_lnb *) malloc(sizeof(dvb_lnb));
+    
+    memcpy(lnb2,lnb,sizeof(dvb_lnb));
+    memcpy(dev2,dev,sizeof(dvb_devices));
+    dev2->num = m;
+    lnb2->scif_slot = m;
+    lnb->delay = 0;
+    if ( (dev2->fd_fe = open_fe(dev2->adapter, dev2->num)) < 0){
+	return -1;
+    }
+    if ( (dev2->fd_dmx = open_dmx(dev2->adapter, dev2->num)) < 0){
+	return -1;
+    }
+    if ( (dev2->fd_dvr=open_dvr(dev2->adapter, dev2->num)) < 0){
+	return -1;
+    }
+    scant.lnb = lnb2;
+    scant.dev = dev2;
+    scant.trans = trans;
+    
+    if(pthread_create(&trans->tMux, NULL, start_scan_thread, &scant))
+    {
+       return -1;
+    }
+    return 0;
+}
+
 

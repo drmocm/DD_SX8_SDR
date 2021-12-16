@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <pthread.h>
 #include "dvb.h"
 #include "dvb_service.h"
 #include "dvb_print.h"
@@ -42,8 +43,9 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	       dvb_fe *fe, dvb_lnb *lnb, char *fname)
 {
     int out = 0;
+    int max =0;
     if (dvb_parse_args(argc, argv, dev, fe, lnb)< 0) return -1;
-
+    
     optind = 1;
 
     while (1) {
@@ -56,11 +58,12 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    {"pat", required_argument , 0, 'P'},
 	    {"full_scan", required_argument , 0, 'F'},
 	    {"stdout", no_argument , 0, 'O'},
+	    {"max", no_argument , 0, 'M'},
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:ONSPF", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:OMNSPF", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -90,6 +93,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    out = 1;
 	    break;
 	    
+	case 'M':
+	    max = 1;
+	    break;
+	    
 	case 'h':
 	    print_help();
 	    return -1;
@@ -99,11 +106,12 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	}
     }
 
+    if (max && out ==5) out = 6;
     return out;
 }
 
 
-satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 {
     NIT **nits = NULL;
     int n = 0;
@@ -153,13 +161,69 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     sat->delsys = fe->delsys;
     
     dvb_sort_sat(sat);
-
     for (k = 0; k < sat->ntrans; k++){
 	transport *trans = sat->trans_freq[k];
 	trans->sat = sat;
-	scan_transport(dev, lnb, trans);
     }
 
+    if (!max){
+	for (k = 0; k < sat->ntrans; k++){
+	    transport *trans = sat->trans_freq[k];
+	    scan_transport(dev, lnb, trans);
+	}
+    } else {
+	switch (sat->delsys){
+
+	case SYS_DVBS:
+	case SYS_DVBS2:
+	    switch (lnb->type){
+	    case UNIVERSAL:
+		break;
+	    case INVERTO32:
+		break;
+	    default:
+		err("Can't use max option with this lnb type (%d)\n"
+		    "Using standard method\n", lnb->type);
+		for (k = 0; k < sat->ntrans; k++){
+		    transport *trans = sat->trans_freq[k];
+		    trans->sat = sat;
+		    scan_transport(dev, lnb, trans);
+		}
+		break;
+	    }
+	    break;
+
+	case SYS_DVBC_ANNEX_A:
+	    close(dev->fd_fe);
+	    close(dev->fd_dvr);
+	    close(dev->fd_dmx);
+	    for (k = 0; k < sat->ntrans; k+= max){
+		for (int i=0; i < max && i+k < sat->ntrans; i++){
+		    transport *trans = sat->trans_freq[k+i];
+		    err("start thread for frontend %d %d/%d \n",i,k,sat->ntrans);
+		    if (thread_scan_transport(dev, lnb, trans, i) < 0) exit(1);
+		}
+		for (int i = 0; i< max && i+k < sat->ntrans; i++){
+		    transport *trans = sat->trans_freq[k+i];
+		    pthread_join(trans->tMux, NULL);
+		    err("scan done %d %d\n",i,k);
+		}
+
+	    }
+	    break;
+	    
+	default:
+	    err("Can't use max option with this delivery system (%d)\n",
+		    "Using standard method\n", sat->delsys);
+	    for (k = 0; k < sat->ntrans; k++){
+		transport *trans = sat->trans_freq[k];
+		trans->sat = sat;
+		scan_transport(dev, lnb, trans);
+	    }
+	    break;
+	}
+
+    }
     return sat;
 }
 
@@ -243,10 +307,28 @@ int main(int argc, char **argv){
     char *filename = NULL;
     uint8_t sec_buf[4096];
     int re=0;
+    int max = 0;
     
     dvb_init(&dev, &fe, &lnb);
     if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
 	exit(2);
+
+    if (out == 6){
+	int k = 0;
+	int done = 0;
+	do {
+	    int fd = 0;
+	    if ( (fd = open_fe(dev.adapter, k)) < 0){
+		done =1;
+	    } else {
+		k++;
+		close(fd);
+	    }
+	} while(!done);
+	max = k;
+	err ("Found %d frontends\n",max);
+    }
+    
     dvb_open(&dev, &fe, &lnb);
     if ((lock = dvb_tune(&dev, &fe, &lnb)) != 1) exit(lock);
 
@@ -293,9 +375,10 @@ int main(int argc, char **argv){
 	    break;
 
 	case 5:
+	case 6:
 	{
 	    json_object *jobj =
-		dvb_satellite_json(full_nit_search(&dev, &fe, &lnb));
+		dvb_satellite_json(full_nit_search(&dev, &fe, &lnb, max));
 	    fprintf (stdout,"%s\n",
 		     json_object_to_json_string_ext(jobj,
 						    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
@@ -306,6 +389,3 @@ int main(int argc, char **argv){
 	}
     }
 }
-
-
-
