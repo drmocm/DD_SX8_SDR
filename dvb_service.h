@@ -214,8 +214,8 @@ int get_all_services(transport *trans, dvb_devices *dev);
 NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 void dvb_sort_sat(satellite *sat);
 void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans);
-int thread_scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans,
-			  int m);
+int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
+			  int m, pthread_mutex_t *lock);
 
 #endif
 

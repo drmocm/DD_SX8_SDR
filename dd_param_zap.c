@@ -180,6 +180,28 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 	    case UNIVERSAL:
 		break;
 	    case INVERTO32:
+		close(dev->fd_fe);
+		close(dev->fd_dvr);
+		close(dev->fd_dmx);
+		pthread_mutex_t lock;
+		if (pthread_mutex_init(&lock, NULL) != 0)
+		{
+		    printf("\n mutex init failed\n");
+		    return NULL;
+		}
+		for (k = 0; k < sat->ntrans; k+= max){
+		    for (int i=0; i < max && i+k < sat->ntrans; i++){
+			transport *trans = sat->trans_freq[k+i];
+			err("start thread for frontend %d %d/%d \n",i,k+i,sat->ntrans);
+			if (thread_scan_transport(dev->adapter, lnb, trans, i, &lock) < 0) exit(1);
+		    }
+		    for (int i = 0; i< max && i+k < sat->ntrans; i++){
+			transport *trans = sat->trans_freq[k+i];
+			pthread_join(trans->tMux, NULL);
+			err("scan done %d %d\n",i,k);
+		    }
+		    
+		}
 		break;
 	    default:
 		err("Can't use max option with this lnb type (%d)\n"
@@ -197,11 +219,12 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 	    close(dev->fd_fe);
 	    close(dev->fd_dvr);
 	    close(dev->fd_dmx);
+	    pthread_mutex_t lock;
 	    for (k = 0; k < sat->ntrans; k+= max){
 		for (int i=0; i < max && i+k < sat->ntrans; i++){
 		    transport *trans = sat->trans_freq[k+i];
 		    err("start thread for frontend %d %d/%d \n",i,k,sat->ntrans);
-		    if (thread_scan_transport(dev, lnb, trans, i) < 0) exit(1);
+		    if (thread_scan_transport(dev->adapter, lnb, trans, i, NULL) < 0) exit(1);
 		}
 		for (int i = 0; i< max && i+k < sat->ntrans; i++){
 		    transport *trans = sat->trans_freq[k+i];

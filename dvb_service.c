@@ -302,7 +302,7 @@ static int dvb_get_descriptor_loop(uint8_t *buf, descriptor **descriptors,
 	nc += desc->len+2;
 	dc++;
 	if (dc >= MAXDESC){
-	    err("WARNING: maximal descriptor coun reached\n");
+	    err("WARNING: maximal descriptor count reached\n");
 	}
     }
     return dc;
@@ -1006,7 +1006,8 @@ void dvb_sort_sat(satellite *sat)
 
 void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
 {
-    int lock = dvb_tune(dev, &trans->fe, lnb);
+    int lock = 0;
+    lock = dvb_tune(dev, &trans->fe, lnb);
     trans->lock = lock;
     if (lock == 1){ 
 	err("  getting SDT\n");
@@ -1053,36 +1054,38 @@ static void *start_scan_thread(void *ptr)
     pthread_exit(NULL);  
 }
 
-int thread_scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans,
-			  int m)
+int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
+			  int m, pthread_mutex_t *lock)
 {
     struct scan_thread_t scant;
     char tname[16];
-    dvb_devices *dev2 = (dvb_devices *) malloc(sizeof(dvb_devices));
+    dvb_devices *dev = (dvb_devices *) malloc(sizeof(dvb_devices));
     dvb_lnb *lnb2 = (dvb_lnb *) malloc(sizeof(dvb_lnb));
     
     memcpy(lnb2,lnb,sizeof(dvb_lnb));
-    memcpy(dev2,dev,sizeof(dvb_devices));
-    dev2->num = m;
     lnb2->scif_slot = m;
-    lnb->delay = 0;
-    if ( (dev2->fd_fe = open_fe(dev2->adapter, dev2->num)) < 0){
+    lnb2->delay = 0;
+    dvb_init_dev(dev);
+    dev->num = m;
+    dev->adapter = adapter;
+    dev->lock = lock;
+    if ( (dev->fd_fe = open_fe(dev->adapter, dev->num)) < 0){
 	return -1;
     }
-    if ( (dev2->fd_dmx = open_dmx(dev2->adapter, dev2->num)) < 0){
+    if ( (dev->fd_dmx = open_dmx(dev->adapter, dev->num)) < 0){
 	return -1;
     }
-    if ( (dev2->fd_dvr=open_dvr(dev2->adapter, dev2->num)) < 0){
+    if ( (dev->fd_dvr=open_dvr(dev->adapter, dev->num)) < 0){
 	return -1;
     }
     scant.lnb = lnb2;
-    scant.dev = dev2;
+    scant.dev = dev;
     scant.trans = trans;
-    
     if(pthread_create(&trans->tMux, NULL, start_scan_thread, &scant))
     {
        return -1;
     }
+    usleep(5000);
     return 0;
 }
 

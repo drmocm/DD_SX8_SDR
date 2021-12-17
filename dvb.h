@@ -48,6 +48,7 @@ typedef struct dvb_devices_t{
     int fd_dmx;
     int fd_dvr;
     int fd_mod;
+    pthread_mutex_t *lock;
 } dvb_devices;
 
 typedef struct dvb_fe_t{

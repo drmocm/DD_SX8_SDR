@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "dvb.h"
 #include <stdarg.h>
+#include <pthread.h>
 
 void err(const char  *format,  ...)
 {
@@ -90,6 +91,7 @@ void dvb_init_dev(dvb_devices *dev)
     dev->fd_dmx = -1;
     dev->fd_dvr = -1;
     dev->fd_mod = -1;
+    dev->lock = NULL;
 }
 
 void dvb_copy_dev(dvb_devices *outdev, dvb_devices *dev)
@@ -449,31 +451,31 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
-        set_property(fd, DTV_INPUT, input);
-//	err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d\n", freq, type,pol,hi,lofs,lof1,lof2);
+    err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d slot %d\n", freq, type,pol,hi,lofs,lof1,lof2,scif_slot);
+    set_property(fd, DTV_INPUT, input);
 	
-	if (freq > 3000000) {
-	    if (lofs)
-		hi = (freq > lofs) ? 1 : 0;
-	    if (hi) 
-		freq -= lof2;
-	    else
-		freq -= lof1;
-        }
-//	err( "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
+    if (freq > 3000000) {
+	if (lofs)
+	    hi = (freq > lofs) ? 1 : 0;
+	if (hi) 
+	    freq -= lof2;
+	else
+	    freq -= lof1;
+    }
+	err( "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
 
-	int re=-1;
-        if (type == 1) { 
-	       re = set_en50494(fd, freq / 1000, sr, lnb, pol, hi,
-				scif_slot, scif_freq, ds, id, input);
-        } else if (type == 2) {
-	        re = set_en50607(fd, freq / 1000, sr, lnb, pol, hi,
-				 scif_slot, scif_freq, ds, id, input);
-        } else {
-	        diseqc(fd, lnb, pol, hi);
-                re = set_fe_input(fd, freq, sr, ds, input, id );
-        }
-	return re;
+    int re=-1;
+    if (type == 1) { 
+	re = set_en50494(fd, freq / 1000, sr, lnb, pol, hi,
+			 scif_slot, scif_freq, ds, id, input);
+    } else if (type == 2) {
+	re = set_en50607(fd, freq / 1000, sr, lnb, pol, hi,
+			 scif_slot, scif_freq, ds, id, input);
+    } else {
+	diseqc(fd, lnb, pol, hi);
+	re = set_fe_input(fd, freq, sr, ds, input, id );
+    }
+    return re;
 }
 
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
@@ -484,9 +486,16 @@ int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	scif_freq = inverto32_slot[lnb->scif_slot];
 	type = 2;
     }
-    return tune_sat(dev->fd_fe, type, fe->freq, fe->sr, fe->delsys,
-		    fe->input, fe->id, fe->pol, fe->hi, lnb->num, lnb->lofs,
-		    lnb->lof1, lnb->lof2, lnb->scif_slot, scif_freq);
+    if (dev->lock){
+	pthread_mutex_lock (dev->lock);
+    }
+    int re = tune_sat(dev->fd_fe, type, fe->freq, fe->sr, fe->delsys,
+		      fe->input, fe->id, fe->pol, fe->hi, lnb->num, lnb->lofs,
+		      lnb->lof1, lnb->lof2, lnb->scif_slot, scif_freq);
+    if (dev->lock){
+	pthread_mutex_unlock (dev->lock);
+    }
+    return re;
 }
 
 
@@ -818,12 +827,14 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_DVBS:
     case SYS_DVBS2:
     {
+#if 1
 	err(    
 	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
-	    "lnb_type: %d input: %d frontend: %d",
+	    "lnb_type: %d input: %d frontend: %d ",
 	    fe->freq, fe->pol ? "h":"v", fe->sr,
 	    fe->delsys == SYS_DVBS ? "DVB-S" : "DVB-S2",
 	    lnb->type, fe->input, dev->num);
+#endif
 	switch (lnb->type){
 	case UNICABLE1:
 	case UNICABLE2:
@@ -837,6 +848,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	    break;
 	    
 	}
+
 	if ((re=dvb_tune_sat( dev, fe, lnb)) < 0) return 0;
 	break;
     }
@@ -857,8 +869,8 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     while (!lock && t < MAXTRY ){
 	t++;
 	err(".");
+	usleep(5000);
 	lock = read_status(dev->fd_fe);
-	sleep(1);
     }
     if (lock == 2) {
 	err(" tuning timed out\n");
