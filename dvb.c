@@ -451,7 +451,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t lnb, uint32_t lofs, uint32_t lof1, uint32_t lof2,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
-    err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d slot %d\n", freq, type,pol,hi,lofs,lof1,lof2,scif_slot);
+//    err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d slot %d\n", freq, type,pol,hi,lofs,lof1,lof2,scif_slot);
     set_property(fd, DTV_INPUT, input);
 	
     if (freq > 3000000) {
@@ -462,7 +462,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	else
 	    freq -= lof1;
     }
-	err( "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
+//	err( "tune_sat IF=%u scif_type=%d pol=%d band %d\n", freq, type,pol,hi);
 
     int re=-1;
     if (type == 1) { 
@@ -818,16 +818,18 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     int lock = 0;
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
+#if 0
 	err(
 		"Tuning freq: %d kHz sr: %d delsys: DVB-C frontend: %d ",
 		fe->freq, fe->sr, dev->num);
+#endif
 	if ((re=dvb_tune_c( dev, fe)) < 0) return 0;
 	break;
 	
     case SYS_DVBS:
     case SYS_DVBS2:
     {
-#if 1
+#if 0
 	err(    
 	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
 	    "lnb_type: %d input: %d frontend: %d ",
@@ -838,11 +840,15 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	switch (lnb->type){
 	case UNICABLE1:
 	case UNICABLE2:
+#if 0
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1, lnb->scif_freq);
+#endif
 	    break;
 	case INVERTO32:
+#if 0
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1,
 		 inverto32_slot[lnb->scif_slot]);
+#endif
 	    break;
 	default:
 	    break;
@@ -868,14 +874,14 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 
     while (!lock && t < MAXTRY ){
 	t++;
-	err(".");
+//	err(".");
 	usleep(5000);
 	lock = read_status(dev->fd_fe);
     }
     if (lock == 2) {
-	err(" tuning timed out\n");
+//	err(" tuning timed out\n");
     } else {
-	err("%slock\n",lock ? " ": " no ");
+//	err("%slock\n",lock ? " ": " no ");
     }
     return lock;
 }
