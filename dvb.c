@@ -759,12 +759,19 @@ int dvb_parse_args(int argc, char **argv,
 }
 
 
-int read_status(int fd)
+fe_status_t get_stat(int fd)
 {
     fe_status_t stat;
     int st=0;
     
     ioctl(fd, FE_READ_STATUS, &stat);
+    return stat;
+}
+
+int read_status(int fd)
+{
+    fe_status_t st=get_stat(fd);
+    
     switch((int)stat){
     case 0x1f:
 	return 1;

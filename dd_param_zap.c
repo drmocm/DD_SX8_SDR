@@ -63,7 +63,7 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:OMNSPF", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:OMNSPFC", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -95,6 +95,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    
 	case 'M':
 	    max = 1;
+	    break;
+	    
+	case 'M':
+	    out = 7;
 	    break;
 	    
 	case 'h':
@@ -407,6 +411,24 @@ int main(int argc, char **argv){
 						    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
 	    break;
 	}
+
+	case 7:
+	    while (1) {
+		fe_status_t stat;
+		int64_t str, cnr;
+                
+		stat = dddvb_get_stat(fe);
+		str = dddvb_get_strength(fe);
+		cnr = dddvb_get_cnr(fe);
+                
+		printf("stat=%02x, str=%" PRId64 ".%03udBm, "
+		       "snr=%" PRId64 ".%03uddB \n",
+		       stat, str/1000, abs(str%1000),
+		       cnr/1000, abs(cnr%1000));
+                sleep(1);
+	    }
+
+	
 	default:
 	    break;
 	}

@@ -75,7 +75,7 @@ For usage information use the -h option.
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
-                3: Inverto LNB of type 2 with 32 pre-programmed slots)
+                   3: Inverto LNB of type 2 with 32 pre-programmed slots)
 	-j slot freq : slot s freqency f ( default slot 1 freq 1210 in MHz)
     -J freq      : freq (default 1210 MHz)
 
