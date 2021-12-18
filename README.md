@@ -199,7 +199,10 @@ set all the parameters by hand, i.e.
 	OTHERS:
 	-N           : get NIT
 	-S           : get SDT
-	-o filename  : output filename (default stdout)
+	-P           : get PAT and PMTs
+	-F           : do full NIT scan
+	-C           : keep device open and check strength
+	-o filename  : output filename
 	-h           : this help message
 
 
