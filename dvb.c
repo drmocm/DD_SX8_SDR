@@ -554,6 +554,7 @@ void dvb_print_tuning_options()
 	    " -u           : use hi band of LNB\n"
 	    " -D           : use 1s delay to wait for LNB power up\n"
 	    " -U type      : lnb is unicable type (1: EN 50494, 2: TS 50607\n"
+	    "                3: Inverto LNB of type 2 with 32 pre-programmed slots)\n"
 	    " -j slot      : slot s ( default slot 1)\n"
 	    " -J freq      : freq (default 1210 MHz)\n"
 	);
@@ -818,7 +819,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     int lock = 0;
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
-#if 0
+#if 1
 	err(
 		"Tuning freq: %d kHz sr: %d delsys: DVB-C frontend: %d ",
 		fe->freq, fe->sr, dev->num);
@@ -829,7 +830,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_DVBS:
     case SYS_DVBS2:
     {
-#if 0
+#if 1
 	err(    
 	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
 	    "lnb_type: %d input: %d frontend: %d ",
@@ -840,12 +841,12 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	switch (lnb->type){
 	case UNICABLE1:
 	case UNICABLE2:
-#if 0
+#if 1
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1, lnb->scif_freq);
 #endif
 	    break;
 	case INVERTO32:
-#if 0
+#if 1
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1,
 		 inverto32_slot[lnb->scif_slot]);
 #endif
@@ -874,14 +875,14 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 
     while (!lock && t < MAXTRY ){
 	t++;
-//	err(".");
-	usleep(5000);
+	err(".");
+	usleep(2000000);
 	lock = read_status(dev->fd_fe);
     }
     if (lock == 2) {
-//	err(" tuning timed out\n");
+	err(" tuning timed out\n");
     } else {
-//	err("%slock\n",lock ? " ": " no ");
+	err("%slock\n",lock ? " ": " no ");
     }
     return lock;
 }
