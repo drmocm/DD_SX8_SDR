@@ -97,6 +97,10 @@ int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
 			    uint32_t ext, uint32_t ext_mask,
 			    uint32_t ext_nmask);
 
+fe_status_t dvb_get_stat(int fd);
+int64_t dvb_get_strength(int fd);
+int64_t dvb_get_cnr(int fd);
+
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 int dvb_tune_c(dvb_devices *dev, dvb_fe *fe);
 void dvb_init_dev(dvb_devices *dev);

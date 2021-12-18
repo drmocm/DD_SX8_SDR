@@ -34,6 +34,7 @@ void print_help()
 	    " -S           : get SDT\n"
 	    " -P           : get PAT and PMTs\n"
 	    " -F           : do full NIT scan\n"
+	    " -C           : keep device open and check strength\n"
 	    " -o filename  : output filename\n"
 	    " -h           : this help message\n\n"
 	);
@@ -97,7 +98,7 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    max = 1;
 	    break;
 	    
-	case 'M':
+	case 'C':
 	    out = 7;
 	    break;
 	    
@@ -413,13 +414,16 @@ int main(int argc, char **argv){
 	}
 
 	case 7:
+	    close(dev.fd_dvr);
+	    close(dev.fd_dmx);
+	    
 	    while (1) {
 		fe_status_t stat;
 		int64_t str, cnr;
                 
-		stat = dddvb_get_stat(fe);
-		str = dddvb_get_strength(fe);
-		cnr = dddvb_get_cnr(fe);
+		stat = dvb_get_stat(dev.fd_fe);
+		str = dvb_get_strength(dev.fd_fe);
+		cnr = dvb_get_cnr(dev.fd_fe);
                 
 		printf("stat=%02x, str=%" PRId64 ".%03udBm, "
 		       "snr=%" PRId64 ".%03uddB \n",

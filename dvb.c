@@ -759,19 +759,11 @@ int dvb_parse_args(int argc, char **argv,
 }
 
 
-fe_status_t get_stat(int fd)
-{
-    fe_status_t stat;
-    int st=0;
-    
-    ioctl(fd, FE_READ_STATUS, &stat);
-    return stat;
-}
-
 int read_status(int fd)
 {
-    fe_status_t st=get_stat(fd);
+    fe_status_t stat;
     
+    ioctl(fd, FE_READ_STATUS, &stat);
     switch((int)stat){
     case 0x1f:
 	return 1;
@@ -781,6 +773,35 @@ int read_status(int fd)
 	return 0;
     }
 }
+
+fe_status_t dvb_get_stat(int fd)
+{
+    fe_status_t stat;
+    
+    ioctl(fd, FE_READ_STATUS, &stat);
+    return stat;
+}
+
+int64_t dvb_get_strength(int fd)
+{
+    struct dtv_fe_stats st;
+    if (!get_stat(fd, DTV_STAT_SIGNAL_STRENGTH, &st)) {
+	
+	return st.stat[0].svalue;
+    }
+
+    return 0;
+}
+
+int64_t dvb_get_cnr(int fd)
+{
+    struct dtv_fe_stats st;
+    if (!get_stat(fd, DTV_STAT_CNR, &st)) {
+	return st.stat[0].svalue;
+    }
+    return 0;
+}
+
 
 int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
 {
