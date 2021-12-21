@@ -1,5 +1,4 @@
-#include <sys/poll.h>
- #include <pthread.h>
+#include <pthread.h>
 #include "dvb_service.h"
 
 uint32_t getbcd(uint8_t *p, int l)
@@ -336,42 +335,6 @@ section *dvb_get_section(uint8_t *buf)
     }
     return sec;
 }
-
-int read_section_from_dmx(int fd, uint8_t *buf, int max,
-			  uint16_t pid, uint8_t table_id, uint32_t secnum)
-{
-    struct pollfd ufd;
-    int len = 0;
-    int re = 0;
-    
-    stop_dmx(fd);
-    if (set_dmx_section_filter(fd ,pid , table_id, secnum, 0x000000FF,0) < 0){
-	err("Error opening section filter\n");
-	exit(1);
-    }
-    ufd.fd=fd;
-    ufd.events=POLLPRI;
-    if (poll(&ufd,1,5000) <= 0 ) {
-	err("TIMEOUT on read from demux\n");
-	return 0;
-    }
-    if (!(re = read(fd, buf, 3))){
-	err("Failed to read from demux\n");
-	return 0;
-    }	
-    len = ((buf[1] & 0x0f) << 8) | (buf[2] & 0xff);
-    if (len+3 > max){
-	err("Failed to read from demux\n");
-	return 0;
-    }
-    if (!(re = read(fd, buf+3, len))){
-	err("Failed to read from demux\n");
-	return 0;
-    }
-
-    return  len;
-}
-
 
 section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
 {

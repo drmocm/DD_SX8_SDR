@@ -220,6 +220,41 @@ int set_fe_input(int fd, uint32_t fr,
     return 0;
 }
 
+int read_section_from_dmx(int fd, uint8_t *buf, int max,
+			  uint16_t pid, uint8_t table_id, uint32_t secnum)
+{
+    struct pollfd ufd;
+    int len = 0;
+    int re = 0;
+    
+    stop_dmx(fd);
+    if (set_dmx_section_filter(fd ,pid , table_id, secnum, 0x000000FF,0) < 0){
+	err("Error opening section filter\n");
+	exit(1);
+    }
+    ufd.fd=fd;
+    ufd.events=POLLPRI;
+    if (poll(&ufd,1,5000) <= 0 ) {
+	err("TIMEOUT on read from demux\n");
+	return 0;
+    }
+    if (!(re = read(fd, buf, 3))){
+	err("Failed to read from demux\n");
+	return 0;
+    }	
+    len = ((buf[1] & 0x0f) << 8) | (buf[2] & 0xff);
+    if (len+3 > max){
+	err("Failed to read from demux\n");
+	return 0;
+    }
+    if (!(re = read(fd, buf+3, len))){
+	err("Failed to read from demux\n");
+	return 0;
+    }
+
+    return  len;
+}
+
 
 int open_dmx(int adapter, int num)
 {
