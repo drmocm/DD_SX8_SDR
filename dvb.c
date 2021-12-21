@@ -243,19 +243,14 @@ int open_dmx(int adapter, int num)
     return fd;
 }
 
-int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
-			    uint32_t ext, uint32_t ext_mask,
-			    uint32_t ext_nmask)    
+int set_dmx_section_filter(int fd, uint16_t pid, uint8_t tid, uint32_t ext,
+			   uint32_t ext_mask, uint32_t ext_nmask)    
 {
-    char fname[80];
-    int fd;
     struct dmx_sct_filter_params sctfilter;
-
-    sprintf(fname, "/dev/dvb/adapter%u/demux%u", adapter, num); 
-    
-    fd = open(fname, O_RDWR);
-    if (fd < 0) return -1;
-
+    if (fd < 0){
+	perror("invalid file descriptor in set_dmx_section_filter");
+	return -1;
+    }
     memset(&sctfilter, 0, sizeof(struct dmx_sct_filter_params));
     sctfilter.timeout = 0;
     sctfilter.pid = pid;
@@ -276,6 +271,24 @@ int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
 	perror ("ioctl DMX_SET_FILTER failed");
 	return -1;
     }
+    return 0;
+}
+
+int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
+			    uint32_t ext, uint32_t ext_mask,
+			    uint32_t ext_nmask)    
+{
+    char fname[80];
+    int fd;
+    struct dmx_sct_filter_params sctfilter;
+
+    sprintf(fname, "/dev/dvb/adapter%u/demux%u", adapter, num); 
+    
+    fd = open(fname, O_RDWR);
+    if (fd < 0) return -1;
+    if (set_dmx_section_filter(fd, pid, tid, ext, ext_mask, ext_nmask))
+	return -1;
+
     return fd;
 }
 
@@ -287,6 +300,15 @@ int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
     return  open_dmx_section_filter(dev->adapter, dev->num, pid, tid, ext,
 				    ext_mask, ext_nmask);
 
+}
+
+int dvb_set_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
+			       uint32_t ext, uint32_t ext_mask,
+			       uint32_t ext_nmask)
+{
+
+    return  set_dmx_section_filter(dev->fd_dmx, pid, tid, ext,
+				    ext_mask, ext_nmask);
 }
 
 void stop_dmx( int fd )
@@ -395,6 +417,7 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
 
         //err( "EN50494 %02x %02x %02x %02x %02x\n", 
 	//	cmd.msg[0], cmd.msg[1], cmd.msg[2], cmd.msg[3], cmd.msg[4]);
+	usleep(500000);
 	return set_fe_input(fd, ubfreq * 1000, sr, ds, input, id);
 
 }
@@ -452,6 +475,7 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t scif_slot, uint32_t scif_freq)
 {
 //    err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d slot %d\n", freq, type,pol,hi,lofs,lof1,lof2,scif_slot);
+
     set_property(fd, DTV_INPUT, input);
 	
     if (freq > 3000000) {
@@ -481,15 +505,19 @@ int tune_sat(int fd, int type, uint32_t freq,
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 {
     uint32_t scif_freq = lnb->scif_freq;
+    int re = 0;
     int type = lnb->type;
     if (lnb->type == INVERTO32){
 	scif_freq = inverto32_slot[lnb->scif_slot];
+	lnb->scif_freq = inverto32_slot[lnb->scif_slot];
+	err("slot %d freq %d\n",lnb->scif_slot,scif_freq);
 	type = 2;
     }
+
     if (dev->lock){
 	pthread_mutex_lock (dev->lock);
     }
-    int re = tune_sat(dev->fd_fe, type, fe->freq, fe->sr, fe->delsys,
+    re = tune_sat(dev->fd_fe, type, fe->freq, fe->sr, fe->delsys,
 		      fe->input, fe->id, fe->pol, fe->hi, lnb->num, lnb->lofs,
 		      lnb->lof1, lnb->lof2, lnb->scif_slot, scif_freq);
     if (dev->lock){

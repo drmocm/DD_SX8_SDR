@@ -304,6 +304,7 @@ static int dvb_get_descriptor_loop(uint8_t *buf, descriptor **descriptors,
 	if (dc >= MAXDESC){
 	    err("WARNING: maximal descriptor count reached\n");
 	    dc = MAXDESC-1;
+	    return dc;
 	}
     }
     return dc;
@@ -336,40 +337,55 @@ section *dvb_get_section(uint8_t *buf)
     return sec;
 }
 
+int read_section_from_dmx(int fd, uint8_t *buf, int max,
+			  uint16_t pid, uint8_t table_id, uint32_t secnum)
+{
+    struct pollfd ufd;
+    int len = 0;
+    int re = 0;
+    
+    stop_dmx(fd);
+    if (set_dmx_section_filter(fd ,pid , table_id, secnum, 0x000000FF,0) < 0){
+	err("Error opening section filter\n");
+	exit(1);
+    }
+    ufd.fd=fd;
+    ufd.events=POLLPRI;
+    if (poll(&ufd,1,5000) <= 0 ) {
+	err("TIMEOUT on read from demux\n");
+	return 0;
+    }
+    if (!(re = read(fd, buf, 3))){
+	err("Failed to read from demux\n");
+	return 0;
+    }	
+    len = ((buf[1] & 0x0f) << 8) | (buf[2] & 0xff);
+    if (len+3 > max){
+	err("Failed to read from demux\n");
+	return 0;
+    }
+    if (!(re = read(fd, buf+3, len))){
+	err("Failed to read from demux\n");
+	return 0;
+    }
+
+    return  len;
+}
+
+
 section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
 {
     uint8_t sec_buf[4096];
-    struct pollfd ufd;
     int fdmx;
     int nsec = 0;
-    int re = 0;
     section *sec1;
     section **sec;
     uint16_t len = 0;
     
-    close(dev->fd_dmx);
-    if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
-					    0,0x000000FF,0)) < 0){
-	err("Error opening section filter\n");
-	exit(1);
-    }
-    ufd.fd=fdmx;
-    ufd.events=POLLPRI;
-    if (poll(&ufd,1,2000) <= 0 ) {
-	err("TIMEOUT on read from demux\n");
-	close(fdmx);
+    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,  table_id, 0))
 	return NULL;
-    }
-    if (!(re = read(fdmx, sec_buf, 3))){
-	err("Failed to read from demux\n");
-	return NULL;
-    }	
-    len = ((sec_buf[1] & 0x0f) << 8) | (sec_buf[2] & 0xff);
-    if (!(re = read(fdmx, sec_buf+3, len))){
-	err("Failed to read from demux\n");
-	return NULL;
-    }
 
+    
     sec1 = dvb_get_section(sec_buf);
     if (!sec1->section_syntax_indicator) nsec = 0;
     else nsec = sec1->last_section_number;
@@ -382,11 +398,8 @@ section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
     sec[0] = sec1;
     if (nsec){
 	for (int i=1; i < nsec+1; i++){
-	    if ((fdmx = dvb_open_dmx_section_filter(dev,pid , table_id,
-						    (uint32_t)i,
-						    0x000000ff,0)) < 0)
-		exit(1); 
-	    while ( (re = read(fdmx, sec_buf, 4096)) <= 0) sleep(1);
+	    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,					   table_id, (uint32_t)i))
+		return NULL;
 	    sec[i] = dvb_get_section(sec_buf);
 	}
     }
@@ -1046,11 +1059,12 @@ static void *start_scan_thread(void *ptr)
     
     scan_transport(dev, lnb, trans);
 
-    close(dev->fd_fe);
-    close(dev->fd_dvr);
-    close(dev->fd_dmx);
-    free(dev);
-    free(lnb);
+    if (dev->fd_fe  >=0) close(dev->fd_fe);
+    if (dev->fd_dvr >=0) close(dev->fd_dvr);
+    if (dev->fd_dmx >=0) close(dev->fd_dmx);
+    if (dev) free(dev);
+    if (lnb) free(lnb);
+    if (scant) free(scant);
 
     pthread_exit(NULL);  
 }
@@ -1058,11 +1072,20 @@ static void *start_scan_thread(void *ptr)
 int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
 			  int m, pthread_mutex_t *lock)
 {
-    struct scan_thread_t scant;
-    char tname[16];
+    struct scan_thread_t *scant = (struct scan_thread_t *)
+	malloc(sizeof(struct scan_thread_t));
     dvb_devices *dev = (dvb_devices *) malloc(sizeof(dvb_devices));
     dvb_lnb *lnb2 = (dvb_lnb *) malloc(sizeof(dvb_lnb));
-    
+
+    if (!lnb || !trans){
+	err("NULL pointer in thread_scan_transport lnb=0x%x trans=0x%x\n",
+	    lnb,trans,lock);
+	exit(1);
+    }
+    if (!dev || !lnb2 || !scant) {
+	err("Not enough memory in thread_scan_transport\n");
+	exit(1);
+    }
     memcpy(lnb2,lnb,sizeof(dvb_lnb));
     lnb2->scif_slot = m;
     lnb2->delay = 0;
@@ -1076,17 +1099,13 @@ int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
     if ( (dev->fd_dmx = open_dmx(dev->adapter, dev->num)) < 0){
 	return -1;
     }
-    if ( (dev->fd_dvr=open_dvr(dev->adapter, dev->num)) < 0){
-	return -1;
-    }
-    scant.lnb = lnb2;
-    scant.dev = dev;
-    scant.trans = trans;
-    if(pthread_create(&trans->tMux, NULL, start_scan_thread, &scant))
+    scant->lnb = lnb2;
+    scant->dev = dev;
+    scant->trans = trans;
+    if(pthread_create(&trans->tMux, NULL, start_scan_thread, scant))
     {
        return -1;
     }
-    usleep(5000);
     return 0;
 }
 

@@ -93,6 +93,8 @@ int tune_sat(int fd, int type, uint32_t freq,
 int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
 	   enum fe_code_rate fec, uint32_t mod);
 void stop_dmx( int fd );
+int set_dmx_section_filter(int fd, uint16_t pid, uint8_t tid, uint32_t ext,
+			   uint32_t ext_mask, uint32_t ext_nmask);
 int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,
 			    uint32_t ext, uint32_t ext_mask,
 			    uint32_t ext_nmask);
@@ -120,6 +122,9 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 				uint32_t ext, uint32_t ext_mask,
 				uint32_t ext_nmask);
+int dvb_set_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
+			       uint32_t ext, uint32_t ext_mask,
+			       uint32_t ext_nmask);
 
 int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
     

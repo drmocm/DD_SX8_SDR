@@ -415,7 +415,6 @@ int main(int argc, char **argv){
 
 	case 7:
 	    close(dev.fd_dvr);
-//	    close(dev.fd_dmx);
 	    
 	    while (1) {
 		fe_status_t stat;
