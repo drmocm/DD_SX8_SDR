@@ -517,6 +517,67 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
     
     pr(fd,"%sDescriptor tag: 0x%02x \n",s,desc->tag);
     switch(desc->tag){
+    case 0x00:
+    case 0x01:
+	pr(fd,"%s  reserved descriptor: \n",s);
+	pr(fd,"%s    length: %d %s\n",s, desc->len,
+		desc->len>1 ? "bytes":"byte");
+	dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
+	break;
+    case 0x02:
+	pr(fd,"%s  video_stream_descriptor: \n",s);
+	break;	
+    case 0x03:
+	pr(fd,"%s  audio_stream_descriptor: \n",s);
+	break;	
+    case 0x04:
+	pr(fd,"%s  hierarchy_descriptor: \n",s);
+	break;	
+    case 0x05:
+	pr(fd,"%s  registration_descriptor: \n",s);
+	break;	
+    case 0x06:
+	pr(fd,"%s  data_stream_alignment_descriptor: \n",s);
+	break;	
+    case 0x07:
+	pr(fd,"%s  target_background_grid_descriptor: \n",s);
+	break;	
+    case 0x08:
+	pr(fd,"%s  video_window_descriptor: \n",s);
+	break;	
+    case 0x09:
+	pr(fd,"%s  CA_descriptor: \n",s);
+	break;	
+    case 0x0a:
+	pr(fd,"%s  ISO_639_language_descriptor: \n",s);
+	break;	
+    case 0x0b:
+	pr(fd,"%s  system_clock_descriptor: \n",s);
+	break;	
+    case 0x0c:
+	pr(fd,"%s  multiplex_buffer_utilization_descriptor: \n",s);
+	break;	
+    case 0x0d:
+	pr(fd,"%s  copyright_descriptor: \n",s);
+	break;	
+    case 0x0e:
+	pr(fd,"%s  maximum bitrate descriptor: \n",s);
+	break;	
+    case 0x0f:
+	pr(fd,"%s  private data indicator descriptor: \n",s);
+	break;	
+    case 0x10:
+	pr(fd,"%s  smoothing buffer descriptor: \n",s);
+	break;	
+    case 0x11:
+	pr(fd,"%s  STD_descriptor: \n",s);
+	break;	
+    case 0x12:
+	pr(fd,"%s  IBP descriptor: \n",s);
+	break;	
+    case 0x13 ... 0x3F:
+	pr(fd,"%s ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved: \n",s);
+	break;	
     case 0x40:// network_name_descriptor
 	pr(fd,"%s  Network name descriptor: \n",s);
 	if ((name = dvb_get_name(buf,desc->len))){
@@ -564,6 +625,19 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	dvb_print_linkage_descriptor(fd, desc, s);
 	break;
 	
+    case 0x52:
+	pr(fd,"%s  Stream identifier descriptor\n",s);
+	pr(fd,"%s    component_tag 0x%02x\n",s,buf[0]);
+	break;
+
+    case 0x56:
+	pr(fd,"%s Teletext descriptor\n",s);
+	break;
+
+    case 0x59:
+	pr(fd,"%s Subtitling descriptor\n",s);
+	break;
+
     case 0x5a: // terrestrial
 	dvb_print_delsys_descriptor(fd, desc, s);
 	break;
@@ -572,6 +646,14 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	pr(fd,"%s  Private data specifier descriptor: \n",s);
 	priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 	pr(fd,"%s    private_data_specifier 0x%08x\n",s,priv_id);
+	break;
+
+    case 0x66:
+	pr(fd,"%s Data broadcast id descriptor\n",s);
+	break;
+
+    case 0x6a:
+	pr(fd,"%s  AC-3 descriptor\n",s);
 	break;
 
     case 0x7f:
@@ -865,6 +947,91 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     json_object_object_add(jobj,"tag",
 			   json_object_new_int(desc->tag));
     switch(desc->tag){
+    case 0x00:
+    case 0x01:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("reserved descriptor"));
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(desc->data, desc->len));
+	break;
+    case 0x02:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("video_stream_descriptor"));
+	break;	
+    case 0x03:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("audio_stream_descriptor"));
+	break;	
+    case 0x04:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("hierarchy_descriptor"));
+	break;	
+    case 0x05:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("registration_descriptor"));
+	break;	
+    case 0x06:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("data_stream_alignment_descriptor"));
+	break;	
+    case 0x07:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("target_background_grid_descriptor"));
+	break;	
+    case 0x08:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("video_window_descriptor"));
+	break;	
+    case 0x09:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("CA_descriptor"));
+	break;	
+    case 0x0a:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("ISO_639_language_descriptor"));
+	break;	
+    case 0x0b:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("system_clock_descriptor"));
+	break;	
+    case 0x0c:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("multiplex_buffer_utilization_descriptor"));
+	break;	
+    case 0x0d:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("copyright_descriptor"));
+	break;	
+    case 0x0e:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("maximum bitrate descriptor"));
+	break;	
+    case 0x0f:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("private data indicator descriptor"));
+	break;	
+    case 0x10:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("smoothing buffer descriptor"));
+	break;	
+    case 0x11:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("STD_descriptor"));
+	break;	
+    case 0x12:
+	json_object_object_add(jobj,"type",
+		       json_object_new_string("IBP descriptor"));
+	break;	
+    case 0x13 ... 0x3F:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string("ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved"));
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	json_object_object_add(jobj,"data",
+			       dvb_data_json(desc->data, desc->len));
+	break;	
     case 0x40:// network_name_descriptor
 	json_object_object_add(jobj,"type",
 			       json_object_new_string(
@@ -935,8 +1102,27 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	json_object_put(jobj);
 	jobj = dvb_linkage_descriptor_json(desc);
 	break;
-	
 
+    case 0x52:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Stream identifier descriptor"));
+	json_object_object_add(jobj,"component_tag",
+			       json_object_new_int(buf[0]));
+	break;
+	
+    case 0x56:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Teletext descriptor"));
+	break;
+
+    case 0x59:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Subtitling descriptor"));
+	break;
+	
     case 0x5f:
 	json_object_object_add(jobj,"type",
 			       json_object_new_string(
@@ -947,6 +1133,18 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 			       json_object_new_int(*priv_id));
 	break;
 
+    case 0x66:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "Data broadcast id descriptor"));
+	break;
+
+    case 0x6a:
+	json_object_object_add(jobj,"type",
+			       json_object_new_string(
+				   "AC-3_descriptor"));
+	break;
+	
     case 0x7f:
 	json_object_object_add(jobj,"type",
 			       json_object_new_string(
