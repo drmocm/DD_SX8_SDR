@@ -15,6 +15,142 @@ uint32_t getbcd(uint8_t *p, int l)
         return val;
 }
 
+const char *descriptor_type(uint8_t tag, uint32_t priv_id)
+{
+    const char *t = "unknown";
+
+    switch (tag){
+    case 0x00:
+    case 0x01:
+	t = "reserved descriptor";
+	break;
+    case 0x02:
+	t = "video_stream_descriptor";
+	break;	
+    case 0x03:
+	t = "audio_stream_descriptor";
+	break;	
+    case 0x04:
+	t = "hierarchy_descriptor";
+	break;	
+    case 0x05:
+	t = "registration_descriptor";
+	break;	
+    case 0x06:
+	t = "data_stream_alignment_descriptor";
+	break;	
+    case 0x07:
+	t = "target_background_grid_descriptor";
+	break;	
+    case 0x08:
+	t = "video_window_descriptor";
+	break;	
+    case 0x09:
+	t = "CA_descriptor";
+	break;	
+    case 0x0a:
+	t = "ISO_639_language_descriptor";
+	break;	
+    case 0x0b:
+	t = "system_clock_descriptor";
+	break;	
+    case 0x0c:
+	t = "multiplex_buffer_utilization_descriptor";
+	break;	
+    case 0x0d:
+	t = "copyright_descriptor";
+	break;	
+    case 0x0e:
+	t = "maximum bitrate descriptor";
+	break;	
+    case 0x0f:
+	t = "private data indicator descriptor";
+	break;	
+    case 0x10:
+	t = "smoothing buffer descriptor";
+	break;	
+    case 0x11:
+	t = "STD_descriptor";
+	break;	
+    case 0x12:
+	t = "IBP descriptor";
+	break;	
+    case 0x13 ... 0x3F:
+	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved";
+	break;	
+    case 0x40:// network_name_descriptor
+	t = "Network name descriptor";
+	break;
+    case 0x41: //service list
+	t = "Service list descriptor";
+	break;
+    case 0x43: // satellite
+	t = "Satellite delivery system descriptor";
+	break;    
+    case 0x44: // cable
+	t = "Cable delivery system descriptor";
+	break;
+    case 0x48: //service descriptor
+	t = "Service descriptor";
+	break;
+    case 0x4a:
+	t = "Linkage descriptor";
+	break;
+    case 0x52:
+	t = "Stream identifier descriptor";
+	break;
+    case 0x56:
+	t = "Teletext descriptor";
+	break;
+    case 0x59:
+	t = "Subtitling descriptor";
+	break;
+    case 0x5a: // terrestrial
+	t = "Terrestrial delivery system descriptor";
+	break;
+    case 0x5f:
+	t = "Private data specifier descriptor";
+	break;
+    case 0x66:
+	t = "Data broadcast id descriptor";
+	break;
+    case 0x6a:
+	t = "AC-3 descriptor";
+	break;
+    case 0x7f:
+	t = "Extension descriptor";
+	break;
+    case 0xfa: // isdbt
+	t = "ISDB-T delivery system descriptor";
+	break;
+    case 0xfb ... 0xfe:
+    case 0x80 ... 0xf9: // user defined
+	switch (priv_id){
+	case NORDIG:
+	    switch (tag){
+	    case 0x83:
+	    case 0x87:
+		t = "NorDig Logical channel descriptor";
+		break;
+	    default:
+		t = "unknown NorDig defined decripotor";
+		break;
+	    }
+	    break;
+	    
+	default:
+	    t = "User defined descriptor";
+	    break;
+	}
+	break;
+    default:
+	t = "UNHANDLED descriptor";
+	break;
+    }
+    return t;
+}
+
+
 const char *service_type(uint8_t type)
 {
     const char *t = "unknown";
@@ -787,7 +923,7 @@ int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
 				 
 static descriptor *find_descriptor(descriptor **desc, int length, uint8_t tag)
 {
-    descriptor *d = NULL;;
+    descriptor *d = NULL;
 
     for (int i=0;i< length; i++){
 	if (desc[i]->tag == tag){

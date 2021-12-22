@@ -344,7 +344,6 @@ void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
 
     switch(desc->tag){
     case 0x43: // satellite
-	pr(fd,"%s  Satellite delivery system descriptor: \n",s);
 	freq = getbcd(buf, 8) *10;
 	orbit = getbcd(buf+4, 4) *10;
 	srate = getbcd(buf + 7, 7) / 10;
@@ -368,8 +367,6 @@ void dvb_print_delsys_descriptor(int fd, descriptor *desc, char *s)
 	break;
 
     case 0x44: // cable
-	pr(fd,"%s  Cable delivery system descriptor\n",s);
-
 	freq =  getbcd(buf, 8)/10;
 	delsys = buf[5] & 0x0f;
 	mod = buf[6];
@@ -460,7 +457,6 @@ void dvb_print_linkage_descriptor(int fd, descriptor *desc, char *s)
     int length = desc->len;
     int c = 0;
 
-    pr(fd,"%s  Linkage descriptor:\n",s);
     tsid = (buf[0] << 8) | buf[1];
     onid = (buf[2] << 8) | buf[3];
     sid = (buf[4] << 8) | buf[5];
@@ -516,77 +512,57 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 
     
     pr(fd,"%sDescriptor tag: 0x%02x \n",s,desc->tag);
+    pr(fd,"%s  %s: \n",s,descriptor_type(desc->tag, priv_id));
     switch(desc->tag){
     case 0x00:
     case 0x01:
-	pr(fd,"%s  reserved descriptor: \n",s);
 	pr(fd,"%s    length: %d %s\n",s, desc->len,
 		desc->len>1 ? "bytes":"byte");
 	dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
 	break;
     case 0x02:
-	pr(fd,"%s  video_stream_descriptor: \n",s);
 	break;	
     case 0x03:
-	pr(fd,"%s  audio_stream_descriptor: \n",s);
 	break;	
     case 0x04:
-	pr(fd,"%s  hierarchy_descriptor: \n",s);
 	break;	
     case 0x05:
-	pr(fd,"%s  registration_descriptor: \n",s);
 	break;	
     case 0x06:
-	pr(fd,"%s  data_stream_alignment_descriptor: \n",s);
 	break;	
     case 0x07:
-	pr(fd,"%s  target_background_grid_descriptor: \n",s);
 	break;	
     case 0x08:
-	pr(fd,"%s  video_window_descriptor: \n",s);
 	break;	
     case 0x09:
-	pr(fd,"%s  CA_descriptor: \n",s);
 	break;	
     case 0x0a:
-	pr(fd,"%s  ISO_639_language_descriptor: \n",s);
 	break;	
     case 0x0b:
-	pr(fd,"%s  system_clock_descriptor: \n",s);
 	break;	
     case 0x0c:
-	pr(fd,"%s  multiplex_buffer_utilization_descriptor: \n",s);
 	break;	
     case 0x0d:
-	pr(fd,"%s  copyright_descriptor: \n",s);
 	break;	
     case 0x0e:
-	pr(fd,"%s  maximum bitrate descriptor: \n",s);
 	break;	
     case 0x0f:
-	pr(fd,"%s  private data indicator descriptor: \n",s);
 	break;	
     case 0x10:
-	pr(fd,"%s  smoothing buffer descriptor: \n",s);
 	break;	
     case 0x11:
-	pr(fd,"%s  STD_descriptor: \n",s);
 	break;	
     case 0x12:
-	pr(fd,"%s  IBP descriptor: \n",s);
 	break;	
     case 0x13 ... 0x3F:
-	pr(fd,"%s ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved: \n",s);
 	break;	
     case 0x40:// network_name_descriptor
-	pr(fd,"%s  Network name descriptor: \n",s);
 	if ((name = dvb_get_name(buf,desc->len))){
 	    pr(fd,"%s  name %s\n",s, name);
 	    free(name);
 	}
 	break;
     case 0x41: //service list
-	pr(fd,"%s  Service list descriptor:\n",s);
 	for (int n = 0; n < desc->len; n+=3){
 	    id = (buf[n] << 8) | buf[n+1];
 	    pr(fd,"%s    service_id 0x%04x service_type %s\n",s, id,
@@ -602,7 +578,6 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	break;
 
     case 0x48: //service descriptor
-	pr(fd,"%s  Service descriptor:\n",s,desc->tag);
 	pr(fd,"%s    service_type %s\n",s,service_type(buf[0])); 
 	c++;
 	int l = buf[c];
@@ -626,16 +601,13 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	break;
 	
     case 0x52:
-	pr(fd,"%s  Stream identifier descriptor\n",s);
 	pr(fd,"%s    component_tag 0x%02x\n",s,buf[0]);
 	break;
 
     case 0x56:
-	pr(fd,"%s Teletext descriptor\n",s);
 	break;
 
     case 0x59:
-	pr(fd,"%s Subtitling descriptor\n",s);
 	break;
 
     case 0x5a: // terrestrial
@@ -643,21 +615,17 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	break;
 
     case 0x5f:
-	pr(fd,"%s  Private data specifier descriptor: \n",s);
 	priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 	pr(fd,"%s    private_data_specifier 0x%08x\n",s,priv_id);
 	break;
 
     case 0x66:
-	pr(fd,"%s Data broadcast id descriptor\n",s);
 	break;
 
     case 0x6a:
-	pr(fd,"%s  AC-3 descriptor\n",s);
 	break;
 
     case 0x7f:
-	pr(fd,"%s  Extension descriptor: \n",s);
 	pr(fd,"%s    length: %d %s\n",s, desc->len,
 		desc->len>1 ? "bytes":"byte");
 	dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
@@ -674,7 +642,6 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	    switch (desc->tag){
 	    case 0x83:
 	    case 0x87:
-		pr(fd,"%s  NorDig Logical channel descriptor: \n",s);
 		for (int n = 0; n < desc->len; n+=4){
 		    id = (buf[n] << 8) | buf[n+1];
 		    uint16_t lcn = ((buf[n+2]&0x3f) << 8) | buf[n+3];
@@ -684,7 +651,6 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 		}
 		break;
 	    default:
-		pr(fd,"%s  NorDig defined: \n",s);
 		pr(fd,"%s    length: %d %s\n",s, desc->len,
 			desc->len>1 ? "bytes":"byte");
 		dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
@@ -693,7 +659,6 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	    break;
 
 	default:
-	    pr(fd,"%s  User defined descriptor:\n",s);
 	    pr(fd,"%s    length: %d %s\n",s, desc->len,
 		    desc->len>1 ? "bytes":"byte");
 	    dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
@@ -701,7 +666,6 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	}
 	break;
     default:
-	pr(fd,"%s  UNHANDLED descriptor: \n",s);
 	pr(fd,"%s    length: %d %s\n",s, desc->len,
 		desc->len>1 ? "bytes":"byte");
 	dvb_print_data(fd, desc->data, desc->len, 8, s, "  ");
@@ -766,11 +730,13 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
     uint8_t roll;
 
     json_object *jobj = json_object_new_object();
+    json_object_object_add(jobj,"tag",
+			   json_object_new_int(desc->tag));
+    json_object_object_add(jobj,"type",
+			   json_object_new_string(descriptor_type(desc->tag,0)));
 
     switch(desc->tag){
     case 0x43: // satellite
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("Satellite delivery system descriptor"));
 	freq = getbcd(buf, 8) *10;
 	orbit = getbcd(buf+4, 4) *10;
 	srate = getbcd(buf + 7, 7) / 10;
@@ -818,9 +784,6 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 	break;
 
     case 0x44: // cable
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("Cable delivery system descriptor"));
-
 	freq =  getbcd(buf, 8)/10;
 	delsys = buf[5] & 0x0f;
 	mod = buf[6];
@@ -876,6 +839,8 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
     int c = 0;
 
     json_object *jobj = json_object_new_object();
+    json_object_object_add(jobj,"tag",
+			   json_object_new_int(desc->tag));
     json_object_object_add(jobj,"type", json_object_new_string(
 			       "Linkage descriptor"));
     tsid = (buf[0] << 8) | buf[1];
@@ -946,96 +911,58 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 
     json_object_object_add(jobj,"tag",
 			   json_object_new_int(desc->tag));
+    json_object_object_add(jobj,"type",
+			   json_object_new_string(descriptor_type(desc->tag,
+								  *priv_id)));
     switch(desc->tag){
     case 0x00:
     case 0x01:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("reserved descriptor"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
 	json_object_object_add(jobj,"data",
 			       dvb_data_json(desc->data, desc->len));
 	break;
     case 0x02:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("video_stream_descriptor"));
 	break;	
     case 0x03:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("audio_stream_descriptor"));
 	break;	
     case 0x04:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("hierarchy_descriptor"));
 	break;	
     case 0x05:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("registration_descriptor"));
 	break;	
     case 0x06:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("data_stream_alignment_descriptor"));
 	break;	
     case 0x07:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("target_background_grid_descriptor"));
 	break;	
     case 0x08:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("video_window_descriptor"));
 	break;	
     case 0x09:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("CA_descriptor"));
 	break;	
     case 0x0a:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("ISO_639_language_descriptor"));
 	break;	
     case 0x0b:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("system_clock_descriptor"));
 	break;	
     case 0x0c:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("multiplex_buffer_utilization_descriptor"));
 	break;	
     case 0x0d:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("copyright_descriptor"));
 	break;	
     case 0x0e:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("maximum bitrate descriptor"));
 	break;	
     case 0x0f:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("private data indicator descriptor"));
 	break;	
     case 0x10:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("smoothing buffer descriptor"));
 	break;	
     case 0x11:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("STD_descriptor"));
 	break;	
     case 0x12:
-	json_object_object_add(jobj,"type",
-		       json_object_new_string("IBP descriptor"));
 	break;	
     case 0x13 ... 0x3F:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string("ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
 	json_object_object_add(jobj,"data",
 			       dvb_data_json(desc->data, desc->len));
 	break;	
     case 0x40:// network_name_descriptor
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Network name descriptor"));
 	if ((name = dvb_get_name(buf,desc->len))){
 	    json_object_object_add(jobj,"name",
 				   json_object_new_string(name));
@@ -1043,9 +970,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	}
 	break;
     case 0x41: //service list
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Service list descriptor"));
 	jarray = json_object_new_array();
 
 	for (int n = 0; n < desc->len; n+=3){
@@ -1071,10 +995,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	break;
 
     case 0x48: //service descriptor
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Service descriptor"));
-	
 	json_object_object_add(jobj,"service type",
 			       json_object_new_string(
 				   service_type(buf[0]))); 
@@ -1104,51 +1024,29 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	break;
 
     case 0x52:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Stream identifier descriptor"));
 	json_object_object_add(jobj,"component_tag",
 			       json_object_new_int(buf[0]));
 	break;
 	
     case 0x56:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Teletext descriptor"));
 	break;
 
     case 0x59:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Subtitling descriptor"));
 	break;
 	
     case 0x5f:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Private data specifier descriptor"));
-	
 	*priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 	json_object_object_add(jobj,"private_data_specifier",
 			       json_object_new_int(*priv_id));
 	break;
 
     case 0x66:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Data broadcast id descriptor"));
 	break;
 
     case 0x6a:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "AC-3_descriptor"));
 	break;
 	
     case 0x7f:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "Extension descriptor"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
 	json_object_object_add(jobj,"data",
@@ -1163,9 +1061,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	    switch (desc->tag){
 	    case 0x83:
 	    case 0x87:
-		json_object_object_add(jobj,"type",
-				       json_object_new_string(
-					   "NorDig Logical channel descriptor"));
 		jarray = json_object_new_array();
 		
 		for (int n = 0; n < desc->len; n+=4){
@@ -1181,9 +1076,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 		json_object_object_add(jobj, "channel list",jarray);
 		break;
 	    default:
-		json_object_object_add(jobj,"type",
-				       json_object_new_string(
-					   "NorDig private data"));
 		json_object_object_add(jobj,"length",
 				       json_object_new_int(desc->len));
 		json_object_object_add(jobj,"data",
@@ -1193,9 +1085,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	    break;
 
 	default:
-	    json_object_object_add(jobj,"type",
-				   json_object_new_string(
-				       "User defined descriptor"));
 	    json_object_object_add(jobj,"length",
 				   json_object_new_int(desc->len));
 	    json_object_object_add(jobj,"data",
@@ -1204,9 +1093,6 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 }
 	break;
     default:
-	json_object_object_add(jobj,"type",
-			       json_object_new_string(
-				   "UNHANDLED descriptor"));
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
 	json_object_object_add(jobj,"data",
