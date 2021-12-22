@@ -174,7 +174,7 @@ const char *stream_type(uint8_t type)
     case 0x12:
 	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets";
 	break;
-    case 0:
+    case 0x13:
 	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections.";
 	break;
     case 0x14:
@@ -255,11 +255,32 @@ const char *stream_type(uint8_t type)
     case 0x87:
 	t = "audio E-AC-3 (ATSC)";
 	break;
+    case 0x90:
+	t = "Blu-ray Presentation Graphic Stream (subtitling)";
+	break;
+    case 0x91:
+	t = "ATSC DSM CC Network Resources table";
+	break;
+    case 0xC0:
+	t ="DigiCipher II text";
+	break;
+    case 0xC1:
+	t ="Dolby Digital (AC-3) up to six channel audio";
+	break;
+    case 0xC2:
+	t ="ATSC DSM CC synchronous data";
+	break;
     case 0xEA:
 	t = "video VC1";
 	break;
     case 0xD1:
 	t = "video DIRAC";
+	break;
+
+    case 0x88 ... 0x8F:
+    case 0x92 ... 0xBF:
+    case 0xC3 ... 0xCE:
+	t = "privately defined";
 	break;
     }
     return t;

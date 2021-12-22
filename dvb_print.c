@@ -1273,7 +1273,7 @@ json_object *dvb_service_json(service *serv)
 		json_object *jp = json_object_new_object();
 		json_object_object_add(jp,"pid",json_object_new_int(
 					   stream->elementary_PID));
-		json_object_object_add(jobj, "stream_type_nr",
+		json_object_object_add(jp, "stream_type_nr",
 			   json_object_new_int(stream->stream_type));
 		json_object_object_add(jp,"type",json_object_new_string(
 					   stream_type(stream->stream_type)));
