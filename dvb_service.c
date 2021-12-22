@@ -511,10 +511,10 @@ sdt_service *dvb_get_sdt_service(uint8_t *buf)
 	return NULL;	
     }
     serv->service_id = (buf[0] << 8) | buf[1];
-    serv->EIT_schedule_flag = buf[2]&0x02 ;
+    serv->EIT_schedule_flag = (buf[2]&0x02) >>1;
     serv->EIT_present_following_flag = buf[2]&0x01 ;
-    serv->running_status = (buf[3]&0xe0)>>5;
-    serv->free_CA_mode = (buf[3]&0x10)>>8;
+    serv->running_status = buf[3]>>5;
+    serv->free_CA_mode = (buf[3]>>4)&0x01;
     serv->descriptors_loop_length =  ((buf[3]&0x0f) << 8) | buf[4];
     serv->desc_num = 0;
     buf += 5;
@@ -857,23 +857,26 @@ int get_all_services(transport *trans, dvb_devices *dev)
 	for (int i=0; i < trans->pat[n]->nprog; i++){
 	    int npmt = 0;
 	    uint16_t pid = trans->pat[n]->pid[i];
-	    if (!trans->pat[n]->program_number[i]) continue;
-	    PMT  **pmt = get_all_pmts(dev, pid);
-	    if (pmt){
-		int found =0;
-		for (int k = 0; k < nserv; k++){
-		    if (trans->pat[n]->program_number[i] ==
-			trans->serv[k].id){
-			trans->serv[k].pmt = pmt;
-			found = 1;
-			break;
+	    if (trans->pat[n]->program_number[i]) {
+		PMT  **pmt = get_all_pmts(dev, pid);
+		if (pmt){
+		    int found =0;
+		    for (int k = 0; k < nserv; k++){
+			if (trans->pat[n]->program_number[i] ==
+			    trans->serv[k].id){
+			    trans->serv[k].pmt = pmt;
+			    found = 1;
+			    break;
+			}
+		    }
+		    if (!found){ // in case there is no SDT entry
+			trans->serv[nserv+j].id =
+			    trans->pat[n]->program_number[i];
+			trans->serv[nserv+j].pmt = pmt;
+			j++;
 		    }
 		}
-		if (!found){ // in case there is no SDT entry
-		    trans->serv[nserv+j].id = trans->pat[n]->program_number[i];
-		    j++;
-		}
-	    }
+	    } else if (snum == pat_snum) snum--;
 	}
     }
     
