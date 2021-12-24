@@ -21,130 +21,131 @@ const char *descriptor_type(uint8_t tag, uint32_t priv_id)
 
     switch (tag){
     case 0x00:
-    case 0x01:
-	t = "reserved descriptor";
-	break;
-    case 0x02:
-	t = "video_stream_descriptor";
-	break;	
-    case 0x03:
-	t = "audio_stream_descriptor";
-	break;	
-    case 0x04:
-	t = "hierarchy_descriptor";
-	break;	
-    case 0x05:
-	t = "registration_descriptor";
-	break;	
-    case 0x06:
-	t = "data_stream_alignment_descriptor";
-	break;	
-    case 0x07:
-	t = "target_background_grid_descriptor";
-	break;	
-    case 0x08:
-	t = "video_window_descriptor";
-	break;	
-    case 0x09:
-	t = "CA_descriptor";
-	break;	
-    case 0x0a:
-	t = "ISO_639_language_descriptor";
-	break;	
-    case 0x0b:
-	t = "system_clock_descriptor";
-	break;	
-    case 0x0c:
-	t = "multiplex_buffer_utilization_descriptor";
-	break;	
-    case 0x0d:
-	t = "copyright_descriptor";
-	break;	
-    case 0x0e:
-	t = "maximum bitrate descriptor";
-	break;	
-    case 0x0f:
-	t = "private data indicator descriptor";
-	break;	
-    case 0x10:
-	t = "smoothing buffer descriptor";
-	break;	
-    case 0x11:
-	t = "STD_descriptor";
-	break;	
-    case 0x12:
-	t = "IBP descriptor";
-	break;	
-    case 0x13 ... 0x3F:
-	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved";
-	break;	
-    case 0x40:// network_name_descriptor
-	t = "Network name descriptor";
-	break;
-    case 0x41: //service list
-	t = "Service list descriptor";
-	break;
-    case 0x43: // satellite
-	t = "Satellite delivery system descriptor";
-	break;    
-    case 0x44: // cable
-	t = "Cable delivery system descriptor";
-	break;
-    case 0x48: //service descriptor
-	t = "Service descriptor";
-	break;
-    case 0x4a:
-	t = "Linkage descriptor";
-	break;
-    case 0x52:
-	t = "Stream identifier descriptor";
-	break;
-    case 0x56:
-	t = "Teletext descriptor";
-	break;
-    case 0x59:
-	t = "Subtitling descriptor";
-	break;
-    case 0x5a: // terrestrial
-	t = "Terrestrial delivery system descriptor";
-	break;
-    case 0x5f:
-	t = "Private data specifier descriptor";
-	break;
-    case 0x66:
-	t = "Data broadcast id descriptor";
-	break;
-    case 0x6a:
-	t = "AC-3 descriptor";
-	break;
-    case 0x7f:
-	t = "Extension descriptor";
-	break;
-    case 0xfa: // isdbt
-	t = "ISDB-T delivery system descriptor";
-	break;
-    case 0xfb ... 0xfe:
-    case 0x80 ... 0xf9: // user defined
+    case 0x01: t = "reserved descriptor"; break;
+    case 0x02: t = "video_stream_descriptor"; break;	
+    case 0x03: t = "audio_stream_descriptor"; break;	
+    case 0x04: t = "hierarchy_descriptor"; break;	
+    case 0x05: t = "registration_descriptor"; break;	
+    case 0x06: t = "data_stream_alignment_descriptor"; break;	
+    case 0x07: t = "target_background_grid_descriptor"; break;	
+    case 0x08: t = "video_window_descriptor"; break;	
+    case 0x09: t = "CA_descriptor"; break;	
+    case 0x0a: t = "ISO_639_language_descriptor"; break;	
+    case 0x0b: t = "system_clock_descriptor"; break;	
+    case 0x0c: t = "multiplex_buffer_utilization_descriptor"; break;	
+    case 0x0d: t = "copyright_descriptor"; break;	
+    case 0x0e: t = "maximum bitrate descriptor"; break;	
+    case 0x0f: t = "private data indicator descriptor"; break;	
+    case 0x10: t = "smoothing buffer descriptor"; break;	
+    case 0x11: t = "STD_descriptor"; break;	
+    case 0x12: t = "IBP descriptor"; break;	
+    case 0x13: t = "carousel_identifier_descriptor"; break;
+    case 0x14: t = "association_tag_descriptor"; break;
+    case 0x15: t = "deferred_association_tag_descriptor"; break;
+    case 0x16: t = "ISO/IEC13818-6 Reserved"; break;
+    case 0x17: t = "NPT_reference_descriptor"; break;
+    case 0x18: t = "NPT_endpoint_descriptor"; break;
+    case 0x19: t = "stream_mode_descriptor"; break;
+    case 0x1A: t = "stream_event_descriptor"; break;
+    case 0x1B: t = "MPEG4_video_descriptor"; break;
+    case 0x1C: t = "MPEG4_audio_descriptor"; break;
+    case 0x1D: t = "IOD_descriptor"; break;
+    case 0x1E: t = "SL_descriptor"; break;
+    case 0x1F: t = "FMC_descriptor"; break;
+    case 0x20: t = "External_ES_ID_descriptor"; break;
+    case 0x21: t = "MuxCode_descriptor"; break;
+    case 0x22: t = "FMXBufferSize_descriptor"; break;
+    case 0x23: t = "MultiplexBuffer_descriptor"; break;
+    case 0x24: t = "Content_labeling_descriptor"; break;
+    case 0x25: t = "metadata_pointer_descriptor"; break;
+    case 0x26: t = "metadata_descriptor"; break;
+    case 0x27: t = "metadata_STD_descriptor"; break;
+    case 0x28: t = "AVC_video_descriptor"; break;
+    case 0x29: t = "IPMP_descriptor (MPEG-2 IPMP, ISO 13818-11)"; break;
+    case 0x2A: t = "AVC_timing_and_HRD_descriptor"; break;
+    case 0x2B: t = "MPEG-2_AAC_audio_descriptor"; break;
+    case 0x2C: t = "FlexMuxTiming_descriptor"; break;
+    case 0x3F: t = "ITU-T.Rec.H.222.0|ISO/IEC13818-1 Reserved"; break;
+    case 0x40: t = "network_name_descriptor"; break;
+    case 0x41: t = "service_list_descriptor"; break;
+    case 0x42: t = "stuffing_descriptor"; break;
+    case 0x43: t = "satellite_delivery_system_descriptor"; break;
+    case 0x44: t = "cable_delivery_system_descriptor"; break;
+    case 0x45: t = "VBI_data_descriptor"; break;
+    case 0x46: t = "VBI_teletext_descriptor"; break;
+    case 0x47: t = "bouquet_name_descriptor"; break;
+    case 0x48: t = "service_descriptor"; break;
+    case 0x49: t = "country_availibility_descriptor"; break;
+    case 0x4A: t = "linkage_descriptor"; break;
+    case 0x4B: t = "NVOD_reference_descriptor"; break;
+    case 0x4C: t = "time_shifted_service_descriptor"; break;
+    case 0x4D: t = "short_event_descriptor"; break;
+    case 0x4E: t = "extended_event_descriptor"; break;
+    case 0x4F: t = "time_shifted_event_descriptor"; break;
+    case 0x50: t = "component_descriptor"; break;
+    case 0x51: t = "mosaic_descriptor"; break;
+    case 0x52: t = "stream_identifier_descriptor"; break;
+    case 0x53: t = "CA_identifier_descriptor"; break;
+    case 0x54: t = "content_descriptor"; break;
+    case 0x55: t = "parental_rating_descriptor"; break;
+    case 0x56: t = "teletext_descriptor"; break;
+    case 0x57: t = "telephone_descriptor"; break;
+    case 0x58: t = "local_time_offset_descriptor"; break;
+    case 0x59: t = "subtitling_descriptor"; break;
+    case 0x5A: t = "terrestrial_delivery_system_descriptor"; break;
+    case 0x5B: t = "multilingual_network_name_descriptor"; break;
+    case 0x5C: t = "multilingual_bouquet_name_descriptor"; break;
+    case 0x5D: t = "multilingual_service_name_descriptor"; break;
+    case 0x5E: t = "multilingual_component_descriptor"; break;
+    case 0x5F: t = "private_data_specifier_descriptor"; break;
+    case 0x60: t = "service_move_descriptor"; break;
+    case 0x61: t = "short_smoothing_buffer_descriptor"; break;
+    case 0x62: t = "frequency_list_descriptor"; break;
+    case 0x63: t = "partial_transport_stream_descriptor"; break;
+    case 0x64: t = "data_broadcast_descriptor"; break;
+    case 0x65: t = "scrambling_descriptor"; break;
+    case 0x66: t = "data_broadcast_id_descriptor"; break;
+    case 0x67: t = "transport_stream_descriptor"; break;
+    case 0x68: t = "DSNG_descriptor"; break;
+    case 0x69: t = "PDC_descriptor"; break;
+    case 0x6A: t = "AC3_descriptor"; break;
+    case 0x6B: t = "ancillary_data_descriptor"; break;
+    case 0x6C: t = "cell_list_descriptor"; break;
+    case 0x6D: t = "cell_frequency_list_descriptor"; break;
+    case 0x6E: t = "announcement_support_descriptor"; break;
+    case 0x6F: t = "application_signalling_descriptor"; break;
+    case 0x70: t = "adaptation_field_data_descriptor"; break;
+    case 0x71: t = "service_identifier_descriptor"; break;
+    case 0x72: t = "service_availability_descriptor"; break;
+    case 0x73: t = "default_authority_descriptor"; break; 
+    case 0x74: t = "related_content_descriptor"; break;   
+    case 0x75: t = "TVA_id_descriptor"; break;            
+    case 0x76: t = "content_identifier_descriptor"; break; 
+    case 0x77: t = "time_slice_fec_identifier_descriptor"; break; 
+    case 0x78: t = "ECM_repetition_rate_descriptor"; break;       
+    case 0x79: t = "S2_satellite_delivery_system_descriptor"; break;
+    case 0x7A: t = "enhanced_AC-3_descriptor"; break;              
+    case 0x7B: t = "DTS_descriptor"; break;                        
+    case 0x7C: t = "AAC_descriptor"; break;                        
+    case 0x7E: t = "reserved_descriptor"; break;                   
+    case 0x7F: t = "extension_descriptor"; break;                 
+    case 0xFA: t = "ISDB-T delivery system descriptor"; break;
+    case 0x80 ... 0xAF: t = "User defined/ATSC reserved"; break;
+    case 0xB0 ... 0xF9: // user defined
+    case 0xFB ... 0xFE: // user defined
 	switch (priv_id){
 	case NORDIG:
 	    switch (tag){
 	    case 0x83:
-	    case 0x87:
-		t = "NorDig Logical channel descriptor";
-		break;
-	    default:
-		t = "unknown NorDig defined decripotor";
-		break;
+	    case 0x87: t = "NorDig Logical channel descriptor"; break;
+	    default: t = "unknown NorDig defined decripotor"; break;
 	    }
 	    break;
 	    
-	default:
-	    t = "User defined descriptor";
-	    break;
+	default: t = "User defined descriptor"; break;
 	}
 	break;
-    default:
-	t = "UNHANDLED descriptor";
+    default: t = "unknown descriptor";
 	break;
     }
     return t;
@@ -163,90 +164,34 @@ const char *service_type(uint8_t type)
     case 0xFF:
 	t = "reserved";
 	break;
-    case 0x01:
-	t = "digital television service";
-	break;
-    case 0x02:
-	t = "digital radio sound service";
-	break;
-    case 0x03:
-	t = "Teletext service";
-	break;
-    case 0x04:
-	t = "NVOD reference service";
-	break;
-    case 0x05:
-	t = "NVOD time-shifted service";
-	break;
-    case 0x06:
-	t = "mosaic service";
-	break;
-    case 0x07:
-	t = "PAL coded signal";
-	break;
-    case 0x08:
-	t = "SECAM coded signal";
-	break;
-    case 0x09:
-	t = "D/D2-MAC";
-	break;
-    case 0x0A:
-	t = "FM Radio";
-	break;
-    case 0x0B:
-	t = "NTSC coded signal";
-	break;
-    case 0x0C:
-	t = "data broadcast service";
-	break;
-    case 0x0D:
-	t = "reserved for Common Interface usage";
-	break;
-    case 0x0E:
-	t = "RCS Map (see EN 301 790)";
-	break;
-    case 0x0F:
-	t = "RCS FLS (see EN 301 790)";
-	break;
-    case 0x10:
-	t = "DVB MHP service";
-	break;
-    case 0x11:
-	t = "MPEG-2 HD digital television service";
-	break;
-    case 0x16:
-	    t = "H.264/AVC SD digital television service";
-	break;
-    case 0x17:
-	    t = "H.264/AVC SD NVOD time-shifted service";
-	break;
-    case 0x18:
-	    t = "H.264/AVC SD NVOD reference service";
-	break;
-    case 0x19:
-	    t = "H.264/AVC HD digital television service";
-	break;
-    case 0x1A:
-	    t = "H.264/AVC HD NVOD time-shifted service";
-	break;
-    case 0x1B:
-	    t = "H.264/AVC HD NVOD reference service";
-	break;
-    case 0x1C:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD digital television service ";
-	break;
-    case 0x1D:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD time-shifted service";
-	break;
-    case 0x1E:
-	    t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD reference service";
-	break;
-    case 0x1F:
-	    t = "HEVC digital television service";
-	break;
-    case 0x80 ... 0xFE:
-	t = "user defined";
-	break;
+    case 0x01: t = "digital television service"; break;
+    case 0x02: t = "digital radio sound service"; break;
+    case 0x03: t = "Teletext service"; break;
+    case 0x04: t = "NVOD reference service"; break;
+    case 0x05: t = "NVOD time-shifted service";	break;
+    case 0x06: t = "mosaic service"; break;
+    case 0x07: t = "reserved"; break;
+    case 0x08: t = "reserved"; break;
+    case 0x09: t = "D/D2-MAC"; break;
+    case 0x0A: t = "advanced codec digital radio sound service"; break;
+    case 0x0B: t = "advanced codec mosaic service"; break;
+    case 0x0C: t = "data broadcast service"; break;
+    case 0x0D: t = "reserved for Common Interface usage"; break;
+    case 0x0E: t = "RCS Map (see EN 301 790)"; break;
+    case 0x0F: t = "RCS FLS (see EN 301 790)"; break;
+    case 0x10: t = "DVB MHP service"; break;
+    case 0x11: t = "MPEG-2 HD digital television service"; break;
+    case 0x16: t = "H.264/AVC SD digital television service"; break;
+    case 0x17: t = "H.264/AVC SD NVOD time-shifted service"; break;
+    case 0x18: t = "H.264/AVC SD NVOD reference service"; break;
+    case 0x19: t = "H.264/AVC HD digital television service"; break;
+    case 0x1A: t = "H.264/AVC HD NVOD time-shifted service"; break;
+    case 0x1B: t = "H.264/AVC HD NVOD reference service"; break;
+    case 0x1C: t = "H.264/AVC frame compatible plano-stereoscopic HD digital television service "; break;
+    case 0x1D: t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD time-shifted service"; break;
+    case 0x1E: t = "H.264/AVC frame compatible plano-stereoscopic HD NVOD reference service"; break;
+    case 0x1F: t = "HEVC digital television service"; break;
+    case 0x80 ... 0xFE: t = "user defined"; break;
     }
     return t;
 }
@@ -256,163 +201,58 @@ const char *stream_type(uint8_t type)
     const char *t = "unknown";
 
     switch (type) {
-    case 0x01:
-	t = "video MPEG1";
-	break;
-    case 0x02:
-	t = "video MPEG2";
-	break;
-    case 0x03:
-	t = "audio MPEG1";
-	break;
-    case 0x04:
-	t = "audio MPEG2";
-	break;
-    case 0x05:
-	t = "MPEG-2 private data";
-	break;
-    case 0x06:
-	t = "MPEG-2 packetized data (subtitles)";
-	break;
-    case 0x07:
-	t = "MHEG";
-	break;
-    case 0x08:
-	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC";
-	break;
-    case 0x09:
-	t = "ITU-T Rec. H.222.1";
-	break;
-    case 0x0A:
-	t = "DSM-CC ISO/IEC 13818-6 type A (Multi-protocol Encapsulation)";
-	break;
-    case 0x0B:
-	t = "DSM-CC ISO/IEC 13818-6 type B (U-N messages)";
-	break;
-    case 0x0C:
-	t = "DSM-CC ISO/IEC 13818-6 type C (Stream Descriptors)";
-	break;
-    case 0x0D:
-	t = "DSM-CC ISO/IEC 13818-6 type D (Sections – any type)";
-	break;
-    case 0x0E:
-	t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary";
-	break;
-    case 0x0F:
-	t = "audio AAC";
-	break;
-    case 0x10:
-	t = "video MPEG2";
-	break;
-    case 0x11:
-	t = "audio LATM";
-	break;
-    case 0x12:
-	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets";
-	break;
-    case 0x13:
-	t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections.";
-	break;
-    case 0x14:
-	t = "ISO/IEC 13818-6 Synchronized Download Protocol";
-	break;
-    case 0x15:
-	t = "Metadata in PES packets";
-	break;
-    case 0x16:
-	t = "Metadata in metadata_sections";
-	break;
-    case 0x17:
-	t = "Metadata 13818-6 Data Carousel";
-	break;
-    case 0x18:
-	t = "Metadata 13818-6 Object Carousel";
-	break;
-    case 0x19:
-	t = "Metadata 13818-6 Synchronized Download Protocol";
-	break;
-    case 0x1A:
-	t = "IPMP (13818-11, MPEG-2 IPMP)";
-	break;
-    case 0x1B:
-	t = "video H264 ISO/IEC 14496-10";
-	break;
-    case 0x1C:
-	t = "audio ISO/IEC 14496-3 (DST, ALS and SLS)";
-	break;
-    case 0x1D:
-	t = "text ISO/IEC 14496-17";
-	break;
-    case 0x1E:
-	t = "video ISO/IEC 23002-3 Aux.";
-	break;
-    case 0x1F:
-	t = "video ISO/IEC 14496-10 sub";
-	break;
-    case 0x20:
-	t = "video MVC sub-bitstream";
-	break;
-    case 0x21:
-	t = "video J2K";
-	break;
-    case 0x22:
-	t = "video H.262 for 3D services";
-	break;
-    case 0x23:
-	t = "video H.264 for 3D services";
-	break;
-    case 0x24:
-	t = "video H.265 or HEVC temporal sub-bitstream";
-	break;
-    case 0x25:
-	t = "video H.265 temporal subset";
-	break;
-    case 0x26:
-	t = "video MVCD in AVC";
-	break;
-    case 0x42:
-	t = "video CAVS";
-	break;
-    case 0x7F:
-	t = "IPMP";
-	break;
-    case 0x81:
-	t = "audio AC-3 (ATSC)";
-	break;
-    case 0x82:
-	t = "audio DTS";
-	break;
-    case 0x83:
-	t = "audio TRUEHD";
-	break;
-    case 0x86:
-	t = "SCTE-35";
-	break;
-    case 0x87:
-	t = "audio E-AC-3 (ATSC)";
-	break;
-    case 0x90:
-	t = "Blu-ray Presentation Graphic Stream (subtitling)";
-	break;
-    case 0x91:
-	t = "ATSC DSM CC Network Resources table";
-	break;
-    case 0xC0:
-	t ="DigiCipher II text";
-	break;
-    case 0xC1:
-	t ="Dolby Digital (AC-3) up to six channel audio";
-	break;
-    case 0xC2:
-	t ="ATSC DSM CC synchronous data";
-	break;
-    case 0xEA:
-	t = "video VC1";
-	break;
-    case 0xD1:
-	t = "video DIRAC";
-	break;
-
+    case 0x01: t = "video MPEG1"; break;
+    case 0x02: t = "video MPEG2"; break;
+    case 0x03: t = "audio MPEG1"; break;
+    case 0x04: t = "audio MPEG2"; break;
+    case 0x05: t = "MPEG-2 private data"; break;
+    case 0x06: t = "MPEG-2 packetized data (subtitles)"; break;
+    case 0x07: t = "MHEG"; break;
+    case 0x08: t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC"; break;
+    case 0x09: t = "ITU-T Rec. H.222.1"; break;
+    case 0x0A: t = "DSM-CC ISO/IEC 13818-6 type A (Multi-protocol Encapsulation)"; break;
+    case 0x0B: t = "DSM-CC ISO/IEC 13818-6 type B (U-N messages)"; break;
+    case 0x0C: t = "DSM-CC ISO/IEC 13818-6 type C (Stream Descriptors)"; break;
+    case 0x0D: t = "DSM-CC ISO/IEC 13818-6 type D (Sections – any type)"; break;
+    case 0x0E: t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 auxiliary"; break;
+    case 0x0F: t = "audio AAC";	break;
+    case 0x10: t = "video MPEG2"; break;
+    case 0x11: t = "audio LATM"; break;
+    case 0x12: t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets"; break;
+    case 0x13: t = "ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections."; break;
+    case 0x14: t = "ISO/IEC 13818-6 Synchronized Download Protocol"; break;
+    case 0x15: t = "Metadata in PES packets"; break;
+    case 0x16: t = "Metadata in metadata_sections"; break;
+    case 0x17: t = "Metadata 13818-6 Data Carousel"; break;
+    case 0x18: t = "Metadata 13818-6 Object Carousel"; break;
+    case 0x19: t = "Metadata 13818-6 Synchronized Download Protocol"; break;
+    case 0x1A: t = "IPMP (13818-11, MPEG-2 IPMP)"; break;
+    case 0x1B: t = "video H264 ISO/IEC 14496-10"; break;
+    case 0x1C: t = "audio ISO/IEC 14496-3 (DST, ALS and SLS)"; break;
+    case 0x1D: t = "text ISO/IEC 14496-17"; break;
+    case 0x1E: t = "video ISO/IEC 23002-3 Aux."; break;
+    case 0x1F: t = "video ISO/IEC 14496-10 sub"; break;
+    case 0x20: t = "video MVC sub-bitstream"; break;
+    case 0x21: t = "video J2K"; break;
+    case 0x22: t = "video H.262 for 3D services"; break;
+    case 0x23: t = "video H.264 for 3D services"; break;
+    case 0x24: t = "video H.265 or HEVC temporal sub-bitstream"; break;
+    case 0x25: t = "video H.265 temporal subset"; break;
+    case 0x26: t = "video MVCD in AVC"; break;
+    case 0x42: t = "video CAVS"; break;
+    case 0x7F: t = "IPMP"; break;
+    case 0x81: t = "audio AC-3 (ATSC)";	break;
+    case 0x82: t = "audio DTS";	break;
+    case 0x83: t = "audio TRUEHD"; break;
+    case 0x86: t = "SCTE-35"; break;
+    case 0x87: t = "audio E-AC-3 (ATSC)"; break;
+    case 0x90: t = "Blu-ray Presentation Graphic Stream (subtitling)"; break;
+    case 0x91: t = "ATSC DSM CC Network Resources table"; break;
+    case 0xC0: t ="DigiCipher II text"; break;
+    case 0xC1: t ="Dolby Digital (AC-3) up to six channel audio"; break;
+    case 0xC2: t ="ATSC DSM CC synchronous data"; break;
+    case 0xEA: t = "video VC1"; break;
+    case 0xD1: t = "video DIRAC"; break;
     case 0x88 ... 0x8F:
     case 0x92 ... 0xBF:
     case 0xC3 ... 0xCE:
