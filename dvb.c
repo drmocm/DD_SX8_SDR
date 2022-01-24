@@ -597,6 +597,95 @@ int dvb_tune_c(dvb_devices *dev, dvb_fe *fe)
     return tune_c(dev->fd_fe, fe->freq, fe->bandw, fe->sr, fe->fec, fe->mod);
 }
 
+int tune_terr(int fd, uint32_t freq, uint32_t bandw)
+{
+    struct dtv_property p[] = {
+	{ .cmd = DTV_CLEAR },
+	{ .cmd = DTV_FREQUENCY, .u.data = freq * 1000 },
+	{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (bandw != DVB_UNDEF) ?
+	  bandw : 8000000 },
+	{ .cmd = DTV_TUNE },
+    };              
+    struct dtv_properties c;
+    int ret;
+    
+    set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT);
+
+    c.num = ARRAY_SIZE(p);
+    c.props = p;
+    ret = ioctl(fd, FE_SET_PROPERTY, &c);
+    if (ret < 0) {
+	err("FE_SET_PROPERTY returned %d\n", ret);
+	return -1;
+    }
+    return 0;
+}
+
+int dvb_tune_terr(dvb_devices *dev, dvb_fe *fe)
+{
+    return tune_terr(dev->fd_fe, fe->freq, fe->bandw);
+}
+    
+int tune_terr2(int fd, uint32_t freq, uint32_t bandw)
+{
+    struct dtv_property p[] = {
+	{ .cmd = DTV_CLEAR },
+	{ .cmd = DTV_FREQUENCY, .u.data = freq * 1000 },
+	{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (bandw != DVB_UNDEF) ?
+	  bandw : 8000000 },
+	{ .cmd = DTV_STREAM_ID, .u.data = DVB_UNDEF },
+	{ .cmd = DTV_TUNE },
+    };              
+    struct dtv_properties c;
+    int ret;
+
+    set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT2);
+    
+    c.num = ARRAY_SIZE(p);
+    c.props = p;
+    ret = ioctl(fd, FE_SET_PROPERTY, &c);
+    if (ret < 0) {
+	err("FE_SET_PROPERTY returned %d\n", ret);
+	return -1;
+    }
+    return 0;
+}
+
+int dvb_tune_terr2(dvb_devices *dev, dvb_fe *fe)
+{
+    return tune_terr2(dev->fd_fe, fe->freq, fe->bandw);
+}
+
+int tune_isdbt(int fd, uint32_t freq, uint32_t bandw)
+{
+        struct dtv_property p[] = {
+                { .cmd = DTV_CLEAR },
+                { .cmd = DTV_FREQUENCY, .u.data = freq* 1000 },
+                { .cmd = DTV_BANDWIDTH_HZ, .u.data = (bandw != DVB_UNDEF) ?
+                  bandw : 6000000 },
+                { .cmd = DTV_TUNE },
+        };              
+        struct dtv_properties c;
+        int ret;
+
+        set_property(fd, DTV_DELIVERY_SYSTEM, SYS_ISDBT);
+
+        c.num = ARRAY_SIZE(p);
+        c.props = p;
+        ret = ioctl(fd, FE_SET_PROPERTY, &c);
+        if (ret < 0) {
+	    err("FE_SET_PROPERTY returned %d\n", ret);
+                return -1;
+        }
+        return 0;
+}
+
+int dvb_tune_isdbt(dvb_devices *dev, dvb_fe *fe)
+{
+    return tune_isdbt(dev->fd_fe, fe->freq, fe->bandw);
+}
+
+
 void dvb_print_tuning_options()
 {
     err(
@@ -952,10 +1041,19 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
 
     case SYS_DVBT:
+	if ((re=dvb_tune_terr( dev, fe)) < 0) return 0;
+	break;
+
     case SYS_DVBT2:
+	if ((re=dvb_tune_terr2( dev, fe)) < 0) return 0;
+	break;
+
+    case SYS_ISDBT:
+	if ((re=dvb_tune_isdbt( dev, fe)) < 0) return 0;
+	break;
+
     case SYS_DVBC_ANNEX_B:
     case SYS_ISDBC:
-    case SYS_ISDBT:
     case SYS_ISDBS:
     case SYS_UNDEFINED:
     default:

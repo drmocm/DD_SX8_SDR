@@ -93,6 +93,9 @@ int tune_sat(int fd, int type, uint32_t freq,
 	     uint32_t scif_slot, uint32_t scif_freq);
 int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
 	   enum fe_code_rate fec, uint32_t mod);
+int tune_terr(int fd, uint32_t freq, uint32_t bandw);
+int tune_terr2(int fd, uint32_t freq, uint32_t bandw);
+int tune_isdbt(int fd, uint32_t freq, uint32_t bandw);
 void stop_dmx( int fd );
 int read_section_from_dmx(int fd, uint8_t *buf, int max,
 			  uint16_t pid, uint8_t table_id, uint32_t secnum);
@@ -108,6 +111,9 @@ int64_t dvb_get_cnr(int fd);
 
 int dvb_tune_sat(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
 int dvb_tune_c(dvb_devices *dev, dvb_fe *fe);
+int dvb_tune_terr(dvb_devices *dev, dvb_fe *fe);
+int dvb_tune_terr2(dvb_devices *dev, dvb_fe *fe);
+int dvb_tune_isdbt(dvb_devices *dev, dvb_fe *fe);
 void dvb_init_dev(dvb_devices *dev);
 void dvb_init_fe(dvb_fe *fe);
 void dvb_init_lnb(dvb_lnb *lnb);
