@@ -601,7 +601,7 @@ void dvb_print_tuning_options()
 {
     err(
 	    "\n TUNING OPTIONS:\n"
-	    " -d delsys    : the delivery system\n"
+	    " -d delsys    : the delivery system (default DVB-S2)\n"
 	    " -a adapter   : the number n of the DVB adapter, i.e. \n"
 	    "                /dev/dvb/adapter[n] (default=0)\n"
 	    " -e frontend  : the frontend/dmx/dvr to be used (default=0)\n"
