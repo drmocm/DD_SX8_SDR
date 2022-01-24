@@ -991,15 +991,15 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
 }
 
-
-int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+#define DB 0
+int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int waitlock)
 {
     int re = 0;
     int t= 0;
     int lock = 0;
     switch (fe->delsys){
     case SYS_DVBC_ANNEX_A:
-#if 1
+#if DB
 	err(
 		"Tuning freq: %d kHz sr: %d delsys: DVB-C frontend: %d ",
 		fe->freq, fe->sr, dev->num);
@@ -1010,7 +1010,7 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     case SYS_DVBS:
     case SYS_DVBS2:
     {
-#if 1
+#if DB
 	err(    
 	    "Tuning freq: %d kHz pol: %s sr: %d delsys: %s "
 	    "lnb_type: %d input: %d frontend: %d ",
@@ -1021,12 +1021,12 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	switch (lnb->type){
 	case UNICABLE1:
 	case UNICABLE2:
-#if 1
+#if DB
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1, lnb->scif_freq);
 #endif
 	    break;
 	case INVERTO32:
-#if 1
+#if DB
 	    err ("scif_slot %d scif_freq %d ",lnb->scif_slot+1,
 		 inverto32_slot[lnb->scif_slot]);
 #endif
@@ -1062,17 +1062,19 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 	break;
     }
 
-    while (!lock && t < MAXTRY ){
+    while (waitlock && !lock && t < MAXTRY ){
 	t++;
 	err(".");
 	usleep(2000000);
 	lock = read_status(dev->fd_fe);
     }
+#if DB
     if (lock == 2) {
 	err(" tuning timed out\n");
     } else {
 	err("%slock\n",lock ? " ": " no ");
     }
+#endif
     return lock;
 }
 

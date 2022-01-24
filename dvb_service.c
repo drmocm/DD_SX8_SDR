@@ -892,7 +892,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		exit(1);
 	    }
 	    if (freq != fe->freq){
-		int lock = dvb_tune(dev, fe, lnb);
+		int lock = dvb_tune(dev, fe, lnb, 1);
 		if (lock == 1){ 
 		    for (int i=0; i < n; i++){
 			dvb_delete_nit(nits[i]);
@@ -984,7 +984,7 @@ void dvb_sort_sat(satellite *sat)
 void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
 {
     int lock = 0;
-    lock = dvb_tune(dev, &trans->fe, lnb);
+    lock = dvb_tune(dev, &trans->fe, lnb, 1);
     trans->lock = lock;
     if (lock == 1){ 
 //	err("  getting SDT\n");

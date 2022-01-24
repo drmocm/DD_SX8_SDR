@@ -135,7 +135,7 @@ int dvb_set_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 			       uint32_t ext, uint32_t ext_mask,
 			       uint32_t ext_nmask);
 
-int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int wait);
     
 #endif
 

@@ -358,7 +358,7 @@ int main(int argc, char **argv){
     }
     
     dvb_open(&dev, &fe, &lnb);
-    if ((lock = dvb_tune(&dev, &fe, &lnb)) != 1) exit(lock);
+    if ((lock = dvb_tune(&dev, &fe, &lnb, 1)) != 1) exit(lock);
 
     if (out && lock){
 	switch (out) {
