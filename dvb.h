@@ -76,6 +76,16 @@ typedef struct dvb_lnb_t{
     uint32_t scif_freq;
 } dvb_lnb;
 
+typedef struct tune_data_t{
+    dvb_devices *dev;
+    dvb_fe       *fe;
+    dvb_lnb     *lnb;
+    int         wait;
+    fe_status_t stat;
+    int64_t      str;
+    int64_t      cnr;
+} tune_data;
+
 void err(const char  *format,  ...);
 const char *delsys_name(enum fe_delivery_system delsys);
 int set_fe_input(int fd, uint32_t fr,
@@ -128,6 +138,7 @@ void power_on_delay(int fd, int delay);
 int read_status(int fd);
 int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats);
 void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+pthread_mutex_t *dvb_add_lock(dvb_devices *dev);
 int dvb_open_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 				uint32_t ext, uint32_t ext_mask,
 				uint32_t ext_nmask);
@@ -136,6 +147,10 @@ int dvb_set_dmx_section_filter(dvb_devices *dev, uint16_t pid, uint8_t tid,
 			       uint32_t ext_nmask);
 
 int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int wait);
-    
+int dvb_tune2(tune_data *tdat);    
+tune_data *create_tune_data(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+void fprint_stat(FILE *fp, tune_data *tdat);
+int start_tune_thread(pthread_t *tMux, tune_data *tdat);
+
 #endif
 

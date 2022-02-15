@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dvb.h"
 #include <stdarg.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 void err(const char  *format,  ...)
 {
@@ -991,6 +992,21 @@ void dvb_open(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     }
 }
 
+pthread_mutex_t *dvb_add_lock(dvb_devices *dev)
+{
+    pthread_mutex_t *lock;
+    lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
+    
+    if (pthread_mutex_init(lock, NULL) != 0)
+    {
+	printf("\n mutex init failed\n");
+	return NULL;
+    }
+    dev->lock = lock;
+    return lock;
+}
+
+
 #define DB 0
 int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int waitlock)
 {
@@ -1078,3 +1094,76 @@ int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int waitlock)
     return lock;
 }
 
+int dvb_tune2(tune_data *tdat)
+{
+    return dvb_tune(tdat->dev, tdat->fe, tdat->lnb, tdat->wait);
+}
+
+
+void fprint_stat(FILE *fp, tune_data *tdat)
+{
+    int64_t str, cnr;
+
+    if (tdat->dev->lock){
+	pthread_mutex_lock (tdat->dev->lock);
+    }
+    str = tdat->str;
+    cnr = tdat->cnr;
+    if (tdat->dev->lock){
+	pthread_mutex_unlock (tdat->dev->lock);
+    }
+	
+    fprintf(fp,"stat=%02x, str=%" PRId64 ".%03udBm, "
+	    "snr=%" PRId64 ".%03uddB \n",
+	    tdat->stat, str/1000, abs(str%1000),
+	    cnr/1000, abs(cnr%1000));
+}
+
+static void *dvb_tune_loop(void *ptr)
+{
+    tune_data *tdat = (tune_data *) ptr;
+    int lock = 0;
+    int c=0;
+
+    lock = dvb_tune(tdat->dev, tdat->fe, tdat->lnb, 0);
+    while (1) {
+	tdat->stat = dvb_get_stat(tdat->dev->fd_fe);
+	tdat->str = dvb_get_strength(tdat->dev->fd_fe);
+	tdat->cnr = dvb_get_cnr(tdat->dev->fd_fe);
+	lock = (tdat->stat == 0x1f);
+	if(!lock && !(c%4)){
+	    lock = dvb_tune(tdat->dev, tdat->fe, tdat->lnb, tdat->wait);
+	    c++;
+	}
+	if (tdat->dev->lock){
+	    pthread_mutex_lock (tdat->dev->lock);
+	}
+	if (tdat->dev->lock){
+	    pthread_mutex_unlock (tdat->dev->lock);
+	}
+
+	usleep(100000);
+	c++;
+    }
+    pthread_exit(NULL);
+}
+
+tune_data *create_tune_data(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+{
+    tune_data *tdat = (tune_data *)malloc(sizeof(tune_data));
+    tdat->dev = dev;
+    tdat->fe = fe;
+    tdat->lnb = lnb;
+    tdat->wait = 0;
+    return tdat;
+}
+
+int start_tune_thread(pthread_t *tMux, tune_data *tdat)
+{
+    if(pthread_create(tMux, NULL, dvb_tune_loop, tdat))
+    {
+	return -1;
+    }
+    return 0;
+
+}
