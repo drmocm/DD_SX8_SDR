@@ -625,6 +625,9 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
     case 0x6a:
 	break;
 
+    case 0x6c:
+	break;
+
     case 0x7f:
 	pr(fd,"%s    length: %d %s\n",s, desc->len,
 		desc->len>1 ? "bytes":"byte");
@@ -908,6 +911,7 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     uint16_t id;
     json_object *jobj = json_object_new_object();
     json_object *jarray;
+    json_object *jarray2;
 
     json_object_object_add(jobj,"tag",
 			   json_object_new_int(desc->tag));
@@ -1046,6 +1050,64 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x6a:
 	break;
 	
+    case 0x6c:
+    {
+	int c = 0;
+	int len = desc->len;
+	jarray = json_object_new_array();
+	int s = 0;
+	while (c < len){
+	    json_object *ja = json_object_new_object();
+	    uint16_t cid = (buf[c] << 8) | buf[c+1];
+	    int16_t lat = (buf[c+2] << 8) | buf[c+3];
+	    int16_t lon = (buf[c+4] << 8) | buf[c+5];
+	    int16_t elat = (buf[c+6] << 4) | ((buf[c+7] >> 4) & 0x0f);
+	    int16_t elon = ((buf[c+7]&0x0f) << 8) | buf[c+8];
+	    json_object_object_add(ja,"cell_id",
+				   json_object_new_int(cid));
+	    json_object_object_add(ja,"latitude",
+				   json_object_new_double(lat*90/32768));
+	    json_object_object_add(ja,"longitude",
+				   json_object_new_double(lon*180/32768));
+	    json_object_object_add(ja,"latitude_extend",
+				   json_object_new_double(elat*90/32768));
+	    json_object_object_add(ja,"longitude_extend",
+				   json_object_new_double(elon*180/32768));
+	    s = buf[c+9]; 
+	    c += 10;
+	    if (s >0){
+		int cs = 0;
+	    
+		jarray2 = json_object_new_array();
+		while (cs < s){
+		    json_object *ja2 = json_object_new_object();
+		    cid =  buf[c+cs];
+		    lat = (buf[c+cs+1] << 8) | buf[c+cs+2];
+		    lon = (buf[c+cs+3] << 8) | buf[c+cs+4];
+		    elat = (buf[c+cs+5] << 4) | ((buf[c+cs+6]>> 4) &0x0f);
+		    elon = ((buf[c+cs+6]&0x0f) << 8) | buf[c+cs+7];
+		    json_object_object_add(ja2,"cell_id_extension",
+					   json_object_new_int(cid));
+		    json_object_object_add(ja2,"subcell_latitude",
+					   json_object_new_double(lat*90/32768));
+		    json_object_object_add(ja2,"subcell_longitude",
+					   json_object_new_double(lon*180/32768));
+		    json_object_object_add(ja2,"subcell_latitude_extend",
+					   json_object_new_double(elat*90/32768));
+		    json_object_object_add(ja2,"subcell_longitude_extend",
+					   json_object_new_double(elon*180/32768));
+		    cs += 8;
+		    json_object_array_add(jarray2, ja2);
+		}
+		json_object_object_add(ja, "Sub_Cells", jarray2);
+		c+= s;
+	    }
+	    json_object_array_add(jarray, ja);
+	}
+	json_object_object_add(jobj, "Cells", jarray);
+	break;
+    }	
+
     case 0x7f:
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
