@@ -739,6 +739,25 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 			   json_object_new_string(descriptor_type(desc->tag,0)));
 
     switch(desc->tag){
+    case 0x7f: //T2_delivery_system_descriptor
+    {
+	uint8_t etag = buf[0];
+	json_object_object_add(jobj,"extended tag",
+			       json_object_new_int(etag));
+	json_object_object_add(jobj,"extended type",
+			       json_object_new_string(
+				   extended_descriptor_type(etag)));
+	switch (etag){
+	case 0x04: //T2_delivery_system_descriptor 
+	case 0x05: //SH_delivery_system_descriptor 
+	case 0x0D: //C2_delivery_system_descriptor 
+	case 0x16: //C2_bundle_delivery_system_descriptor 
+	case 0x17: //S2X_delivery_system_descriptor 
+	    
+	    break;
+	}
+	break;
+    }
     case 0x43: // satellite
 	freq = getbcd(buf, 8) *10;
 	orbit = getbcd(buf+4, 4) *10;
@@ -1109,12 +1128,32 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     }	
 
     case 0x7f:
-	json_object_object_add(jobj,"length",
-			       json_object_new_int(desc->len));
-	json_object_object_add(jobj,"data",
-			       dvb_data_json(desc->data, desc->len));
+    {
+	int len = desc->len;
+	uint8_t etag = buf[0];
+	switch (etag){
+	case 0x04: //T2_delivery_system_descriptor 
+	case 0x05: //SH_delivery_system_descriptor 
+	case 0x0D: //C2_delivery_system_descriptor 
+	case 0x16: //C2_bundle_delivery_system_descriptor 
+	case 0x17: //S2X_delivery_system_descriptor 
+		jobj = dvb_delsys_descriptor_json(desc);
+	    break;
+	default:
+	    json_object_object_add(jobj,"descriptor_tag_extension",
+				   json_object_new_int(etag));
+	    json_object_object_add(jobj,"type",
+				   json_object_new_string(
+				       extended_descriptor_type(etag)));
+	    json_object_object_add(jobj,"length",
+				   json_object_new_int(desc->len));
+	    json_object_object_add(jobj,"data",
+			       dvb_data_json(desc->data+1, desc->len-1));
+	    break;
+
+	}
 	break;
-	    
+    }   
 
     case 0xfb ... 0xfe:
     case 0x80 ... 0xf9: // user defined

@@ -185,6 +185,7 @@ typedef struct satellite_t{
     
 uint32_t getbcd(uint8_t *p, int l);
 const char *descriptor_type(uint8_t tag, uint32_t priv_id);
+const char *extended_descriptor_type(uint8_t tag);
 const char *service_type(uint8_t type);
 const char *stream_type(uint8_t type);
 

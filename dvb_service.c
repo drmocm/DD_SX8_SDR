@@ -151,6 +151,71 @@ const char *descriptor_type(uint8_t tag, uint32_t priv_id)
     return t;
 }
 
+const char *extended_descriptor_type(uint8_t tag)
+{    
+    const char *t = "unknown";
+    switch (tag){
+    case 0x00:
+	t = "image_icon_descriptor"; break; 
+    case 0x01:
+	t = "cpcm_delivery_signalling_descriptor"; break;
+    case 0x02:
+	t = "CP_descriptor"; break;
+    case 0x03:
+	t = "CP_identifier_descriptor"; break;
+    case 0x04:
+	t = "T2_delivery_system_descriptor"; break;
+    case 0x05:
+	t = "SH_delivery_system_descriptor"; break;
+    case 0x06:
+	t = "supplementary_audio_descriptor"; break; 
+    case 0x07:
+	t = "network_change_notify_descriptor"; break;
+    case 0x08:
+	t = "message_descriptor"; break;
+    case 0x09:
+	t = "target_region_descriptor" ; break;
+    case 0x0A:
+	t = "target_region_name_descriptor" ; break;
+    case 0x0B:
+	t = "service_relocated_descriptor" ; break;
+    case 0x0C:
+	t = "XAIT_PID_descriptor" ; break;
+    case 0x0D:
+	t = "C2_delivery_system_descriptor" ; break;
+    case 0x0E:
+	t = "DTS-HD_descriptor (Annex G)"; break; 
+    case 0x0F:
+	t = "DTS_Neural_descriptor (Annex L)"; break; 
+    case 0x10:
+	t = "video_depth_range_descriptor"; break; 
+    case 0x11:
+	t = "T2MI_descriptor"; break; 
+    case 0x12:
+	t = "reserved for future use"; break; 
+    case 0x13:
+	t = "URI_linkage_descriptor"; break; 
+    case 0x14:
+	t = "CI_ancillary_data_descriptor ([i.9])"; break; 
+    case 0x15:
+	t = "AC-4_descriptor (Annex D)"; break; 
+    case 0x16:
+	t = "C2_bundle_delivery_system_descriptor"; break; 
+    case 0x17:
+	t = "S2X_satellite_delivery_system_descriptor"; break;
+    case 0x18:
+	t = "protection_message_descriptor [48]"; break; 
+    case 0x19:
+	t = "audio_preselection_descriptor"; break; 
+    case 0x20:
+	t = "TTML_subtitling_descriptor [56]"; break; 
+    case 0x21 ... 0x7F:
+	t = "reserved for future use"; break; 
+    case 0x80 ... 0xFF:
+	t = "user defined"; break;
+    }
+    return t;
+}
 
 const char *service_type(uint8_t type)
 {
