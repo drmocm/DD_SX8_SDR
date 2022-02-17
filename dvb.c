@@ -1142,7 +1142,7 @@ static void *dvb_tune_loop(void *ptr)
 	    pthread_mutex_unlock (tdat->dev->lock);
 	}
 
-	usleep(100000);
+	usleep(500000);
 	c++;
     }
     pthread_exit(NULL);
