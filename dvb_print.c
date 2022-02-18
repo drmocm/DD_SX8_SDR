@@ -748,7 +748,79 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 			       json_object_new_string(
 				   extended_descriptor_type(etag)));
 	switch (etag){
-	case 0x04: //T2_delivery_system_descriptor 
+	case 0x04: //T2_delivery_system_descriptor
+	{
+	    uint16_t t2id = (buf[2] << 8) | buf[3];
+		
+	    json_object_object_add(jobj,"plp_id",
+				   json_object_new_int(buf[1]));
+	    json_object_object_add(jobj,"T2_system_id",
+				   json_object_new_int(t2id));
+	    if (desc->len > 4){
+		int sisomiso = (buf[4]>>6)&0x03;
+		int bandw = 8-((buf[4]>>2)&0x0F);
+		int guard = (buf[5]>>5)&0x07;
+		int trans = (buf[5]>>2)&0x07;
+		int ofreq = (buf[5]>>1)&0x01;
+		int tfs = buf[5]&0x01;
+		int c = 0;
+		
+		if (bandw == 4) bandw=10;
+		if (bandw == 3) bandw=1712;
+	    
+		json_object_object_add(jobj,"SISO/MISO",
+				       json_object_new_string((sisomiso ? "MISO":"SISO")));
+		json_object_object_add(jobj,"bandwidth",
+				       json_object_new_int(bandw));
+		json_object_object_add(jobj,"guard_interval",
+				       json_object_new_string(
+					   DVB_GUARD[guard]));
+		json_object_object_add(jobj,"transmission_mode",
+				       json_object_new_string(
+					   DVB_TRANS[trans]));
+		json_object_object_add(jobj,"other_frequency_flag",
+				       json_object_new_int(ofreq));
+		json_object_object_add(jobj,"tfs_flag",
+				       json_object_new_int(tfs));
+
+		json_object *jarray = json_object_new_array();
+		json_object *ja = json_object_new_object();
+		c =6;
+		while (c < desc->len){
+		    uint16_t cid = (buf[c] << 8) | buf[c+1];
+		    
+		    json_object_object_add(ja,"cell_id",
+					   json_object_new_int(cid));
+		    c += 2;
+		    if (tfs){
+			int llen = buf[c];
+			int cs = c+1;
+			json_object *jarrayf = json_object_new_array();
+			while (cs < llen+c){
+			    freq = (buf[cs+3]|(buf[cs+2] << 8)|(buf[cs+1] << 16)
+				    |(buf[cs] << 24))*10;
+			    json_object_array_add(jarrayf,
+						  json_object_new_int(freq));
+			    cs+=4;
+			}
+			json_object_object_add(ja, "center_frequencies", jarray);
+			c += llen+2;
+		    } else {
+			freq = (buf[c+3]|(buf[c+2] << 8)|(buf[c+1] << 16)
+				|(buf[c] << 24))*10;
+			json_object_object_add(ja,"centre_frequency",
+				       json_object_new_int(freq));
+			c+=4;
+		    }
+		    int sublen = buf[c];
+		    c+=sublen+1;
+		    json_object_array_add(jarray, ja);
+		}
+		json_object_object_add(jobj, "Cells", jarray);
+		
+	    }
+	    break;
+	}
 	case 0x05: //SH_delivery_system_descriptor 
 	case 0x0D: //C2_delivery_system_descriptor 
 	case 0x16: //C2_bundle_delivery_system_descriptor 
@@ -834,7 +906,7 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 	break;
 
     case 0x5a: // terrestrial
-	freq = (buf[5]|(buf[4] << 8)|(buf[3] << 16)|(buf[0] << 24))*10;
+	freq = (buf[3]|(buf[2] << 8)|(buf[1] << 16)|(buf[0] << 24))*10;
 	delsys = SYS_DVBT;
 	json_object_object_add(jobj,"frequency",
 			       json_object_new_int(freq));

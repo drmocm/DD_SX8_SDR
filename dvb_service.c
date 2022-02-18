@@ -788,7 +788,7 @@ descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag)
 int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
 {
     descriptor  *desc;
-    uint8_t  dtags[] ={0x43,0x44,0x5a,0xfa};
+    uint8_t  dtags[] ={0x43,0x44,0x5a,0xfa,0x7f};
     uint8_t  *bf;
 
     for (int i= 0; i < 4 ; i++){
@@ -822,6 +822,20 @@ int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans)
     case 0xfa: // isdbt
 	fe->freq = (bf[5]|(bf[4] << 8))*7000000;
 	fe->delsys = SYS_ISDBT;
+
+    case 0x7f: // extended descriptor
+	switch(bf[0]){
+	case 0x04: // T2
+	    if(desc->len < 5) return -1;
+	    fe->delsys = SYS_DVBT2;
+	    
+	    fe->freq = (bf[5]|(bf[4] << 8))*7000000;
+	    break;
+	    
+	default:
+	    return -1;
+
+	}
     }
     return 0;
 }

@@ -28,6 +28,10 @@
 #define MAXTDT  8
 #define MAXTOT  32
 
+static const char *DVB_GUARD[] = {"1/32" ,"1/16", "1/8","1/4","1/128","19/128",
+    "19/256","reserved"};
+static const char *DVB_TRANS[] = {"2k mode","8k mode","4k mode","1k mode",
+    "16k mode","32k mode","reserved","reserved"};
 static const char *DVB_POL[] = {"linear-horizontal", "linear-vertical",
     "circular-left", "circulra-right"};
 static const char *DVB_MOD[] = {"Auto", "QPSK", "8PSK", "16QAM"};
