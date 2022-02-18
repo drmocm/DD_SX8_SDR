@@ -808,7 +808,7 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 		    } else {
 			freq = (buf[c+3]|(buf[c+2] << 8)|(buf[c+1] << 16)
 				|(buf[c] << 24))*10;
-			json_object_object_add(ja,"centre_frequency",
+			json_object_object_add(ja,"center_frequency",
 				       json_object_new_int(freq));
 			c+=4;
 		    }
@@ -1133,6 +1133,37 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	*priv_id = (buf[0]<<24)|(buf[1]<<16)|(buf[2]<<8)|buf[3];
 	json_object_object_add(jobj,"private_data_specifier",
 			       json_object_new_int(*priv_id));
+	break;
+
+    case 0x62:
+	jarray = json_object_new_array();
+	int cs = 1;
+	uint32_t freq=0;
+	int ctype = buf[0]&0x03;
+	const char *ct[]={"not defined","satellite","cable","terrestrial"};
+	
+	json_object_object_add(jobj,"coding type",
+			       json_object_new_string(ct[ctype]));
+	
+	while (cs < desc->len){
+	    switch (ctype){
+	    case 1:
+		freq = getbcd(buf+cs, 8) *10;
+		break;
+	    case 2:
+	    	freq =  getbcd(buf+cs, 8)/10;
+		break;
+	    case 3:
+		freq = (buf[cs+3]|(buf[cs+2] << 8)|(buf[cs+1] << 16)
+			|(buf[cs] << 24))*10;
+		break;
+	    }
+	    json_object_array_add(jarray,
+				  json_object_new_int(freq));
+	    cs+=4;
+	}
+	json_object_object_add(jobj, "center_frequencies", jarray);
+
 	break;
 
     case 0x66:
