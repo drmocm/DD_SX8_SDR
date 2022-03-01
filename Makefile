@@ -1,5 +1,6 @@
 CFLAGS =  -g  -Wno-unused -Wall -Wno-format -O2 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -DPTHREADS
 LIBS =  -lm  -lfftw3 -ljson-c -lpthread
+STATLIBS =   -lm -ljson-c -lpthread
 DDSX8OBJ = ddsx8-spec.o numeric.o pam.o spec.o dvb.o blindscan.o iod.o
 PAMOBJ = pam_test.o pam.o
 PARAMOBJ = dd_param_zap.o dvb.o dvb_service.o dvb_print.o 
@@ -18,6 +19,9 @@ all: $(TARGETS)
 
 ddsx8-spec: $(DDSX8OBJ) $(INC)
 	$(CC) $(CFLAGS) -o ddsx8-spec $(DDSX8OBJ) $(LIBS)
+
+ddsx8-spec-stat: $(DDSX8OBJ) $(INC)
+	$(CC) $(CFLAGS) -o ddsx8-spec-stat $(DDSX8OBJ) $(STATLIBS) libfftw3.a
 
 pam_test: $(PAMOBJ) pam.h
 	$(CC) $(CFLAGS) -o pam_test $(PAMOBJ) $(LIBS)
