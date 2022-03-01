@@ -107,14 +107,13 @@ int read_spec_data(int fdin, int8_t *bufx, int8_t *bufy, int size)
     return c;
 }
 
-int spec_read_fft_data(int fdin, fftw_complex *in, int numspec)
+int spec_read_fft_data(int fdin, fftw_complex *in, int numspec, int8_t *bufx,
+    int8_t *bufy)
 {
     int c;
     double isum = 0;
     double qsum = 0;
     int bnum = (numspec/(TS_SIZE-4)+1)*(TS_SIZE-4);    
-    int8_t *bufx=(int8_t *) malloc(sizeof(int8_t)*bnum);
-    int8_t *bufy=(int8_t *) malloc(sizeof(int8_t)*bnum);
     memset(bufx,0,numspec*sizeof(int8_t));
     memset(bufy,0,numspec*sizeof(int8_t));
 
@@ -136,8 +135,6 @@ int spec_read_fft_data(int fdin, fftw_complex *in, int numspec)
     for (int i = 0; i < numspec; i++) {
 	in[i] -= CMPLX(dclevel,dclevel);
     }    
-    free(bufx);
-    free(bufy);
     return 0;
 }
 
@@ -147,6 +144,10 @@ int spec_fft(int fdin, specdata *spec, double *pow, int num)
     int maxrun= spec->maxrun;
     double *window = NULL;
     fftw_plan p;
+    int bnum = (num/(TS_SIZE-4)+1)*(TS_SIZE-4);    
+
+    int8_t *bufx=(int8_t *) malloc(sizeof(int8_t)*bnum);
+    int8_t *bufy=(int8_t *) malloc(sizeof(int8_t)*bnum);
     
     double max = 0;
     double min = 0;
@@ -159,7 +160,7 @@ int spec_fft(int fdin, specdata *spec, double *pow, int num)
     p = fftw_plan_dft_1d(num, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
     int count = 0;
     for (int i = 0; count < maxrun; i++){
-	if ( spec_read_fft_data(fdin,in,num) < 0) return -1;
+	if ( spec_read_fft_data(fdin,in,num,bufx,bufy) < 0) return -1;
 	if (window){
 	    for (int i = 0; i < num; i += 1)
 	    {
@@ -171,6 +172,8 @@ int spec_fft(int fdin, specdata *spec, double *pow, int num)
     }
     fftw_destroy_plan(p);
     
+    free(bufx);
+    free(bufy);
     fftw_free(in);
     free(window);
 	
