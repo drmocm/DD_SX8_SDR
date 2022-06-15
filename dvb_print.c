@@ -1262,6 +1262,9 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x80 ... 0xf9: // user defined
 	switch (*priv_id){
 	case NORDIG:
+	    json_object_object_add(jobj,"private_id",
+			       json_object_new_string("NORDIG"));
+	
 	    switch (desc->tag){
 	    case 0x83:
 	    case 0x87:
