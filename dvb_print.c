@@ -731,6 +731,11 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
     uint8_t fec;
     uint8_t east;
     uint8_t roll;
+    uint8_t bandwidth;
+    uint8_t code;
+    uint8_t hiera;
+    uint8_t guard;
+    uint8_t trans;
 
     json_object *jobj = json_object_new_object();
     json_object_object_add(jobj,"tag",
@@ -906,10 +911,38 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 	break;
 
     case 0x5a: // terrestrial
-	freq = (buf[3]|(buf[2] << 8)|(buf[1] << 16)|(buf[0] << 24))*10;
 	delsys = SYS_DVBT;
-	json_object_object_add(jobj,"frequency",
+	freq = (buf[3]|(buf[2] << 8)|(buf[1] << 16)|(buf[0] << 24))*10;
+	bandwidth = (buf[4] & 0xE0) >> 5;
+	mod = (buf[5] & 0xD0) >> 6;
+	hiera = (buf[5] & 0x38) >> 3;
+	code = (buf[5] & 0x07);
+	guard =(buf[6] & 0x18)>>3 ;
+	trans = (buf[6] & 0x06)>>1 ;
+	json_object_object_add(jobj,"central_frequency",
 			       json_object_new_int(freq));
+	json_object_object_add(jobj,"bandwidth",
+			       json_object_new_string(DVBT_BAND[bandwidth]));	
+	json_object_object_add(jobj,"constellation",
+			       json_object_new_string(DVBT_CONST[mod]));
+	json_object_object_add(jobj,"hierachy",
+			       json_object_new_string(DVBT_HIERA[hiera]));
+	if (hiera>0) {
+	    json_object_object_add(jobj,"HP",
+				   json_object_new_string(DVBT_CODE[code]));
+	    json_object_object_add(jobj,"LP",
+				   json_object_new_string(DVBT_CODE[code]));
+	} else {
+	    json_object_object_add(jobj,"code_rate",
+				   json_object_new_string(DVBT_CODE[code]));
+	}
+	json_object_object_add(jobj,"guard_interval",
+				   json_object_new_string(DVBT_GUARD[guard]));
+	json_object_object_add(jobj,"transmission_mode",
+				   json_object_new_string(DVBT_TRANS[trans]));
+	json_object_object_add(jobj,"other frequencies",
+			       json_object_new_int(buf[7]&0x01));
+ 
 	break;
 
     case 0xfa: // isdbt

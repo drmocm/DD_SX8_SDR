@@ -40,8 +40,13 @@ static const char *DVB_MODC[] ={"not defined","16-QAM","32-QAM","64-QAM",
 static const double DVB_roff[] ={0.25, 0.35, 0.20, 0};
 static const char *DVB_FECO[] ={"not defined","no outer FEC coding",
     "RS(204/188)","reserved"};
-static const char *DVB_FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9",
-    "3/5","4/5","9/10","reserved","no conv. coding"};
+static const char *DVBT_BAND[] ={"8MHZ","7MHZ","6Mhz","reserved"};
+static const char *DVBT_CONST[] ={"QPSK","16-QAM","64-QAM","reserved"};
+static const char *DVBT_CODE[] ={"1/2" ,"2/3", "3/4","5/6","7/8","reserved","reserved"};
+static const char *DVBT_GUARD[] ={"1/32" ,"1/16", "1/8","1/4"};
+static const char *DVBT_HIERA[] ={"non-hierarchical" ,"alpah=1", "alpha=2","alpha=4"};
+static const char *DVBT_TRANS[] ={"2K","8K","reserved"};
+static const char *DVB_FEC[] ={"not defined", "1/2" ,"2/3", "3/4","5/6","7/8","8/9","3/5","4/5","9/10","reserved","no conv. coding"};
 
 static const char *DVB_H[] = {
     "reserved",
