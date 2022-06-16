@@ -941,7 +941,7 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 	json_object_object_add(jobj,"transmission_mode",
 				   json_object_new_string(DVBT_TRANS[trans]));
 	json_object_object_add(jobj,"other frequencies",
-			       json_object_new_int(buf[7]&0x01));
+			       json_object_new_int(buf[6]&0x01));
  
 	break;
 
