@@ -193,6 +193,7 @@ set all the parameters by hand, i.e.
 	-u           : use hi band of LNB
 	-D           : use 1s delay to wait for LNB power up
 	-U type      : lnb is unicable type (1: EN 50494, 2: TS 50607
+                   3: Inverto LNB of type 2 with 32 pre-programmed slots)
     -j slot      : slot s ( default slot 1)
     -J freq      : freq (default 1210 MHz)
 
