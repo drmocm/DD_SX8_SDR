@@ -439,7 +439,9 @@ static int set_en50494(int fd, uint32_t freq, uint32_t sr,
                 (slot << 5) | ((lnb & 0x3f) ? 0x10 : 0) | (band ? 4 : 0) | (hor ? 8 : 0);
         cmd.msg[4] = t & 0xff;
 
-        set_property(fd, DTV_INPUT, input);
+        if (set_property(fd, DTV_INPUT, input)== -1){
+	    err( "FE_SET_PROPERTY dtv input returned -1\n");
+	}
         if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
                 perror("FE_SET_TONE failed");
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
@@ -476,7 +478,10 @@ static int set_en50607(int fd, uint32_t freq, uint32_t sr,
         cmd.msg[2] = (t & 0xff);
         cmd.msg[3] = ((lnb & 0x3f) << 2) | (hor ? 2 : 0) | (band ? 1 : 0);
 
-        set_property(fd, DTV_INPUT, input);
+        if (set_property(fd, DTV_INPUT, input)== -1){
+	    err( "FE_SET_PROPERTY dtv input returned -1\n");
+	}
+
         if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
                 perror("FE_SET_TONE failed");
         if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
@@ -512,7 +517,9 @@ int tune_sat(int fd, int type, uint32_t freq,
 {
 //    err( "tune_sat IF=%u scif_type=%d pol=%d band %d lofs %d lof1 %d lof2 %d slot %d\n", freq, type,pol,hi,lofs,lof1,lof2,scif_slot);
 
-    set_property(fd, DTV_INPUT, input);
+    if (set_property(fd, DTV_INPUT, input)== -1){
+	err( "FE_SET_PROPERTY dtv input returned -1\n");
+    }
 	
     if (freq > 3000000) {
 	if (lofs)
@@ -581,13 +588,15 @@ int tune_c(int fd, uint32_t freq, uint32_t bandw, uint32_t sr,
     struct dtv_properties c;
         int ret;
 //        err( "tune_c()\n");
-        set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
-
+	if (set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A)== -1){
+	    err( "FE_SET_PROPERTY delsys dvbc returned -1\n");
+	}
         c.num = ARRAY_SIZE(p);
         c.props = p;
         ret = ioctl(fd, FE_SET_PROPERTY, &c);
         if (ret < 0) {
-                err( "FE_SET_PROPERTY returned %d\n", ret);
+	    err( "FE_SET_PROPERTY dvbc returned %d %s\n", ret, strerror(errno));
+
                 return -1;
         }
         return 0;
@@ -610,13 +619,15 @@ int tune_terr(int fd, uint32_t freq, uint32_t bandw)
     struct dtv_properties c;
     int ret;
     
-    set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT);
+    if (set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT) == -1){
+	err( "FE_SET_PROPERTY delsys dvbt returned -1\n");
+    }
 
     c.num = ARRAY_SIZE(p);
     c.props = p;
     ret = ioctl(fd, FE_SET_PROPERTY, &c);
     if (ret < 0) {
-	err("FE_SET_PROPERTY returned %d\n", ret);
+	err("FE_SET_PROPERTY dvbt returned %d %s\n", ret,strerror(errno));
 	return -1;
     }
     return 0;
@@ -640,13 +651,16 @@ int tune_terr2(int fd, uint32_t freq, uint32_t bandw)
     struct dtv_properties c;
     int ret;
 
-    set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT2);
+    if (set_property(fd, DTV_DELIVERY_SYSTEM, SYS_DVBT2) == -1){
+	err( "FE_SET_PROPERTY delsys dvbt2 returned -1\n");
+    }
     
     c.num = ARRAY_SIZE(p);
     c.props = p;
     ret = ioctl(fd, FE_SET_PROPERTY, &c);
     if (ret < 0) {
-	err("FE_SET_PROPERTY returned %d\n", ret);
+	err("FE_SET_PROPERTY dvbt2 returned %d %s\n", ret, strerror(errno));
+
 	return -1;
     }
     return 0;
@@ -669,13 +683,16 @@ int tune_isdbt(int fd, uint32_t freq, uint32_t bandw)
         struct dtv_properties c;
         int ret;
 
-        set_property(fd, DTV_DELIVERY_SYSTEM, SYS_ISDBT);
+	if (set_property(fd, DTV_DELIVERY_SYSTEM, SYS_ISDBT) == -1){
+	    err( "FE_SET_PROPERTY delsys isdbt returned -1\n");
+	}
 
         c.num = ARRAY_SIZE(p);
         c.props = p;
         ret = ioctl(fd, FE_SET_PROPERTY, &c);
         if (ret < 0) {
-	    err("FE_SET_PROPERTY returned %d\n", ret);
+	    err("FE_SET_PROPERTY isdbt returned %d %s\n", ret,strerror(errno));
+
                 return -1;
         }
         return 0;
