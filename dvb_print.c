@@ -742,6 +742,8 @@ json_object *dvb_delsys_descriptor_json(descriptor *desc)
 			   json_object_new_int(desc->tag));
     json_object_object_add(jobj,"type",
 			   json_object_new_string(descriptor_type(desc->tag,0)));
+    json_object_object_add(jobj,"length",
+			   json_object_new_int(desc->len));
 
     switch(desc->tag){
     case 0x7f: //T2_delivery_system_descriptor
@@ -970,6 +972,9 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
 			   json_object_new_int(desc->tag));
     json_object_object_add(jobj,"type", json_object_new_string(
 			       "Linkage descriptor"));
+    json_object_object_add(jobj,"length",
+			   json_object_new_int(desc->len));
+
     tsid = (buf[0] << 8) | buf[1];
     onid = (buf[2] << 8) | buf[3];
     sid = (buf[4] << 8) | buf[5];
@@ -1042,6 +1047,9 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     json_object_object_add(jobj,"type",
 			   json_object_new_string(descriptor_type(desc->tag,
 								  *priv_id)));
+    json_object_object_add(jobj,"length",
+			   json_object_new_int(desc->len));
+
     switch(desc->tag){
     case 0x00:
     case 0x01:
@@ -1393,6 +1401,9 @@ json_object *dvb_stream_json(pmt_stream *stream)
     json_object_object_add(jobj, "stream_type",
 			   json_object_new_string(
 			       stream_type(stream->stream_type)));
+    json_object_object_add(jobj,"ES_info_length",
+			   json_object_new_int(stream->ES_info_length));
+
     if (stream->desc_num){
 	dvb_descriptor_json_array_add(jobj, "descriptors",
 				      stream->descriptors, stream->desc_num);
@@ -1410,6 +1421,9 @@ json_object *dvb_pmt_json(PMT *pmt)
 			   json_object_new_int(pmt->pmt->id));
     json_object_object_add(jobj, "PCR_PID",
 			   json_object_new_int(pmt->PCR_PID));
+
+    json_object_object_add(jobj, "program_info_length",
+			   json_object_new_int(pmt->program_info_length));
 
     if (pmt->desc_num) {
 	dvb_descriptor_json_array_add(jobj, "program info descriptors",
