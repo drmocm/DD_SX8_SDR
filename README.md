@@ -175,6 +175,7 @@ set all the parameters by hand, i.e.
 
 `./dd_param_zap -f 12188000 -s 27500000 -p h -U 2 -j 1 1210 -i 2 1420000 -l 1170000 9750000 10600000`
 
+`./dd_param_zap -d C -f 130000 -s 6900000  -a 1 -e 1`
 
 	TUNING OPTIONS:
 	-d delsys    : the delivery system 
