@@ -3,6 +3,8 @@
 #define WIDTH  320
 #define HEIGHT 240
 
+// #define WITH_FB 
+
 void test_bitmap()
 {
     uint8_t R = 255;
@@ -11,22 +13,33 @@ void test_bitmap()
     int x = WIDTH/2;
     int y = HEIGHT/2;
     bitmap *bm;
-    bm = init_bitmap_fb(1);
+
+#ifdef WITH_FB
+    bm = init_bitmap_fb(0);
+#else
+    bm = init_bitmap(WIDTH, HEIGHT,3 );
+#endif
     clear_bitmap(bm);
     for (int t= 0; t <100;t++){
 //    circle(bm, x, y, 250, R, G, B);
 	for (int i=20; i <40; i++){
 	    squircle(bm, x, y, 100, 75, i/10.0, R, G, B);
 	    //  ellipse(bm, x, y, 250, 300, R, G, B);
-//	    write_pam(STDOUT_FILENO, bm);
+#ifdef WITH_FB
 	    write_fb(bm);
+#else
+	    write_pam(STDOUT_FILENO, bm);
+#endif
 	    clear_bitmap(bm);
 	}
 	for (int i=40; i >20; i--){
 	    squircle(bm, x, y, 100, 75, i/10.0, R, G, B);
 	    //  ellipse(bm, x, y, 250, 300, R, G, B);
-//	    write_pam(STDOUT_FILENO, bm);
+#ifdef WITH_FB
 	    write_fb(bm);
+#else
+	    write_pam(STDOUT_FILENO, bm);
+#endif
 	    clear_bitmap(bm);
 	}
     }
@@ -82,7 +95,7 @@ int main(int argc, char **argv)
 
     test_bitmap();
 
-#if 0
+#if WITH_FB
     
     // Open the file for reading and writing
     fbfd = open("/dev/fb1", O_RDWR);

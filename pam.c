@@ -87,7 +87,8 @@ void plotline(bitmap *bm, int x, int y, int x2, int y2,
 	if (x > x2) neg = -d;
 	else neg = d;
     }
-
+    int maxx = 3*height*width-1;
+    if (start < 0 || stop < 0 || start > maxx || stop > maxx) return;
     int fac = 0;
     for (int i=start; i != stop; i += step){
 	int k = i+fac;
@@ -451,7 +452,12 @@ bitmap *init_bitmap_fb(int devnum)
 
     depth = 3;
     sprintf(name, "/dev/fb%u", devnum);
-    fbfd = open("/dev/fb1", O_RDWR);
+    printf("Open %s\n",name);
+    if (devnum < 0 || devnum > 10){
+        perror("Error: cannot open framebuffer device");
+        exit(1);
+    } 
+    fbfd = open(name, O_RDWR);
     if (fbfd == -1) {
         perror("Error: cannot open framebuffer device");
         exit(1);
@@ -503,11 +509,11 @@ void delete_bitmap(bitmap *bm)
 	exit(1);
     }
     free (bm->data);
-    free (bm);
     if (bm->fbp){
 	munmap(bm->fbp, bm->screensize);
 	close(bm->fbfd);
     }
+    free (bm);
 }
 
 void init_graph(graph *g, bitmap *bm, double xmin, double xmax,
