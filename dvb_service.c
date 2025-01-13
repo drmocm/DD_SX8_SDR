@@ -271,7 +271,7 @@ const char *stream_type(uint8_t type)
     case 0x03: t = "audio MPEG1"; break;
     case 0x04: t = "audio MPEG2"; break;
     case 0x05: t = "MPEG-2 private data"; break;
-    case 0x06: t = "MPEG-2 packetized data (subtitles)"; break;
+    case 0x06: t = "MPEG-2 packetized private data"; break;
     case 0x07: t = "MHEG"; break;
     case 0x08: t = "ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Annex A DSM-CC"; break;
     case 0x09: t = "ITU-T Rec. H.222.1"; break;

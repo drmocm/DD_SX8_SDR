@@ -1616,6 +1616,11 @@ json_object *dvb_service_json(service *serv)
 			   json_object_new_int(stream->stream_type));
 		json_object_object_add(jp,"type",json_object_new_string(
 					   stream_type(stream->stream_type)));
+		if (stream->desc_num){
+		    dvb_descriptor_json_array_add(jp, "descriptors",
+						  stream->descriptors, stream->desc_num);
+		}
+		
 		json_object_array_add (jarray,jp);
 	    }
 	}
