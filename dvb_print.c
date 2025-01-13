@@ -1591,6 +1591,7 @@ json_object *dvb_service_json(service *serv)
     uint32_t p;
     
     json_object_object_add(jobj,"id", json_object_new_int(serv->id));
+    json_object_object_add(jobj,"pmt pid", json_object_new_int(serv->pmt_pid));
     if (serv->sdt_service){
 	for (int j = 0; j< serv->sdt_service->desc_num; j++){
 	    descriptor *desc = serv->sdt_service->descriptors[j];

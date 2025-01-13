@@ -155,6 +155,7 @@ typedef struct service_t{
     struct tranport_t *trans;
     sdt_service *sdt_service;
     PMT **pmt;
+    uint16_t pmt_pid;
 } service;
 
 typedef struct tranport_t{

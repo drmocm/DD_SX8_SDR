@@ -920,6 +920,7 @@ int get_all_services(transport *trans, dvb_devices *dev)
 			if (trans->pat[n]->program_number[i] ==
 			    trans->serv[k].id){
 			    trans->serv[k].pmt = pmt;
+			    trans->serv[k].pmt_pid = pid;
 			    found = 1;
 			    break;
 			}
@@ -928,6 +929,7 @@ int get_all_services(transport *trans, dvb_devices *dev)
 			trans->serv[nserv+j].id =
 			    trans->pat[n]->program_number[i];
 			trans->serv[nserv+j].pmt = pmt;
+			trans->serv[nserv+j].pmt_pid = pid;
 			j++;
 		    }
 		}
