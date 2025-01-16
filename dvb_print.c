@@ -623,6 +623,25 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 	break;
 
     case 0x6a:
+ 	int c = 0;
+	int len = desc->len;
+	uint8_t flags = buf[c];
+	c++;
+	if (flags & 0x80){ //component_type_flag
+	    c++;
+	}
+	if (flags & 0x40){ //bsid_flag
+	    c++;
+	}
+	if (flags & 0x20){ //mainid_flag
+	    c++;
+	}
+	if (flags & 0x10){ //asvc_flag
+	    c++;
+	}
+	if (c<len){ //additional info
+	}
+	
 	break;
 
     case 0x6c:
@@ -679,12 +698,28 @@ uint32_t dvb_print_descriptor(int fd, descriptor *desc, char *s,
 }
 
 
+static json_object *dvb_data_hex_json(uint8_t *data, int len)
+{
+    int slen = len*5+4;
+    char *hex_string;
+    char *s;
+    
+    hex_string = malloc(slen);
+    s=hex_string;
+    for (int l=0;l<len;l++){
+	snprintf(s,6,"0x%02x ",data[l]);
+	s+=5;
+    }
+//   fprintf(stderr,"%s\n",hex_string);
+    return json_object_new_string_len(hex_string,strlen(hex_string));
+}
+
 static json_object *dvb_data_json(uint8_t *data, int len)
 {
     int olen = 0;
     char *sdata = base64_encode(data, len,&olen);
 
-    return json_object_new_string_len(sdata,len);
+    return json_object_new_string_len(sdata,olen);
 }
 
 json_object *dvb_section_json(section *sec, int d)
@@ -701,8 +736,10 @@ json_object *dvb_section_json(section *sec, int d)
     json_object_object_add(jobj,"length",
 			   json_object_new_int(sec->section_length));
     if(d) {
-	json_object_object_add(jobj,"data",
+	json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(sec->data, sec->section_length));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(sec->data, sec->section_length));
     }
     if (sec->section_syntax_indicator){
 	json_object_object_add(jobj, "section_number",
@@ -1026,8 +1063,10 @@ json_object *dvb_linkage_descriptor_json(descriptor *desc)
     if (length){
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(length));
-	json_object_object_add(jobj,"data",
+	json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(buf, length));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(buf, length));
     }
     return jobj;
 }
@@ -1055,8 +1094,10 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x01:
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
-	json_object_object_add(jobj,"data",
+	json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
 	break;
     case 0x02:
 	break;	
@@ -1073,9 +1114,15 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x08:
 	break;	
     case 0x09:
-	break;	
+	break;
     case 0x0a:
-	break;	
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	json_object_object_add(jobj,"data_base64",
+			       dvb_data_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
+	break;
     case 0x0b:
 	break;	
     case 0x0c:
@@ -1087,6 +1134,12 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x0f:
 	break;	
     case 0x10:
+	json_object_object_add(jobj,"length",
+			       json_object_new_int(desc->len));
+	json_object_object_add(jobj,"data_base64",
+			       dvb_data_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
 	break;	
     case 0x11:
 	break;	
@@ -1095,8 +1148,10 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     case 0x13 ... 0x3F:
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
-	json_object_object_add(jobj,"data",
+	json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
 	break;	
     case 0x40:// network_name_descriptor
 	if ((name = dvb_get_name(buf,desc->len))){
@@ -1211,6 +1266,30 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	break;
 
     case 0x6a:
+ 	int c = 0;
+	int len = desc->len;
+	jarray = json_object_new_array();
+	uint8_t flags = buf[c];
+	c++;
+	if (flags & 0x80){ //component_type_flag
+	    c++;
+	}
+	if (flags & 0x40){ //bsid_flag
+	    c++;
+	}
+	if (flags & 0x20){ //mainid_flag
+	    c++;
+	}
+	if (flags & 0x10){ //asvc_flag
+	    c++;
+	}
+	if (c<len){ //additional info
+	}
+	json_object_object_add(jobj,"data_base64",
+			       dvb_data_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
+		
 	break;
 	
     case 0x6c:
@@ -1291,8 +1370,10 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 				       extended_descriptor_type(etag)));
 	    json_object_object_add(jobj,"length",
 				   json_object_new_int(desc->len));
-	    json_object_object_add(jobj,"data",
+	    json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(desc->data+1, desc->len-1));
+	    json_object_object_add(jobj,"data_hex",
+				   dvb_data_hex_json(desc->data, desc->len));
 	    break;
 
 	}
@@ -1326,7 +1407,9 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	    default:
 		json_object_object_add(jobj,"length",
 				       json_object_new_int(desc->len));
-		json_object_object_add(jobj,"data",
+		json_object_object_add(jobj,"data_hex",
+				       dvb_data_hex_json(desc->data, desc->len));
+		json_object_object_add(jobj,"data_base64",
 				       dvb_data_json(desc->data, desc->len));
 		break;
 	    }
@@ -1335,7 +1418,9 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
 	default:
 	    json_object_object_add(jobj,"length",
 				   json_object_new_int(desc->len));
-	    json_object_object_add(jobj,"data",
+	    json_object_object_add(jobj,"data_hex",
+				   dvb_data_hex_json(desc->data, desc->len));
+	    json_object_object_add(jobj,"data_base64",
 				   dvb_data_json(desc->data, desc->len));
 	    break;
 }
@@ -1343,7 +1428,9 @@ json_object *dvb_descriptor_json(descriptor *desc, uint32_t *priv_id)
     default:
 	json_object_object_add(jobj,"length",
 			       json_object_new_int(desc->len));
-	json_object_object_add(jobj,"data",
+	json_object_object_add(jobj,"data_hex",
+			       dvb_data_hex_json(desc->data, desc->len));
+	json_object_object_add(jobj,"data_base64",
 			       dvb_data_json(desc->data, desc->len));
 	break;
 	
