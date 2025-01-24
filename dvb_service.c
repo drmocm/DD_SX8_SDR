@@ -972,6 +972,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		err("Could not set frontend\n");
 		exit(1);
 	    }
+	    err("Getting Transport:\n");
 	    if (freq != fe->freq){
 		int lock = dvb_tune(dev, fe, lnb, 1);
 		if (lock == 1){ 
@@ -1068,21 +1069,21 @@ void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
     lock = dvb_tune(dev, &trans->fe, lnb, 1);
     trans->lock = lock;
     if (lock == 1){ 
-//	err("  getting SDT\n");
+	err("  getting SDT\n");
 	if (!(trans->sdt = get_all_sdts(dev))){
 	    err("SDT not found\n");
 	    trans->nsdt = 0;
 	} else {
 	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
 	}
-//	err("  getting PAT\n");
+	err("  getting PAT\n");
 	if (!(trans->pat = get_all_pats(dev))){
 	    err("PAT not found\n");
 	    trans->npat = 0;
 	} else {
 	    trans->npat = trans->pat[0]->pat->last_section_number+1;
 	}
-//	err("  getting PMTs\n");
+	err("  getting PMTs\n");
 	trans->nserv = get_all_services(trans, dev);
     }
 }

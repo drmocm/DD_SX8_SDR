@@ -1024,7 +1024,7 @@ pthread_mutex_t *dvb_add_lock(dvb_devices *dev)
 }
 
 
-#define DB 0
+#define DB 1
 int dvb_tune(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int waitlock)
 {
     int re = 0;
