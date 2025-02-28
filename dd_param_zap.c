@@ -130,7 +130,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 	err("NIT not found\n");
 	return NULL;
     }
-    err("Satrting Scan:\n");
+    err("Starting Scan:\n");
 
     n = nits[0]->nit->last_section_number+1;
 
