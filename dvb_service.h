@@ -210,11 +210,11 @@ PMT *dvb_get_pmt(uint8_t *buf, section *sec);
 NIT  *dvb_get_nit(uint8_t *buf, section *sec);
 SDT *dvb_get_sdt(uint8_t *buf, section *sec);
 
-section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id);
-PAT  **get_all_pats(dvb_devices *dev);
-PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid);
-NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id);
-SDT  **get_all_sdts(dvb_devices *dev);
+section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id, int timeout);
+PAT  **get_all_pats(dvb_devices *dev, int timeout);
+PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid, int timeout);
+NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id, int timeout);
+SDT  **get_all_sdts(dvb_devices *dev, int timeout);
 
 nit_transport *dvb_get_nit_transport(uint8_t *buf);
 sdt_service *dvb_get_sdt_service(uint8_t *buf);
@@ -222,12 +222,12 @@ descriptor *dvb_get_descriptor(uint8_t *buf);
 
 descriptor  *dvb_find_descriptor(descriptor **descs, int ndesc, uint8_t tag);
 int set_frontend_with_transport(dvb_fe *fe, nit_transport *trans);
-int get_all_services(transport *trans, dvb_devices *dev);
-NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb);
+int get_all_services(transport *trans, dvb_devices *dev, int timeout);
+NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int timeout);
 void dvb_sort_sat(satellite *sat);
-void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans);
+void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans, int timeout);
 int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
-			  int m, pthread_mutex_t *lock);
+			  int m, pthread_mutex_t *lock, int timeout);
 
 #endif
 

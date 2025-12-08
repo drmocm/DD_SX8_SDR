@@ -108,7 +108,7 @@ int tune_terr2(int fd, uint32_t freq, uint32_t bandw);
 int tune_isdbt(int fd, uint32_t freq, uint32_t bandw);
 void stop_dmx( int fd );
 int read_section_from_dmx(int fd, uint8_t *buf, int max,
-			  uint16_t pid, uint8_t table_id, uint32_t secnum);
+			  uint16_t pid, uint8_t table_id, uint32_t secnum, int timeout);
 int set_dmx_section_filter(int fd, uint16_t pid, uint8_t tid, uint32_t ext,
 			   uint32_t ext_mask, uint32_t ext_nmask);
 int open_dmx_section_filter(int adapter, int num, uint16_t pid, uint8_t tid,

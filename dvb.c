@@ -222,11 +222,12 @@ int set_fe_input(int fd, uint32_t fr,
 }
 
 int read_section_from_dmx(int fd, uint8_t *buf, int max,
-			  uint16_t pid, uint8_t table_id, uint32_t secnum)
+			  uint16_t pid, uint8_t table_id, uint32_t secnum, int timeout)
 {
     struct pollfd ufd;
     int len = 0;
     int re = 0;
+    if (!timeout) timeout=5000;
     
     stop_dmx(fd);
     if (set_dmx_section_filter(fd ,pid , table_id, secnum, 0x000000FF,0) < 0){
@@ -235,7 +236,7 @@ int read_section_from_dmx(int fd, uint8_t *buf, int max,
     }
     ufd.fd=fd;
     ufd.events=POLLPRI;
-    if (poll(&ufd,1,5000) <= 0 ) {
+    if (poll(&ufd,1,timeout) <= 0 ) {
 	err("TIMEOUT on read from demux\n");
 	return 0;
     }

@@ -398,7 +398,7 @@ section *dvb_get_section(uint8_t *buf)
     return sec;
 }
 
-section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
+section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id, int timeout)
 {
     uint8_t sec_buf[4096];
     int fdmx;
@@ -407,7 +407,7 @@ section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
     section **sec;
     uint16_t len = 0;
     
-    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,  table_id, 0))
+    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,  table_id, 0, timeout))
 	return NULL;
 
     
@@ -423,7 +423,7 @@ section **get_all_sections(dvb_devices *dev, uint16_t pid, uint8_t table_id)
     sec[0] = sec1;
     if (nsec){
 	for (int i=1; i < nsec+1; i++){
-	    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,					   table_id, (uint32_t)i))
+	    if(!read_section_from_dmx(dev->fd_dmx, sec_buf, 4096, pid,					   table_id, (uint32_t)i, timeout))
 		return NULL;
 	    sec[i] = dvb_get_section(sec_buf);
 	}
@@ -692,14 +692,14 @@ NIT  *dvb_get_nit(uint8_t *buf, section *sec)
 
 }
 
-PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid)
+PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid, int timeout)
 {
     int n = 0;
     int re = 0;
     section **sec=NULL;
     PMT **pmts;
     
-    if (!(sec =  get_all_sections(dev, pid, 0x02))) return NULL;
+    if (!(sec =  get_all_sections(dev, pid, 0x02,timeout))) return NULL;
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pmts = (PMT **)malloc(n*sizeof(PMT*)))){
@@ -713,14 +713,14 @@ PMT  **get_all_pmts(dvb_devices *dev, uint16_t pid)
     return pmts;
 }
 
-PAT  **get_all_pats(dvb_devices *dev)
+PAT  **get_all_pats(dvb_devices *dev, int timeout)
 {
     int n = 0;
     int re = 0;
     section **sec=NULL;
     PAT **pats;
     
-    if (!(sec =  get_all_sections(dev, 0x00, 0x00))) return NULL;
+    if (!(sec =  get_all_sections(dev, 0x00, 0x00, timeout))) return NULL;
     n = sec[0]->last_section_number+1;
     if (n){
 	if (!(pats = (PAT **)malloc(n*sizeof(PAT*)))){
@@ -734,14 +734,14 @@ PAT  **get_all_pats(dvb_devices *dev)
     return pats;
 }
 
-NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id)
+NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id, int timeout)
 {
     int nnit = 0;
     int re = 0;
     section **sec=NULL;
     NIT **nits;
     
-    if (!(sec =  get_all_sections(dev, 0x10, table_id))) return NULL;
+    if (!(sec =  get_all_sections(dev, 0x10, table_id, timeout))) return NULL;
     nnit = sec[0]->last_section_number+1;
     if (nnit){
 	if (!(nits = (NIT **)malloc(nnit*sizeof(NIT*)))){
@@ -755,14 +755,14 @@ NIT  **get_all_nits(dvb_devices *dev, uint8_t table_id)
     return nits;
 }
 
-SDT  **get_all_sdts(dvb_devices *dev)
+SDT  **get_all_sdts(dvb_devices *dev, int timeout)
 {
     int nsdt = 0;
     int re = 0;
     section **sec=NULL;
     SDT **sdts;
     
-    if (!(sec =  get_all_sections(dev, 0x11, 0x42))) return NULL;
+    if (!(sec =  get_all_sections(dev, 0x11, 0x42, timeout))) return NULL;
     nsdt = sec[0]->last_section_number+1;
     if (nsdt){
 	if (!(sdts = (SDT **)malloc(nsdt*sizeof(NIT*)))){
@@ -871,7 +871,7 @@ static nit_transport *find_nit_transport(NIT **nits, uint16_t tsid)
     return NULL;
 }
 
-int get_all_services(transport *trans, dvb_devices *dev)
+int get_all_services(transport *trans, dvb_devices *dev, int timeout)
 {
     int sdt_snum=0;
     int pat_snum=0;
@@ -913,7 +913,7 @@ int get_all_services(transport *trans, dvb_devices *dev)
 	    int npmt = 0;
 	    uint16_t pid = trans->pat[n]->pid[i];
 	    if (trans->pat[n]->program_number[i]) {
-		PMT  **pmt = get_all_pmts(dev, pid);
+		PMT  **pmt = get_all_pmts(dev, pid, timeout);
 		if (pmt){
 		    int found =0;
 		    for (int k = 0; k < nserv; k++){
@@ -942,7 +942,7 @@ int get_all_services(transport *trans, dvb_devices *dev)
 }
 
 
-NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
+NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int timeout)
 {
     NIT **nits = NULL;
     int n = 0;
@@ -950,7 +950,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
     descriptor *desc = NULL;
     uint16_t tsid = 0;
 
-    if (!(nits = get_all_nits(dev, 0x40))) return NULL;
+    if (!(nits = get_all_nits(dev, 0x40, timeout))) return NULL;
     n = nits[0]->nit->last_section_number+1;
 
     for (int i=0; i<n; i++){    // look for linkage to full NIT
@@ -979,7 +979,7 @@ NIT **get_full_nit(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb)
 		    for (int i=0; i < n; i++){
 			dvb_delete_nit(nits[i]);
 		    }
-		    if (!(nits = get_all_nits(dev, 0x40))) return NULL;
+		    if (!(nits = get_all_nits(dev, 0x40, timeout))) return NULL;
 		    n = nits[0]->nit->last_section_number+1;
 		}
 	    }
@@ -1063,28 +1063,28 @@ void dvb_sort_sat(satellite *sat)
     }
 }
 
-void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans)
+void scan_transport(dvb_devices *dev, dvb_lnb *lnb, transport *trans, int timeout)
 {
     int lock = 0;
     lock = dvb_tune(dev, &trans->fe, lnb, 1);
     trans->lock = lock;
     if (lock == 1){ 
 	err("  getting SDT\n");
-	if (!(trans->sdt = get_all_sdts(dev))){
+	if (!(trans->sdt = get_all_sdts(dev, timeout))){
 	    err("SDT not found\n");
 	    trans->nsdt = 0;
 	} else {
 	    trans->nsdt = trans->sdt[0]->sdt->last_section_number+1;
 	}
 	err("  getting PAT\n");
-	if (!(trans->pat = get_all_pats(dev))){
+	if (!(trans->pat = get_all_pats(dev,timeout))){
 	    err("PAT not found\n");
 	    trans->npat = 0;
 	} else {
 	    trans->npat = trans->pat[0]->pat->last_section_number+1;
 	}
 	err("  getting PMTs\n");
-	trans->nserv = get_all_services(trans, dev);
+	trans->nserv = get_all_services(trans, dev, timeout);
     }
 }
 
@@ -1093,6 +1093,7 @@ struct scan_thread_t
     dvb_devices *dev;
     dvb_lnb *lnb;
     transport *trans;
+    int to;
 };
 
 static void *start_scan_thread(void *ptr)
@@ -1101,8 +1102,8 @@ static void *start_scan_thread(void *ptr)
     dvb_devices *dev = scant->dev;
     dvb_lnb *lnb = scant->lnb;
     transport *trans = scant->trans;
-    
-    scan_transport(dev, lnb, trans);
+    int timeout = scant->to;
+    scan_transport(dev, lnb, trans, timeout);
 
     if (dev->fd_fe  >=0) close(dev->fd_fe);
     if (dev->fd_dvr >=0) close(dev->fd_dvr);
@@ -1115,7 +1116,7 @@ static void *start_scan_thread(void *ptr)
 }
 
 int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
-			  int m, pthread_mutex_t *lock)
+			  int m, pthread_mutex_t *lock, int timeout)
 {
     struct scan_thread_t *scant = (struct scan_thread_t *)
 	malloc(sizeof(struct scan_thread_t));
@@ -1138,6 +1139,7 @@ int thread_scan_transport(int adapter, dvb_lnb *lnb, transport *trans,
     dev->num = m;
     dev->adapter = adapter;
     dev->lock = lock;
+    scant->to = timeout;
     if ( (dev->fd_fe = open_fe(dev->adapter, dev->num)) < 0){
 	return -1;
     }

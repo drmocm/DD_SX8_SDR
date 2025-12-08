@@ -36,12 +36,13 @@ void print_help()
 	    " -F           : do full NIT scan\n"
 	    " -C           : keep device open and check strength\n"
 	    " -o filename  : output filename\n"
+	    " -T t         : t in msec (default 5000) timeout for section filter\n"
 	    " -h           : this help message\n\n"
 	);
 }
 
 int parse_args(int argc, char **argv, dvb_devices *dev,
-	       dvb_fe *fe, dvb_lnb *lnb, char *fname)
+	       dvb_fe *fe, dvb_lnb *lnb, char *fname, int *to)
 {
     int out = 0;
     int max =0;
@@ -54,17 +55,18 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	int c;
 	static struct option long_options[] = {
 	    {"fileout", required_argument , 0, 'o'},
-	    {"nit", required_argument , 0, 'N'},
-	    {"sdt", required_argument , 0, 'S'},
-	    {"pat", required_argument , 0, 'P'},
-	    {"full_scan", required_argument , 0, 'F'},
+	    {"timeout", required_argument , 0, 'T'},
+	    {"nit", no_argument , 0, 'N'},
+	    {"sdt", no_argument , 0, 'S'},
+	    {"pat", no_argument , 0, 'P'},
+	    {"full_scan", no_argument , 0, 'F'},
 	    {"stdout", no_argument , 0, 'O'},
 	    {"max", no_argument , 0, 'M'},
 	    {"help", no_argument , 0, 'h'},
 	    {0, 0, 0, 0}
 	};
 	
-	c = getopt_long(argc, argv, "ho:OMNSPFC", long_options, &option_index);
+	c = getopt_long(argc, argv, "ho:T:OMNSPFC", long_options, &option_index);
 	if (c==-1)
 	    break;
 	
@@ -73,6 +75,10 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 	    fname = strdup(optarg);
 	    out = 1;
 	    break;
+
+	case 'T':
+            *to = strtoul(optarg, NULL, 0);
+            break;
 
 	case 'N':
 	    out = 2;
@@ -116,7 +122,8 @@ int parse_args(int argc, char **argv, dvb_devices *dev,
 }
 
 
-satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
+satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max,
+			   int timeout)
 {
     NIT **nits = NULL;
     int n = 0;
@@ -125,7 +132,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
     
     err("Full NIT search\n");
 
-    nits = get_full_nit(dev, fe, lnb);
+    nits = get_full_nit(dev, fe, lnb, timeout);
     if (!nits){
 	err("NIT not found\n");
 	return NULL;
@@ -176,7 +183,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
     if (!max){
 	for (k = 0; k < sat->ntrans; k++){
 	    transport *trans = sat->trans_freq[k];
-	    scan_transport(dev, lnb, trans);
+	    scan_transport(dev, lnb, trans, timeout);
 	}
     } else {
 	switch (sat->delsys){
@@ -200,7 +207,8 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 		    for (int i=0; i < max && i+k < sat->ntrans; i++){
 			transport *trans = sat->trans_freq[k+i];
 			err("start thread for frontend %d %d/%d \n",i,k+i,sat->ntrans);
-			if (thread_scan_transport(dev->adapter, lnb, trans, i, &lock) < 0) exit(1);
+			if (thread_scan_transport(dev->adapter, lnb, trans, i,
+						  &lock, timeout) < 0) exit(1);
 		    }
 		    for (int i = 0; i< max && i+k < sat->ntrans; i++){
 			transport *trans = sat->trans_freq[k+i];
@@ -216,7 +224,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 		for (k = 0; k < sat->ntrans; k++){
 		    transport *trans = sat->trans_freq[k];
 		    trans->sat = sat;
-		    scan_transport(dev, lnb, trans);
+		    scan_transport(dev, lnb, trans, timeout);
 		}
 		break;
 	    }
@@ -231,7 +239,8 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 		for (int i=0; i < max && i+k < sat->ntrans; i++){
 		    transport *trans = sat->trans_freq[k+i];
 		    err("start thread for frontend %d %d/%d \n",i,k,sat->ntrans);
-		    if (thread_scan_transport(dev->adapter, lnb, trans, i, NULL) < 0) exit(1);
+		    if (thread_scan_transport(dev->adapter, lnb, trans, i,
+					      NULL, timeout) < 0) exit(1);
 		}
 		for (int i = 0; i< max && i+k < sat->ntrans; i++){
 		    transport *trans = sat->trans_freq[k+i];
@@ -248,7 +257,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
 	    for (k = 0; k < sat->ntrans; k++){
 		transport *trans = sat->trans_freq[k];
 		trans->sat = sat;
-		scan_transport(dev, lnb, trans);
+		scan_transport(dev, lnb, trans, timeout);
 	    }
 	    break;
 	}
@@ -257,7 +266,7 @@ satellite *full_nit_search(dvb_devices *dev, dvb_fe *fe, dvb_lnb *lnb, int max)
     return sat;
 }
 
-json_object *search_nit(dvb_devices *dev, uint8_t table_id)
+json_object *search_nit(dvb_devices *dev, uint8_t table_id, int timeout)
 {
     int fdmx;
     int re = 0;
@@ -265,7 +274,7 @@ json_object *search_nit(dvb_devices *dev, uint8_t table_id)
     int nnit = 0;
     
     err("Searching NIT\n");
-    if (!(nits = get_all_nits(dev, table_id))){
+    if (!(nits = get_all_nits(dev, table_id, timeout))){
 	err("NIT not found\n");
 	return NULL;
     }
@@ -273,7 +282,7 @@ json_object *search_nit(dvb_devices *dev, uint8_t table_id)
     return dvb_all_nit_json(nits);
 }
 
-void search_sdt(dvb_devices *dev)
+void search_sdt(dvb_devices *dev, int timeout)
 {
     int fdmx;
     int re = 0;
@@ -281,7 +290,7 @@ void search_sdt(dvb_devices *dev)
     int n = 0;
     
     err("Searching SDT\n");
-    if(!(sdts = get_all_sdts(dev))){
+    if(!(sdts = get_all_sdts(dev, timeout))){
 	err("SDT not found\n");
 	exit(1);
     }
@@ -291,7 +300,7 @@ void search_sdt(dvb_devices *dev)
 					    JSON_C_TO_STRING_PRETTY|JSON_C_TO_STRING_SPACED));
 }
 
-void search_pat(dvb_devices *dev)
+void search_pat(dvb_devices *dev, int timeout)
 {
     int fdmx;
     uint8_t sec_buf[4096];
@@ -300,7 +309,7 @@ void search_pat(dvb_devices *dev)
     int npat = 0;
 
     err("Searching PAT\n");
-    pats = get_all_pats(dev);
+    pats = get_all_pats(dev, timeout);
     if (pats){
 	json_object *jobj = dvb_all_pat_json(pats);
 	npat = pats[0]->pat->last_section_number+1;
@@ -313,7 +322,7 @@ void search_pat(dvb_devices *dev)
 		if (!pats[n]->program_number[i]) continue;
 		err("Searching PMT 0x%02x for program 0x%04x\n",
 			pid,pats[n]->program_number[i]);
-		PMT  **pmt = get_all_pmts(dev, pid);
+		PMT  **pmt = get_all_pmts(dev, pid, timeout);
 		if (pmt){
 			json_object_array_add(jpmts, dvb_all_pmt_json(pmt));
 		}
@@ -338,9 +347,10 @@ int main(int argc, char **argv){
     uint8_t sec_buf[4096];
     int re=0;
     int max = 0;
+    int timeout = 0;
     
     dvb_init(&dev, &fe, &lnb);
-    if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename)) < 0)
+    if ((out=parse_args(argc, argv, &dev, &fe, &lnb, filename, &timeout)) < 0)
 	exit(2);
 
     if (out == 6){
@@ -386,9 +396,9 @@ int main(int argc, char **argv){
 	case 2:
 	{
 	    json_object *jobj = json_object_new_object();
-	    json_object *jnit = search_nit(&dev,0x40);
+	    json_object *jnit = search_nit(&dev, 0x40, timeout);
 	    if (jnit) json_object_object_add(jobj,"NIT actual",jnit);
-	    jnit = search_nit(&dev,0x41);
+	    jnit = search_nit(&dev, 0x41, timeout);
 	    if (jnit) json_object_object_add(jobj,"NIT other",jnit);
 	    fprintf (stdout,"%s\n",
 		     json_object_to_json_string_ext(jobj,
@@ -397,11 +407,11 @@ int main(int argc, char **argv){
 	}
 
 	case 3:
-	    search_sdt(&dev);
+	    search_sdt(&dev, timeout);
 	    break;
 
 	case 4:
-	    search_pat(&dev);
+	    search_pat(&dev, timeout);
 	    break;
 
 	case 5:
@@ -409,7 +419,7 @@ int main(int argc, char **argv){
 	{
 	    satellite *sat = NULL;
 
-	    if (sat = full_nit_search(&dev, &fe, &lnb, max)){
+	    if ((sat = full_nit_search(&dev, &fe, &lnb, max, timeout))){
 		json_object *jobj =
 		    dvb_satellite_json(sat);
 		fprintf (stdout,"%s\n",
