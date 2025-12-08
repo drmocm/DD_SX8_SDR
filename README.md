@@ -98,6 +98,7 @@ For usage information use the -h option.
 
 	OTHERS:
 	-o filename  : output filename (default stdout)
+    -T t         : t in msec (default 5000)	timeout for section filter	
 	-h           : this help message
 		   
 				   
